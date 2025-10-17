@@ -1,7 +1,25 @@
 from fastapi import FastAPI
 from app.api import routes_species, routes_sectors, routes_auth, routes_debug
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 app = FastAPI(title="Sistema Cactario Casa Molle")
+
+# Permitir el origen del frontend
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Origenes permitidos
+    allow_credentials=True,
+    allow_methods=["*"],    # Métodos permitidos (GET, POST, etc.)
+    allow_headers=["*"],    # Encabezados permitidos
+)
 
 app.include_router(routes_auth.router,    prefix="/auth",    tags=["Auth"])
 app.include_router(routes_species.router, prefix="/species", tags=["Species"])
