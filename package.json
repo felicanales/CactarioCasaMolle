@@ -1,0 +1,19 @@
+{
+  "name": "cactario-casa-molle",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de cactáceas - Casa Molle",
+  "private": true,
+  "scripts": {
+    "build": "cd nextjs && npm install && npm run build",
+    "dev": "cd nextjs && npm run dev",
+    "start": "cd nextjs && npm start",
+    "install:nextjs": "cd nextjs && npm install",
+    "install:fastapi": "cd fastapi && pip install -r requirements.txt"
+  },
+  "workspaces": [
+    "nextjs"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
