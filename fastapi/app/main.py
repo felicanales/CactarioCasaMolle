@@ -10,7 +10,9 @@ app = FastAPI(title="Sistema Cactario Casa Molle")
 # Permitir el origen del frontend
 origins = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "https://cactario-casa-molle.vercel.app",  # Tu dominio de Vercel
+    "https://*.vercel.app"  # Cualquier subdominio de Vercel
 ]
 
 app.add_middleware(
