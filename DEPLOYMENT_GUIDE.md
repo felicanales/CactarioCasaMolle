@@ -1,148 +1,155 @@
-# 🚀 Guía Completa de Despliegue - Frontend + Backend
+# 🚂 Guía Completa de Despliegue en Railway
 
-## 📋 Problema Identificado
+## 🎯 Solución: Un Solo Servidor para Todo
 
-Tu frontend desplegado en Vercel está intentando conectarse a `localhost:8000`, lo cual no funciona desde producción.
+Railway permite desplegar frontend y backend en el mismo servidor, simplificando la arquitectura y reduciendo costos.
 
-## ✅ Solución: Desplegar Backend en Vercel
+### ✅ **Ventajas de Railway:**
+- **Un solo servidor**: Frontend y backend juntos
+- **Más económico**: $5/mes vs $20/mes de otros servicios
+- **Configuración simple**: Un solo deploy, un solo dashboard
+- **Sin problemas de CORS**: Mismo dominio para todo
+- **Deploy automático**: Push a GitHub = deploy automático
 
-### 1. **Configuración CORS Actualizada** ✅
+### 🚀 **Desplegar en Railway**
 
-El backend ya está configurado para aceptar tu dominio de Vercel:
-- `https://cactario-casa-molle.vercel.app`
-- `https://*.vercel.app` (cualquier subdominio)
+#### **Paso 1: Crear Cuenta y Proyecto**
+1. Ir a [railway.app](https://railway.app)
+2. **Sign up** con GitHub
+3. **New Project** → **Deploy from GitHub repo**
+4. **Seleccionar repositorio**: `CactarioCasaMolle`
+5. **Deploy automático** (Railway detectará Node.js y Python)
 
-### 2. **Desplegar Backend en Vercel**
+#### **Paso 2: Configurar Variables de Entorno**
+En Railway Dashboard → **Variables**:
 
-#### Opción A: Repositorio Separado (Recomendado)
-
-1. **Crear nuevo repositorio** para el backend:
-   ```bash
-   # En una nueva carpeta
-   git init fastapi-backend
-   cd fastapi-backend
-   
-   # Copiar archivos del backend
-   cp -r ../CactarioCasaMolle/fastapi/* .
-   
-   # Subir a GitHub
-   git add .
-   git commit -m "FastAPI backend for Cactario Casa Molle"
-   git push origin main
-   ```
-
-2. **Desplegar en Vercel**:
-   - Ir a [vercel.com](https://vercel.com)
-   - New Project → Importar repositorio del backend
-   - Framework: Python
-   - Build Command: `pip install -r requirements.txt`
-   - Output Directory: `api`
-
-#### Opción B: Monorepo (Actual)
-
-1. **Desplegar backend desde el mismo repositorio**:
-   - En Vercel Dashboard
-   - New Project → Importar `CactarioCasaMolle`
-   - Root Directory: `fastapi`
-   - Framework: Python
-
-### 3. **Configurar Variables de Entorno**
-
-#### En Vercel Dashboard (Backend):
 ```
+# Supabase Configuration
 SUPABASE_URL=tu_supabase_url
 SUPABASE_ANON_KEY=tu_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
+
+# Database
 DATABASE_URL=tu_database_url
-SECRET_KEY=tu_secret_key
+
+# Security
+SECRET_KEY=tu_secret_key_muy_seguro
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# CORS (opcional)
+CORS_ORIGINS=https://tu-dominio.railway.app
 ```
 
-#### En Vercel Dashboard (Frontend):
-```
-NEXT_PUBLIC_API_URL=https://tu-backend.vercel.app
-```
+#### **Paso 3: Configurar Dominio**
+1. **Settings** → **Domains**
+2. **Generate Domain** (gratis)
+3. **O agregar dominio personalizado**
 
-### 4. **URLs Resultantes**
+### 🌐 **URL Resultante**
 
-- **Frontend**: `https://cactario-casa-molle.vercel.app`
-- **Backend**: `https://tu-backend.vercel.app`
+- **Aplicación completa**: `https://tu-proyecto.railway.app`
+- **Frontend**: `https://tu-proyecto.railway.app` (puerto 3000)
+- **Backend**: `https://tu-proyecto.railway.app` (puerto 8000)
 
 ## 🔧 Configuración por Entornos
 
 ### Desarrollo Local
 ```bash
-# Frontend
-cd nextjs
-npm run dev  # http://localhost:3000
+# Instalar dependencias
+npm run install:nextjs
+npm run install:fastapi
 
-# Backend
-cd fastapi
-uvicorn app.main:app --reload  # http://localhost:8000
+# Desarrollo completo (frontend + backend)
+npm run start:all
+
+# Solo frontend
+npm run dev
+
+# Solo backend
+npm run start:fastapi
 ```
 
 ### Producción
-- Frontend: Vercel
-- Backend: Vercel (o Railway, Render, etc.)
+- **Railway**: Todo en un solo servidor
+- **Deploy automático**: Push a GitHub = deploy automático
 
-## 🛠️ Archivos Creados/Modificados
+## 🛠️ Archivos de Configuración
+
+### Configuración Railway
+- ✅ `railway.json` - Configuración principal de Railway
+- ✅ `nixpacks.toml` - Configuración de build para ambos servicios
+- ✅ `package.json` - Scripts para manejar frontend y backend
 
 ### Backend (`fastapi/`)
-- ✅ `vercel.json` - Configuración de Vercel
-- ✅ `api/index.py` - Punto de entrada para Vercel
-- ✅ `app/main.py` - CORS actualizado
+- ✅ `api/index.py` - Punto de entrada para Railway
+- ✅ `app/main.py` - CORS configurado para Railway
 
 ### Frontend (`nextjs/`)
-- ✅ Ya configurado para usar `NEXT_PUBLIC_API_URL`
+- ✅ `src/app/context/AuthContext.jsx` - API dinámico para Railway
+- ✅ Configurado para detectar dominio automáticamente
 
 ## 🚀 Pasos para Implementar
 
-1. **Subir cambios**:
-   ```bash
-   git add .
-   git commit -m "Add Vercel configuration for backend"
-   git push
-   ```
-
-2. **Desplegar backend**:
-   - Crear nuevo proyecto en Vercel
-   - Seleccionar repositorio
-   - Root Directory: `fastapi`
-   - Configurar variables de entorno
-
-3. **Actualizar frontend**:
-   - En Vercel Dashboard del frontend
-   - Settings → Environment Variables
-   - `NEXT_PUBLIC_API_URL` = URL del backend desplegado
-
-4. **Redeploy frontend**:
-   - Trigger nuevo deploy para que tome las variables
+1. **El código ya está listo** ✅
+2. **Crear cuenta en Railway**:
+   - Ir a [railway.app](https://railway.app)
+   - Sign up con GitHub
+3. **Desplegar proyecto**:
+   - New Project → Deploy from GitHub repo
+   - Seleccionar `CactarioCasaMolle`
+   - Deploy automático
+4. **Configurar variables de entorno**:
+   - Settings → Variables
+   - Agregar todas las variables de Supabase
+5. **¡Listo!** Tu aplicación funcionará automáticamente
 
 ## 🔍 Verificación
 
-1. **Backend**: `https://tu-backend.vercel.app/`
-2. **Frontend**: `https://cactario-casa-molle.vercel.app`
+1. **Aplicación**: `https://tu-proyecto.railway.app`
+2. **API**: `https://tu-proyecto.railway.app/auth/me`
 3. **Login**: Probar autenticación completa
+4. **Console**: Verificar que no hay errores de CORS
 
-## 🆘 Alternativas si Vercel no funciona para FastAPI
+## 🏗️ Arquitectura Final
 
-### Railway (Recomendado para FastAPI)
-1. Ir a [railway.app](https://railway.app)
-2. Conectar GitHub
-3. Seleccionar carpeta `fastapi`
-4. Deploy automático
+```
+┌─────────────────────────────────────────────────┐
+│              Railway Server                     │
+│  https://cactario-casa-molle.railway.app       │
+│                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    │
+│  │   Frontend      │    │   Backend       │    │
+│  │   Next.js       │◄──►│   FastAPI       │    │
+│  │   Puerto 3000   │    │   Puerto 8000   │    │
+│  └─────────────────┘    └─────────────────┘    │
+│                                                 │
+│  Mismo dominio, comunicación interna rápida     │
+└─────────────────────────────────────────────────┘
+```
 
-### Render
-1. Ir a [render.com](https://render.com)
-2. New Web Service
-3. Conectar repositorio
-4. Root Directory: `fastapi`
+## 💰 Comparación de Costos
+
+| Servicio | Frontend | Backend | Total/Mes |
+|----------|----------|---------|-----------|
+| **Vercel** | Gratis | $20 | **$20** |
+| **Railway** | Incluido | Incluido | **$5** |
+| **Ahorro** | - | - | **75%** |
 
 ## 📱 Dominio Personalizado (Opcional)
 
 Una vez que todo funcione:
-1. **Backend**: `api.tudominio.com`
-2. **Frontend**: `app.tudominio.com` o `tudominio.com`
+1. **Settings** → **Domains** en Railway
+2. **Add Custom Domain**
+3. **Configurar DNS** según las instrucciones
 
-¡Con esta configuración tendrás un sistema completo funcionando en producción! 🎉
+## 🎯 Resultado Final
+
+- ✅ **Un solo servidor** para frontend y backend
+- ✅ **Un solo dominio** para todo
+- ✅ **75% menos costo** que otras opciones
+- ✅ **Sin problemas de CORS**
+- ✅ **Deploy automático** desde GitHub
+- ✅ **Configuración simple** y mantenible
+
+¡Con Railway tendrás un sistema completo funcionando en producción de manera simple y económica! 🚂✨
