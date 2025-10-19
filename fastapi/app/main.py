@@ -1,19 +1,21 @@
 from fastapi import FastAPI
 from app.api import routes_species, routes_sectors, routes_auth, routes_debug
 from fastapi.middleware.cors import CORSMiddleware
-
-
-
+import os
 
 app = FastAPI(title="Sistema Cactario Casa Molle")
 
-# Permitir el origen del frontend
+# Permitir el origen del frontend - configuración dinámica por entorno
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://cactario-casa-molle.vercel.app",  # Tu dominio de Vercel
     "https://*.vercel.app"  # Cualquier subdominio de Vercel
 ]
+
+# Agregar orígenes desde variables de entorno si existen
+if os.getenv("CORS_ORIGINS"):
+    origins.extend(os.getenv("CORS_ORIGINS").split(","))
 
 app.add_middleware(
     CORSMiddleware,
