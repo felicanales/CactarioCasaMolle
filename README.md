@@ -1,51 +1,121 @@
-# Cactario Casa Molle 🌵
+# 🌵 Cactario Casa Molle
 
-Sistema digital desarrollado como proyecto de titulación (Capstone UAI) para **Casa Molle**.
-Permite la gestión del cactario mediante inventario en tiempo real, fichas públicas de especies accesibles por **QR** y un módulo privado para el staff.
+Sistema de gestión de cactáceas para Casa Molle - Frontend Next.js + Backend FastAPI
 
-##  Funcionalidades principales
+## 🚀 Despliegue en Railway
 
-- Fichas públicas de especies y sectores (QR).
-- Inventario de ejemplares con traslados y estados sanitarios.
-- Módulo staff para control de stock.
-- Compras y recepciones básicas (P2P mínimo).
-- Métricas e indicadores (KPIs).
+Este proyecto está configurado para desplegarse automáticamente en Railway.
 
-##  Stack Tecnológico
+### 📋 Prerrequisitos
 
-- **Frontend**: Next.js (Vercel)
-- **Backend**: FastAPI (Python)
-- **Base de datos & Auth**: Supabase (Postgres + JWT)
-- **Infraestructura**: Vercel + Railway/Render
-- **CI/CD**: GitHub Actions + Vercel
+- Cuenta en [Railway](https://railway.app)
+- Variables de entorno configuradas
 
-##  Estructura del repositorio
+### 🔧 Configuración
 
-/apps/frontend -> Front público (Next.js)
-/apps/api -> Backend FastAPI
-/infra -> Scripts y despliegues
+#### Variables de Entorno Requeridas
 
-##  Cómo levantar localmente
+```bash
+# Supabase
+SUPABASE_URL=tu_supabase_url
+SUPABASE_ANON_KEY=tu_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
 
-1. Clonar repositorio:
+# Database
+DATABASE_URL=tu_database_url
 
-   ```bash
-   git clone https://github.com/felicanales/CactarioCasaMolle.git
-   cd CactarioCasaMolle
-   ```
-2. Backend:
-   cd apps/api
-   pip install -r requirements.txt
-   uvicorn main:app --reload
-3. Frontend
-   cd apps/frontend
-   npm install
-   npm run dev
+# Security
+SECRET_KEY=tu_secret_key_muy_seguro
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
 
-Pruebas
-  Backend: pytest
-  Frontend: npm test
+### 🚂 Deploy en Railway
 
- Licencia
-Este proyecto es parte de un Capstone académico (UAI 2025).
-Uso interno en Casa Molle; no autorizado para distribución comercial sin permiso.
+1. **Conectar GitHub**:
+   - Ir a [railway.app](https://railway.app)
+   - New Project → Deploy from GitHub repo
+   - Seleccionar este repositorio
+
+2. **Configurar Variables**:
+   - Settings → Variables
+   - Agregar todas las variables de entorno
+
+3. **Deploy Automático**:
+   - Railway detectará automáticamente Node.js y Python
+   - Deploy automático en cada push
+
+### 🛠️ Desarrollo Local
+
+```bash
+# Instalar dependencias
+npm run install:nextjs
+npm run install:fastapi
+
+# Desarrollo (solo frontend)
+npm run dev
+
+# Desarrollo completo (frontend + backend)
+npm run start:all
+
+# Build para producción
+npm run build
+```
+
+### 📁 Estructura del Proyecto
+
+```
+/
+├── nextjs/              # Frontend Next.js
+│   ├── src/
+│   │   └── app/
+│   │       ├── login/   # Página de login
+│   │       ├── staff/   # Panel de staff
+│   │       └── context/ # Contexto de autenticación
+│   └── package.json
+├── fastapi/             # Backend FastAPI
+│   ├── app/
+│   │   ├── api/         # Rutas de la API
+│   │   ├── core/        # Configuración core
+│   │   └── models/      # Modelos de datos
+│   └── requirements.txt
+├── railway.json         # Configuración de Railway
+├── nixpacks.toml        # Configuración de build
+└── package.json         # Scripts principales
+```
+
+### 🔐 Autenticación
+
+- **Frontend**: Next.js con contexto de autenticación
+- **Backend**: FastAPI con JWT y cookies HTTP-Only
+- **Base de datos**: Supabase
+- **CORS**: Configurado para Railway
+
+### 🌐 URLs
+
+- **Desarrollo**: `http://localhost:3000` (frontend) + `http://localhost:8000` (backend)
+- **Producción**: `https://tu-proyecto.railway.app` (ambos servicios)
+
+### 📱 Características
+
+- ✅ Login con código de verificación por email
+- ✅ Formulario de código con inputs separados
+- ✅ Panel de staff
+- ✅ Gestión de especies y sectores
+- ✅ Autenticación segura con cookies HTTP-Only
+- ✅ CORS configurado correctamente
+- ✅ Deploy automático en Railway
+
+## 🎯 Scripts Disponibles
+
+```bash
+npm run dev              # Desarrollo frontend
+npm run start:all        # Frontend + Backend
+npm run build           # Build ambos servicios
+npm run start:nextjs    # Solo frontend
+npm run start:fastapi   # Solo backend
+```
+
+## 📞 Soporte
+
+Para problemas o preguntas, revisar los logs en Railway Dashboard.

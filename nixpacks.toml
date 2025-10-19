@@ -3,6 +3,7 @@ nixPkgs = ["nodejs", "npm", "python39", "pip"]
 
 [phases.install]
 cmds = [
+    "npm install",
     "cd nextjs && npm install",
     "cd fastapi && pip install -r requirements.txt"
 ]

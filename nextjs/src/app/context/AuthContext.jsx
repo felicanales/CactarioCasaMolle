@@ -9,12 +9,12 @@ const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  
+
   // En Railway, usar el mismo dominio para el API
   if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
     return `${window.location.protocol}//${window.location.hostname}`;
   }
-  
+
   // Desarrollo local
   return "http://localhost:8000";
 };
