@@ -1,0 +1,16 @@
+[phases.setup]
+nixPkgs = ["nodejs", "npm", "python39", "pip"]
+
+[phases.install]
+cmds = [
+    "cd nextjs && npm install",
+    "cd fastapi && pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "cd nextjs && npm run build"
+]
+
+[start]
+cmd = "npm run start:all"

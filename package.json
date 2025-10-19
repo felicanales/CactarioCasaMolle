@@ -1,19 +1,28 @@
 {
-    "name": "cactario-casa-molle",
-    "version": "1.0.0",
-    "description": "Sistema de gestión de cactáceas - Casa Molle",
-    "private": true,
-    "scripts": {
-        "build": "cd nextjs && npm install && npm run build",
-        "dev": "cd nextjs && npm run dev",
-        "start": "cd nextjs && npm start",
-        "install:nextjs": "cd nextjs && npm install",
-        "install:fastapi": "cd fastapi && pip install -r requirements.txt"
-    },
-    "workspaces": [
-        "nextjs"
-    ],
-    "engines": {
-        "node": ">=18.0.0"
-    }
+  "name": "cactario-casa-molle",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de cactáceas - Casa Molle",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:nextjs && npm run build:fastapi",
+    "build:nextjs": "cd nextjs && npm install && npm run build",
+    "build:fastapi": "cd fastapi && pip install -r requirements.txt",
+    "dev": "npm run dev:nextjs",
+    "dev:nextjs": "cd nextjs && npm run dev",
+    "start": "npm run start:all",
+    "start:all": "concurrently \"npm run start:fastapi\" \"npm run start:nextjs\"",
+    "start:nextjs": "cd nextjs && npm start",
+    "start:fastapi": "cd fastapi && uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "install:nextjs": "cd nextjs && npm install",
+    "install:fastapi": "cd fastapi && pip install -r requirements.txt"
+  },
+  "workspaces": [
+    "nextjs"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
 }

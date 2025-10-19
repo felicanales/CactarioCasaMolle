@@ -10,12 +10,19 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://cactario-casa-molle.vercel.app",  # Tu dominio de Vercel
-    "https://*.vercel.app"  # Cualquier subdominio de Vercel
+    "https://*.vercel.app",  # Cualquier subdominio de Vercel
+    "https://*.railway.app",  # Cualquier subdominio de Railway
+    "https://cactario-casa-molle-production.up.railway.app"  # Tu dominio de Railway
 ]
 
 # Agregar orígenes desde variables de entorno si existen
 if os.getenv("CORS_ORIGINS"):
     origins.extend(os.getenv("CORS_ORIGINS").split(","))
+
+# En producción, permitir el mismo dominio (para Railway)
+if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
+    origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}")
+    origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN').replace('https://', '')}")
 
 app.add_middleware(
     CORSMiddleware,

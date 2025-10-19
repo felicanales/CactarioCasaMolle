@@ -3,7 +3,23 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 const AuthContext = createContext(null);
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Configuración dinámica de API por entorno
+const getApiUrl = () => {
+  // Si hay una variable de entorno específica, usarla
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // En Railway, usar el mismo dominio para el API
+  if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
+    return `${window.location.protocol}//${window.location.hostname}`;
+  }
+  
+  // Desarrollo local
+  return "http://localhost:8000";
+};
+
+const API = getApiUrl();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
