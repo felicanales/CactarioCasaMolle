@@ -17,4 +17,4 @@ cmds = [
 ]
 
 [start]
-cmd = "bash start-railway-optimized.sh"
+cmd = "bash start-railway-final.sh"
