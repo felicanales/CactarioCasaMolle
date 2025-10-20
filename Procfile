@@ -1,1 +1,1 @@
-web: bash start-fastapi-only.sh
+web: bash start-railway-optimized.sh
