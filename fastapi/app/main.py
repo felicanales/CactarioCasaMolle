@@ -13,10 +13,14 @@ app.add_middleware(AuthMiddleware)
 origins = [
     "http://localhost:3001",  # Frontend en puerto 3001
     "http://127.0.0.1:3001",
+    "http://localhost:3000",  # Frontend alternativo
+    "http://127.0.0.1:3000",
     "https://cactario-casa-molle.vercel.app",
     "https://*.vercel.app",
     "https://*.railway.app",
-    "https://cactario-casa-molle-production.up.railway.app"
+    "https://cactario-casa-molle-production.up.railway.app",
+    "https://cactario-frontend-production.up.railway.app",  # Frontend Railway
+    "https://cactario-backend-production.up.railway.app"    # Backend Railway
 ]
 
 # Agregar orígenes desde variables de entorno si existen
@@ -27,6 +31,19 @@ if os.getenv("CORS_ORIGINS"):
 if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
     origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}")
     origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN').replace('https://', '')}")
+
+# Para Railway, permitir todos los subdominios .railway.app
+origins.extend([
+    "https://cactario-frontend-production.up.railway.app",
+    "https://cactario-backend-production.up.railway.app",
+    "https://cactario-casa-molle-production.up.railway.app"
+])
+
+# Remover duplicados
+origins = list(set(origins))
+
+# Log de orígenes permitidos para debugging
+print(f"CORS Origins configured: {origins}")
 
 app.add_middleware(
     CORSMiddleware,

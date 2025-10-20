@@ -51,3 +51,24 @@ def supabase_status():
             "error": str(e),
             "status": "error"
         }
+
+@router.get("/cors-status", summary="Check CORS configuration")
+def cors_status(request: Request):
+    """Check CORS configuration and origins"""
+    origin = request.headers.get("origin")
+    user_agent = request.headers.get("user-agent")
+    
+    # Get CORS middleware info
+    cors_middleware = None
+    for middleware in request.app.user_middleware:
+        if hasattr(middleware, 'cls') and 'CORSMiddleware' in str(middleware.cls):
+            cors_middleware = middleware
+            break
+    
+    return {
+        "origin": origin,
+        "user_agent": user_agent,
+        "cors_middleware_configured": cors_middleware is not None,
+        "allowed_origins": getattr(cors_middleware, 'allowed_origins', []) if cors_middleware else [],
+        "headers": dict(request.headers)
+    }

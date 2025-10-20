@@ -10,7 +10,8 @@ const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-    return `${window.location.protocol}//${window.location.hostname}`;
+    // En Railway, usar el backend específico
+    return "https://cactario-backend-production.up.railway.app";
   }
   return "http://localhost:8000";
 };
