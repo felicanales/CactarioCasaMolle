@@ -4,7 +4,7 @@
         "startCommand": "npm run start:all",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 3,
-        "healthcheckPath": "/debug",
+        "healthcheckPath": "/health",
         "healthcheckTimeout": 300
     },
     "build": {

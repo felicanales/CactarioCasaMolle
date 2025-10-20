@@ -44,3 +44,8 @@ app.include_router(routes_debug.router, prefix="/debug", tags=["Debug"])
 @app.get("/")
 def root():
     return {"message": "API Cactario Casa Molle funcionando correctamente"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for Railway"""
+    return {"status": "ok", "message": "Service is healthy"}
