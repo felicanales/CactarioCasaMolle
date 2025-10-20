@@ -1,0 +1,19 @@
+# Railway ignore file
+node_modules/
+.next/
+.git/
+.gitignore
+README.md
+RAILWAY_SETUP.md
+DEPLOYMENT_GUIDE.md
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.DS_Store
+Thumbs.db
