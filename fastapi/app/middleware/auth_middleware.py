@@ -27,6 +27,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/auth/verify-otp", 
             "/auth/refresh",
             "/auth/logout",
+            "/auth/me",  # Allow /auth/me to be accessed without auth for user verification
             "/docs",
             "/openapi.json",
             "/health",

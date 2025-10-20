@@ -6,9 +6,6 @@ import os
 
 app = FastAPI(title="Sistema Cactario Casa Molle")
 
-# Add authentication middleware
-app.add_middleware(AuthMiddleware)
-
 # Permitir el origen del frontend - configuración dinámica por entorno
 origins = [
     "http://localhost:3001",  # Frontend en puerto 3001
@@ -16,9 +13,6 @@ origins = [
     "http://localhost:3000",  # Frontend alternativo
     "http://127.0.0.1:3000",
     "https://cactario-casa-molle.vercel.app",
-    "https://*.vercel.app",
-    "https://*.railway.app",
-    "https://cactario-casa-molle-production.up.railway.app",
     "https://cactario-frontend-production.up.railway.app",  # Frontend Railway
     "https://cactario-backend-production.up.railway.app"    # Backend Railway
 ]
@@ -32,26 +26,24 @@ if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
     origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}")
     origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN').replace('https://', '')}")
 
-# Para Railway, permitir todos los subdominios .railway.app
-origins.extend([
-    "https://cactario-frontend-production.up.railway.app",
-    "https://cactario-backend-production.up.railway.app",
-    "https://cactario-casa-molle-production.up.railway.app"
-])
-
 # Remover duplicados
 origins = list(set(origins))
 
 # Log de orígenes permitidos para debugging
 print(f"CORS Origins configured: {origins}")
 
+# IMPORTANTE: CORS debe ir ANTES del middleware de autenticación
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*", "X-CSRF-Token"],  # Include CSRF token header
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type"],
+    expose_headers=["*"],
 )
+
+# Add authentication middleware AFTER CORS
+app.add_middleware(AuthMiddleware)
 
 app.include_router(routes_auth.router,    prefix="/auth",    tags=["Auth"])
 app.include_router(routes_species.router, prefix="/species", tags=["Species"])
@@ -73,3 +65,8 @@ def health_check():
         "service": "Cactario Casa Molle API",
         "version": "1.0.0"
     }
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle preflight OPTIONS requests for CORS"""
+    return {"message": "OK"}

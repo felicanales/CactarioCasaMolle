@@ -223,19 +223,28 @@ def logout(response: Response, request: Request):
 @router.get("/me")
 def me(request: Request):
     """
-    Get current user information using JWT middleware
+    Get current user information - handles both authenticated and unauthenticated requests
     """
-    user = get_current_user(request)
-    
-    # Additional validation: ensure user is still active
-    if not validate_user_active(user["id"]):
-        raise HTTPException(403, "User account is inactive")
-    
-    return {
-        "id": user["id"],
-        "email": user["email"],
-        "role": user.get("role", "authenticated"),
-        "aud": user.get("aud"),
-        "exp": user.get("exp"),
-        "iat": user.get("iat")
-    }
+    # Check if user is authenticated via middleware
+    if hasattr(request.state, 'user') and request.state.user:
+        user = request.state.user
+        
+        # Additional validation: ensure user is still active
+        if not validate_user_active(user["id"]):
+            raise HTTPException(403, "User account is inactive")
+        
+        return {
+            "id": user["id"],
+            "email": user["email"],
+            "role": user.get("role", "authenticated"),
+            "aud": user.get("aud"),
+            "exp": user.get("exp"),
+            "iat": user.get("iat"),
+            "authenticated": True
+        }
+    else:
+        # No user authenticated
+        return {
+            "authenticated": False,
+            "message": "No user authenticated"
+        }
