@@ -1,18 +1,22 @@
 from fastapi import FastAPI
 from app.api import routes_species, routes_sectors, routes_auth, routes_debug
+from app.middleware.auth_middleware import auth_middleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
 app = FastAPI(title="Sistema Cactario Casa Molle")
 
+# Add authentication middleware
+app.middleware("http")(auth_middleware)
+
 # Permitir el origen del frontend - configuración dinámica por entorno
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://cactario-casa-molle.vercel.app",  # Tu dominio de Vercel
-    "https://*.vercel.app",  # Cualquier subdominio de Vercel
-    "https://*.railway.app",  # Cualquier subdominio de Railway
-    "https://cactario-casa-molle-production.up.railway.app"  # Tu dominio de Railway
+    "http://localhost:3001",  # Frontend en puerto 3001
+    "http://127.0.0.1:3001",
+    "https://cactario-casa-molle.vercel.app",
+    "https://*.vercel.app",
+    "https://*.railway.app",
+    "https://cactario-casa-molle-production.up.railway.app"
 ]
 
 # Agregar orígenes desde variables de entorno si existen
@@ -26,10 +30,10 @@ if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Origenes permitidos
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],    # Métodos permitidos (GET, POST, etc.)
-    allow_headers=["*"],    # Encabezados permitidos
+    allow_methods=["*"],
+    allow_headers=["*", "X-CSRF-Token"],  # Include CSRF token header
 )
 
 app.include_router(routes_auth.router,    prefix="/auth",    tags=["Auth"])

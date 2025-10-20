@@ -1,14 +1,20 @@
 from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from pydantic import BaseModel, EmailStr
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 from app.core.supabase_auth import get_public, get_service
+from app.core.security import (
+    set_supabase_session_cookies,
+    clear_supabase_session_cookies,
+    get_token_from_request,
+    get_refresh_token_from_request,
+    validate_supabase_jwt,
+    sync_user_supabase_uid,
+    validate_user_active,
+    generate_csrf_token
+)
+from app.middleware.auth_middleware import get_current_user
 
 router = APIRouter()
-bearer = HTTPBearer(auto_error=False)
-
-TOKEN_COOKIE_NAME = "cm_session"
-COOKIE_MAX_AGE_FALLBACK = 60 * 60  # 1 hora
 
 class RequestOtpIn(BaseModel):
     email: EmailStr
@@ -17,30 +23,7 @@ class VerifyOtpIn(BaseModel):
     email: EmailStr
     code: str  # OTP numérico
 
-def _set_session_cookie(response: Response, access_token: str, max_age: Optional[int] = None):
-    response.set_cookie(
-        key=TOKEN_COOKIE_NAME,
-        value=access_token,
-        httponly=True,
-        secure=False,   # True en producción (HTTPS)
-        samesite="lax",
-        max_age=max_age or COOKIE_MAX_AGE_FALLBACK,
-        path="/",
-    )
-
-def _clear_session_cookie(response: Response):
-    # Importante: usar mismos atributos (path/samesite/secure) para que el navegador la elimine
-    response.delete_cookie(
-        key=TOKEN_COOKIE_NAME,
-        path="/",
-        samesite="lax",
-        secure=False,
-    )
-
-def _get_token_from_header_or_cookie(request: Request, creds: Optional[HTTPAuthorizationCredentials]) -> Optional[str]:
-    if creds and creds.credentials:
-        return creds.credentials
-    return request.cookies.get(TOKEN_COOKIE_NAME)
+# Legacy functions removed - now using security.py helpers
 
 @router.post("/request-otp", status_code=204)
 def request_otp(payload: RequestOtpIn):
@@ -107,32 +90,34 @@ def request_otp(payload: RequestOtpIn):
 @router.post("/verify-otp")
 def verify_otp(payload: VerifyOtpIn, response: Response):
     """
-    Verifica OTP; re-chequea que el email esté en whitelist (active=true).
-    Si el supabase_uid no está guardado en 'usuarios', lo completa en el primer login.
+    Verifica OTP usando Supabase como IdP, revalida whitelist y sincroniza supabase_uid
     """
     sb = get_public()
-    sb_admin = get_service()  # para operar sobre la tabla usuarios
+    sb_admin = get_service()
     email = payload.email.strip().lower()
 
-    # 0) Normalización del código
+    # 1) Normalización del código
     code = payload.code.strip().replace(" ", "")
     if not code.isdigit():
         raise HTTPException(400, "El código debe ser numérico")
 
-    # 1) Verificar OTP
-    res = sb.auth.verify_otp({
-        "email": email,
-        "token": code,
-        "type": "email"
-    })
-    if getattr(res, "error", None):
-        raise HTTPException(400, str(res.error))
-    if not res.session or not res.session.access_token or not res.user:
-        raise HTTPException(400, "Código inválido o expirado")
+    # 2) Verificar OTP con Supabase
+    try:
+        res = sb.auth.verify_otp({
+            "email": email,
+            "token": code,
+            "type": "email"
+        })
+        if getattr(res, "error", None):
+            raise HTTPException(400, str(res.error))
+        if not res.session or not res.session.access_token or not res.user:
+            raise HTTPException(400, "Código inválido o expirado")
+    except Exception as e:
+        raise HTTPException(400, f"Error verificando OTP: {e}")
 
     auth_uid = str(res.user.id)
 
-    # 2) Re-chequeo whitelist por email activo
+    # 3) Re-validar whitelist (usuario activo)
     try:
         w = sb_admin.table("usuarios").select("id, supabase_uid, active").eq("email", email).limit(1).execute()
     except Exception as e:
@@ -143,39 +128,114 @@ def verify_otp(payload: VerifyOtpIn, response: Response):
 
     row = w.data[0]
 
-    # 3) Guardar supabase_uid si no estaba
+    # 4) Sincronizar supabase_uid si no está
     if not row.get("supabase_uid"):
-        try:
-            sb_admin.table("usuarios").update({"supabase_uid": auth_uid}).eq("id", row["id"]).execute()
-        except Exception:
-            # Si falla, no bloqueamos login
-            pass
+        sync_user_supabase_uid(email, auth_uid)
 
-    # 4) Emitir cookie + respuesta
-    access_token = res.session.access_token
-    max_age = getattr(res.session, "expires_in", None) or COOKIE_MAX_AGE_FALLBACK
-    _set_session_cookie(response, access_token, max_age=max_age)
+    # 5) Configurar cookies seguras de Supabase
+    set_supabase_session_cookies(response, res.session)
+
+    # 6) Generar CSRF token
+    csrf_token = generate_csrf_token()
+    response.set_cookie(
+        "csrf-token",
+        csrf_token,
+        httponly=False,  # Necesario para que JS lo lea
+        secure=True,
+        samesite="strict",
+        path="/",
+        max_age=3600
+    )
 
     return {
-        "access_token": access_token,
+        "access_token": res.session.access_token,
         "token_type": "bearer",
         "user": {"id": res.user.id, "email": res.user.email},
-        "expires_in": getattr(res.session, "expires_in", None),
+        "expires_in": getattr(res.session, "expires_in", 3600),
+        "csrf_token": csrf_token
     }
 
+@router.post("/refresh")
+def refresh_token(response: Response, request: Request):
+    """
+    Refresh access token using refresh token from cookie
+    """
+    refresh_token = get_refresh_token_from_request(request)
+    
+    if not refresh_token:
+        raise HTTPException(401, "Missing refresh token")
+    
+    try:
+        sb = get_public()
+        # Set session with refresh token to get new tokens
+        session_response = sb.auth.set_session(refresh_token, refresh_token)
+        
+        if not session_response.session:
+            raise HTTPException(401, "Invalid refresh token")
+        
+        # Update cookies with new tokens
+        set_supabase_session_cookies(response, session_response.session)
+        
+        # Generate new CSRF token
+        csrf_token = generate_csrf_token()
+        response.set_cookie(
+            "csrf-token",
+            csrf_token,
+            httponly=False,
+            secure=True,
+            samesite="strict",
+            path="/",
+            max_age=3600
+        )
+        
+        return {
+            "access_token": session_response.session.access_token,
+            "token_type": "bearer",
+            "expires_in": getattr(session_response.session, "expires_in", 3600),
+            "csrf_token": csrf_token
+        }
+        
+    except Exception as e:
+        raise HTTPException(401, f"Token refresh failed: {e}")
+
 @router.post("/logout", status_code=204)
-def logout(response: Response, request: Request, creds: HTTPAuthorizationCredentials = Depends(bearer)):
-    # Opcional: podríamos revocar el token si el proveedor lo soporta. Por ahora, solo borramos cookie.
-    _clear_session_cookie(response)
+def logout(response: Response, request: Request):
+    """
+    Logout user and clear all session cookies
+    """
+    # Clear Supabase session cookies
+    clear_supabase_session_cookies(response)
+    
+    # Clear CSRF token
+    response.delete_cookie("csrf-token", path="/", samesite="strict", secure=True)
+    
+    # Optional: Sign out from Supabase
+    token = get_token_from_request(request)
+    if token:
+        try:
+            sb = get_public()
+            sb.auth.sign_out()
+        except Exception:
+            pass  # Don't fail logout if sign_out fails
+    
     return
 
 @router.get("/me")
-def me(request: Request, creds: HTTPAuthorizationCredentials = Depends(bearer)):
-    sb = get_public()
-    token = _get_token_from_header_or_cookie(request, creds)
-    if not token:
-        raise HTTPException(401, "Falta token (usa Authorization: Bearer o cookie)")
-    res = sb.auth.get_user(token)
-    if not res.user:
-        raise HTTPException(401, "Token inválido")
-    return {"id": res.user.id, "email": res.user.email}
+def me(request: Request):
+    """
+    Get current user information using JWT middleware
+    """
+    user = get_current_user(request)
+    
+    # Additional validation: ensure user is still active
+    if not validate_user_active(user["id"]):
+        raise HTTPException(403, "User account is inactive")
+    
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "role": user.get("role", "authenticated"),
+        "aud": user.get("aud"),
+        "exp": user.get("exp"),
+        "iat": user.get("iat")
+    }

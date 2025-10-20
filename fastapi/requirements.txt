@@ -14,10 +14,11 @@ alembic==1.13.2
 python-dotenv==1.0.1
 
 # --- Autenticación y seguridad ---
-python-jose==3.3.0       # para JWT
-passlib[bcrypt]==1.7.4   # para hashear contraseñas/códigos
-email-validator==2.1.0   # para validar correos
-itsdangerous==2.1.2      # para generar tokens temporales (para códigos por correo)
+python-jose[cryptography]==3.3.0  # para JWT con soporte crypto
+passlib[bcrypt]==1.7.4            # para hashear contraseñas/códigos
+email-validator==2.1.0            # para validar correos
+itsdangerous==2.1.2               # para generar tokens temporales
+cryptography==41.0.7              # para operaciones criptográficas
 
 # --- Envío de correos ---
 aiosmtplib==2.0.2        # envío asíncrono
