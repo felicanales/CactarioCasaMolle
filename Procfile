@@ -1,1 +1,1 @@
-web: bash start-railway-optimized.sh
+web: bash start-simple.sh

@@ -45,17 +45,13 @@ wait_for_fastapi() {
 echo "📁 Changing to fastapi directory..."
 cd fastapi
 
-# Instalar dependencias
-echo "📦 Installing Python dependencies..."
-pip install -r requirements.txt
+# Verificar que Python y pip estén disponibles
+echo "🔍 Checking Python environment..."
+python3 --version || echo "❌ Python3 not found"
+pip --version || echo "❌ pip not found"
 
-# Verificar que las dependencias se instalaron correctamente
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to install Python dependencies"
-    exit 1
-fi
-
-echo "✅ Python dependencies installed successfully"
+# Las dependencias ya deberían estar instaladas por Nixpacks
+echo "📦 Python dependencies should be installed by Nixpacks..."
 
 # Iniciar FastAPI en background
 echo "🚀 Starting FastAPI on port ${PORT:-8000}..."
