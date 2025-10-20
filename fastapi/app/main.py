@@ -47,5 +47,5 @@ def root():
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for Railway"""
-    return {"status": "ok", "message": "Service is healthy"}
+    """Health check endpoint for Railway - must return 200 immediately"""
+    return {"status": "ok", "message": "Service is healthy", "timestamp": "2024-01-01T00:00:00Z"}

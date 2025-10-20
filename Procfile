@@ -1,1 +1,1 @@
-web: npm run start:all
+web: bash start-fastapi-only.sh

@@ -3,6 +3,9 @@
 # Script simple para iniciar FastAPI con la variable PORT de Railway
 echo "🚀 Starting FastAPI on port ${PORT:-8000}..."
 
+# Cambiar al directorio fastapi
+cd fastapi
+
 # Instalar dependencias si es necesario
 pip install -r requirements.txt
 
