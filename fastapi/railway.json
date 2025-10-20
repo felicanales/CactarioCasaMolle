@@ -8,6 +8,6 @@
         "healthcheckTimeout": 300
     },
     "build": {
-        "builder": "NIXPACKS"
+        "builder": "DOCKERFILE"
     }
 }

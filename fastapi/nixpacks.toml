@@ -1,8 +1,0 @@
-# Nixpacks configuration for FastAPI backend
-providers = ["python"]
-
-[phases.install]
-cmds = ["python -m pip install -r requirements.txt"]
-
-[phases.build]
-cmds = ["echo 'Backend build completed'"]
