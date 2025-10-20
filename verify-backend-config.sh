@@ -31,8 +31,23 @@ if [ -f "fastapi/nixpacks.toml" ]; then
     else
         echo "❌ Sintaxis de providers incorrecta"
     fi
+    # Verificar uso de python -m pip
+    if grep -q 'python -m pip' fastapi/nixpacks.toml; then
+        echo "✅ Usa 'python -m pip' (recomendado)"
+    elif grep -q 'pip install' fastapi/nixpacks.toml; then
+        echo "⚠️  Usa 'pip install' (puede fallar en Railway)"
+    fi
 else
     echo "❌ nixpacks.toml no encontrado"
+    echo "   Railway usará detección automática de Python"
+fi
+
+# Verificar archivos alternativos
+if [ -f "fastapi/nixpacks-robust.toml" ]; then
+    echo "✅ nixpacks-robust.toml disponible como alternativa"
+fi
+if [ -f "fastapi/nixpacks-minimal.toml" ]; then
+    echo "✅ nixpacks-minimal.toml disponible como alternativa"
 fi
 
 # Verificar Procfile

@@ -25,7 +25,17 @@ pip --version || {
 
 # Instalar dependencias si es necesario
 echo "📦 Installing Python dependencies..."
-pip install -r requirements.txt || {
+echo "🔍 Checking pip availability..."
+python -m pip --version || {
+    echo "❌ pip not available, trying to install..."
+    python -m ensurepip --upgrade || {
+        echo "❌ Failed to install pip"
+        exit 1
+    }
+}
+
+echo "📦 Installing dependencies with pip..."
+python -m pip install -r requirements.txt || {
     echo "❌ Failed to install dependencies"
     exit 1
 }

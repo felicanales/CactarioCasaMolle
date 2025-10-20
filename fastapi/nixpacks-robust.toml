@@ -1,0 +1,21 @@
+# Robust Nixpacks configuration for FastAPI backend
+providers = ["python"]
+
+[phases.setup]
+cmds = [
+  "python --version",
+  "python -m ensurepip --upgrade",
+  "python -m pip --version"
+]
+
+[phases.install]
+cmds = [
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+  "echo 'Backend build completed'",
+  "python -c 'import fastapi, uvicorn; print(\"Dependencies verified\")'"
+]
