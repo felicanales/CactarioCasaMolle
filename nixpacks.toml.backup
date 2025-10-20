@@ -1,3 +1,4 @@
+# Versión alternativa más simple
 [providers]
 node = "20"
 python = "3.11"
