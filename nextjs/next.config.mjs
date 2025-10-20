@@ -3,8 +3,8 @@ const nextConfig = {
   // Configuración para Railway
   output: 'standalone',
   experimental: {
-    // Optimizaciones para producción
-    optimizeCss: true,
+    // Desactivar optimización de CSS para evitar problemas con critters
+    optimizeCss: false,
   },
   // Configuración de variables de entorno
   env: {
