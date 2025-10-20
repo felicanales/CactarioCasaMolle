@@ -1,7 +1,7 @@
 # app/api/routes_species.py
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from typing import Optional, Dict, Any
-from app.utils.security_utils import get_current_user
+from app.middleware.auth_middleware import get_current_user
 from app.services import species_service as svc
 
 router = APIRouter()

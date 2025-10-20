@@ -1,7 +1,7 @@
 # app/api/routes_sectors.py
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from typing import Optional, Any, Dict
-from app.utils.security_utils import get_current_user
+from app.middleware.auth_middleware import get_current_user
 from app.services import sectors_service as svc
 
 router = APIRouter()
