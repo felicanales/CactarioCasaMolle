@@ -13,8 +13,7 @@
         "start:nextjs": "cd nextjs && npm start",
         "start:fastapi": "cd fastapi && pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000",
         "install:nextjs": "cd nextjs && npm install",
-        "install:fastapi": "cd fastapi && pip install -r requirements.txt",
-        "postinstall": "npm run install:nextjs"
+        "install:fastapi": "cd fastapi && pip install -r requirements.txt"
     },
     "workspaces": [
         "nextjs"
