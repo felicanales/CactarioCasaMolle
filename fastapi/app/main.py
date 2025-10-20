@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from app.api import routes_species, routes_sectors, routes_auth, routes_debug
-from app.middleware.auth_middleware import auth_middleware
+from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
 app = FastAPI(title="Sistema Cactario Casa Molle")
 
 # Add authentication middleware
-app.middleware("http")(auth_middleware)
+app.add_middleware(AuthMiddleware)
 
 # Permitir el origen del frontend - configuración dinámica por entorno
 origins = [

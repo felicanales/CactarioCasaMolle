@@ -33,12 +33,12 @@ const apiRequest = async (url, options = {}) => {
     'Content-Type': 'application/json',
     ...options.headers,
   };
-  
+
   // Add CSRF token for state-changing operations
   if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
     headers['X-CSRF-Token'] = csrfToken;
   }
-  
+
   return fetch(url, {
     ...options,
     headers,
@@ -94,7 +94,7 @@ export function AuthProvider({ children }) {
       throw new Error(msg || "Código inválido o expirado");
     }
     const data = await res.json();
-    
+
     // Update user state after successful verification
     await fetchMe();
     return data;
@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
         throw new Error("Token refresh failed");
       }
       const data = await res.json();
-      
+
       // Update user state after refresh
       await fetchMe();
       return data;
