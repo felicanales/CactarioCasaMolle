@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de inicio para el backend FastAPI en Railway
+# Script de inicio robusto para el backend FastAPI en Railway
 echo "🚀 Starting Cactario Casa Molle Backend on Railway..."
 
 # Verificar variables de entorno críticas
@@ -11,13 +11,34 @@ echo "SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-not set}"
 echo "SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-not set}"
 echo "NODE_ENV: ${NODE_ENV:-production}"
 
-# Asegurar que PORT sea un número válido
-if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
-    echo "⚠️  PORT is not a valid integer, using default 8000"
-    PORT=8000
-fi
+# Función para validar y establecer PORT
+setup_port() {
+    # Si PORT no está definido, usar 8000
+    if [ -z "$PORT" ]; then
+        PORT=8000
+        echo "⚠️  PORT not set, using default: $PORT"
+    fi
+    
+    # Validar que PORT sea un número
+    if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+        echo "❌ PORT is not a valid integer: '$PORT'"
+        echo "🔧 Using default port: 8000"
+        PORT=8000
+    fi
+    
+    # Validar que PORT esté en rango válido
+    if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+        echo "❌ PORT is out of valid range (1-65535): $PORT"
+        echo "🔧 Using default port: 8000"
+        PORT=8000
+    fi
+    
+    echo "✅ Using PORT: $PORT"
+    export PORT
+}
 
-echo "🔧 Using PORT: $PORT"
+# Configurar PORT
+setup_port
 
 # Verificar que Python esté disponible
 echo "🔍 Checking Python environment..."
@@ -26,24 +47,29 @@ python3 --version || {
     exit 1
 }
 
-pip --version || {
-    echo "❌ pip not found"
-    exit 1
+# Verificar que pip esté disponible
+echo "🔍 Checking pip availability..."
+python3 -m pip --version || {
+    echo "❌ pip not available, trying to install..."
+    python3 -m ensurepip --upgrade || {
+        echo "❌ Failed to install pip"
+        exit 1
+    }
 }
 
 # Instalar dependencias si es necesario
 echo "📦 Installing Python dependencies..."
 echo "🔍 Checking pip availability..."
-python -m pip --version || {
+python3 -m pip --version || {
     echo "❌ pip not available, trying to install..."
-    python -m ensurepip --upgrade || {
+    python3 -m ensurepip --upgrade || {
         echo "❌ Failed to install pip"
         exit 1
     }
 }
 
 echo "📦 Installing dependencies with pip..."
-python -m pip install -r requirements.txt || {
+python3 -m pip install -r requirements.txt || {
     echo "❌ Failed to install dependencies"
     exit 1
 }
@@ -93,7 +119,8 @@ else:
 echo "🚀 Starting FastAPI on port $PORT..."
 echo "🔧 Using uvicorn with optimized settings for Railway..."
 
-uvicorn app.main:app \
+# Usar python -m uvicorn para mayor compatibilidad
+python3 -m uvicorn app.main:app \
     --host 0.0.0.0 \
     --port $PORT \
     --workers 1 \
