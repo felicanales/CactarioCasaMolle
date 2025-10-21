@@ -1,14 +1,42 @@
+# Railway ignore file for backend deployment
+# Exclude unnecessary files from build
+
+# Python cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-.env
-.venv/
+
+# Virtual environments
 venv/
 env/
-*.log
-*.backup
-.pytest_cache/
-.coverage
-htmlcov/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Development
+.env.local
+.env.development
