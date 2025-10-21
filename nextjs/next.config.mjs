@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const nextConfig = {
     // Configuración para Railway
     output: 'standalone',
-    
+
     // Configurar workspace root para evitar advertencias de múltiples lockfiles
     outputFileTracingRoot: join(__dirname, '../'),
 

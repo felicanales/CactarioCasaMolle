@@ -10,7 +10,7 @@
         "dev:nextjs": "cd nextjs && npm run dev -- -p 3001",
         "start": "npm run start:all",
         "start:all": "concurrently \"npm run start:fastapi\" \"npm run start:nextjs\"",
-        "start:nextjs": "cd nextjs && npm start -- -p 3001",
+        "start:nextjs": "cd nextjs && npm run start:dev -- -p 3001",
         "start:fastapi": "cd fastapi && uvicorn app.main:app --host 0.0.0.0 --port 8000",
         "install:nextjs": "cd nextjs && npm install",
         "install:fastapi": "cd fastapi && pip install -r requirements.txt"
