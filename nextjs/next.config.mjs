@@ -1,21 +1,27 @@
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // Configuración para Railway
     output: 'standalone',
     
     // Configurar workspace root para evitar advertencias de múltiples lockfiles
-    outputFileTracingRoot: require('path').join(__dirname, '../'),
-    
+    outputFileTracingRoot: join(__dirname, '../'),
+
     experimental: {
         // Desactivar optimización de CSS para evitar problemas con critters
         optimizeCss: false,
     },
-    
+
     // Configuración de variables de entorno
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
     },
-    
+
     // Configuración de rewrites para API
     async rewrites() {
         return [

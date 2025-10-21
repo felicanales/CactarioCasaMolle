@@ -14,7 +14,20 @@ SB_ACCESS_TOKEN = "sb-access-token"
 SB_REFRESH_TOKEN = "sb-refresh-token"
 
 # Determine if we're in production (use secure cookies only in production)
-IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("PRODUCTION") == "true"
+# En desarrollo local, estas variables NO existirán
+IS_PRODUCTION = (
+    os.getenv("RAILWAY_ENVIRONMENT") is not None or 
+    os.getenv("RAILWAY_ENVIRONMENT_NAME") is not None or
+    os.getenv("PRODUCTION", "").lower() == "true"
+)
+
+# Debug log para verificar entorno
+print(f"[security] Environment detection:")
+print(f"  RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT')}")
+print(f"  RAILWAY_ENVIRONMENT_NAME: {os.getenv('RAILWAY_ENVIRONMENT_NAME')}")
+print(f"  PRODUCTION: {os.getenv('PRODUCTION')}")
+print(f"  IS_PRODUCTION: {IS_PRODUCTION}")
+print(f"  Cookies will use secure={IS_PRODUCTION}")
 
 def set_supabase_session_cookies(response: Response, session) -> None:
     """
