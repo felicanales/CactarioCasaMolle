@@ -27,6 +27,6 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Start command - use environment variable PORT from Railway
+# Start command - use Python script to handle PORT correctly
 # Railway healthcheck is configured in railway.json (healthcheckPath: /health)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+CMD ["python", "start.py"]

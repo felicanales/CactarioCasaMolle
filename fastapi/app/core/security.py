@@ -13,19 +13,26 @@ from app.core.supabase_auth import get_public, get_service
 SB_ACCESS_TOKEN = "sb-access-token"
 SB_REFRESH_TOKEN = "sb-refresh-token"
 
+# Determine if we're in production (use secure cookies only in production)
+IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") is not None or os.getenv("PRODUCTION") == "true"
+
 def set_supabase_session_cookies(response: Response, session) -> None:
     """
     Set Supabase session cookies with secure settings
+    In development (localhost), secure=False to allow HTTP
+    In production (Railway), secure=True to require HTTPS
     """
     at = session.access_token
     rt = session.refresh_token
     
     common = dict(
         httponly=True, 
-        secure=True, 
+        secure=IS_PRODUCTION,  # Only secure in production
         samesite="strict", 
         path="/"
     )
+    
+    print(f"[security] Setting cookies - IS_PRODUCTION: {IS_PRODUCTION}, secure: {IS_PRODUCTION}")
     
     # Access token: 1 hour
     response.set_cookie(
@@ -47,8 +54,8 @@ def clear_supabase_session_cookies(response: Response) -> None:
     """
     Clear Supabase session cookies
     """
-    response.delete_cookie(SB_ACCESS_TOKEN, path="/", samesite="strict", secure=True)
-    response.delete_cookie(SB_REFRESH_TOKEN, path="/", samesite="strict", secure=True)
+    response.delete_cookie(SB_ACCESS_TOKEN, path="/", samesite="strict", secure=IS_PRODUCTION)
+    response.delete_cookie(SB_REFRESH_TOKEN, path="/", samesite="strict", secure=IS_PRODUCTION)
 
 def get_token_from_request(request: Request) -> Optional[str]:
     """

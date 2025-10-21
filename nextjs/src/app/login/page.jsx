@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 // Componente para inputs separados del código
@@ -124,12 +125,19 @@ function CodeInput({ code, setCode, length = 6 }) {
 }
 
 export default function LoginPage() {
-  const { user, requestOtp, verifyOtp } = useAuth();
+  const { user, loading: authLoading, requestOtp, verifyOtp } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState("email"); // "email" | "code"
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(null); // mensajes de feedback
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/staff");
+    }
+  }, [user, authLoading, router]);
 
   const onRequestOtp = async (e) => {
     e.preventDefault();
@@ -167,12 +175,10 @@ export default function LoginPage() {
     }
   };
 
-  if (user) {
+  if (authLoading || user) {
     return (
-      <div className="card">
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Ya estás dentro ✅</h1>
-        <p style={{ marginBottom: 16 }}>Email: <b>{user.email}</b></p>
-        <Link href="/staff">Ir al panel de staff →</Link>
+      <div style={{ maxWidth: 420, margin: "64px auto", textAlign: "center" }}>
+        <p>Cargando...</p>
       </div>
     );
   }

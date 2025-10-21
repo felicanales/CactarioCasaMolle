@@ -2,22 +2,25 @@
 
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function StaffPage() {
   const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return <div style={{ maxWidth: 420, margin: "64px auto" }}>Cargando…</div>;
   }
 
   if (!user) {
-    return (
-      <div style={{ maxWidth: 520, margin: "64px auto", padding: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Acceso restringido</h1>
-        <p style={{ marginBottom: 16 }}>Debes iniciar sesión para ver el panel de staff.</p>
-        <Link href="/login">Ir a login →</Link>
-      </div>
-    );
+    return <div style={{ maxWidth: 420, margin: "64px auto" }}>Redirigiendo…</div>;
   }
 
   return (

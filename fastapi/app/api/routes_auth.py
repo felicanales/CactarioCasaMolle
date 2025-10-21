@@ -10,7 +10,8 @@ from app.core.security import (
     validate_supabase_jwt,
     sync_user_supabase_uid,
     validate_user_active,
-    generate_csrf_token
+    generate_csrf_token,
+    IS_PRODUCTION
 )
 from app.middleware.auth_middleware import get_current_user
 
@@ -141,7 +142,7 @@ def verify_otp(payload: VerifyOtpIn, response: Response):
         "csrf-token",
         csrf_token,
         httponly=False,  # Necesario para que JS lo lea
-        secure=True,
+        secure=IS_PRODUCTION,  # Only secure in production
         samesite="strict",
         path="/",
         max_age=3600
@@ -182,7 +183,7 @@ def refresh_token(response: Response, request: Request):
             "csrf-token",
             csrf_token,
             httponly=False,
-            secure=True,
+            secure=IS_PRODUCTION,  # Only secure in production
             samesite="strict",
             path="/",
             max_age=3600
@@ -207,7 +208,7 @@ def logout(response: Response, request: Request):
     clear_supabase_session_cookies(response)
     
     # Clear CSRF token
-    response.delete_cookie("csrf-token", path="/", samesite="strict", secure=True)
+    response.delete_cookie("csrf-token", path="/", samesite="strict", secure=IS_PRODUCTION)
     
     # Optional: Sign out from Supabase
     token = get_token_from_request(request)
