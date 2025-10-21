@@ -47,7 +47,7 @@ def request_otp(payload: RequestOtpIn):
         raise HTTPException(500, f"Error consultando whitelist: {e}")
     if not u.data:
         print(f"[request_otp] Email no autorizado o inactivo: {email}")
-        return
+        raise HTTPException(403, "Este correo no está autorizado para acceder al sistema. Contacta al administrador si crees que esto es un error.")
 
     # 2) Revisar si ya existe user en Auth; si no, lo creamos con admin API
     try:
@@ -225,27 +225,36 @@ def logout(response: Response, request: Request):
 def me(request: Request):
     """
     Get current user information - handles both authenticated and unauthenticated requests
+    This endpoint manually validates the token since it's skipped by the middleware
     """
-    # Check if user is authenticated via middleware
-    if hasattr(request.state, 'user') and request.state.user:
-        user = request.state.user
-        
-        # Additional validation: ensure user is still active
-        if not validate_user_active(user["id"]):
-            raise HTTPException(403, "User account is inactive")
-        
-        return {
-            "id": user["id"],
-            "email": user["email"],
-            "role": user.get("role", "authenticated"),
-            "aud": user.get("aud"),
-            "exp": user.get("exp"),
-            "iat": user.get("iat"),
-            "authenticated": True
-        }
-    else:
-        # No user authenticated
+    # Try to get token from request (cookie or Authorization header)
+    token = get_token_from_request(request)
+    
+    if not token:
+        # No token found
         return {
             "authenticated": False,
             "message": "No user authenticated"
         }
+    
+    # Validate JWT token
+    user_claims = validate_supabase_jwt(token)
+    
+    if not user_claims:
+        # Invalid or expired token
+        return {
+            "authenticated": False,
+            "message": "Invalid or expired token"
+        }
+    
+    # Validate user is still active
+    if not validate_user_active(user_claims["id"]):
+        raise HTTPException(403, "User account is inactive")
+    
+    # Return user information
+    return {
+        "id": user_claims["id"],
+        "email": user_claims["email"],
+        "role": user_claims.get("role", "authenticated"),
+        "authenticated": True
+    }

@@ -6,7 +6,8 @@ export function middleware(req) {
     const { nextUrl, cookies } = req;
     const pathname = nextUrl.pathname;
 
-    const hasSession = Boolean(cookies.get("cm_session"));
+    // Verificar si tiene las cookies de sesión de Supabase
+    const hasSession = Boolean(cookies.get("sb-access-token"));
     const isProtected = ["/staff", "/species", "/sectors"].some((p) => pathname.startsWith(p));
 
     // Solo redirigir a login si intenta acceder a rutas protegidas sin cookie

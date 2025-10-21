@@ -56,40 +56,32 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async () => {
-    console.log('[AuthContext] fetchMe iniciado, API:', API);
     try {
       const res = await apiRequest(`${API}/auth/me`, {
         method: "GET",
       });
-      console.log('[AuthContext] fetchMe response status:', res.status);
       if (!res.ok) {
-        console.log('[AuthContext] fetchMe response not ok, setting user to null');
         setUser(null);
         return;
       }
       const data = await res.json();
-      console.log('[AuthContext] fetchMe success, data:', data);
 
       // Check if user is authenticated
       if (data.authenticated === false) {
-        console.log('[AuthContext] User not authenticated, setting user to null');
         setUser(null);
       } else {
-        console.log('[AuthContext] User authenticated:', data);
         setUser(data);
       }
     } catch (error) {
-      console.error('[AuthContext] fetchMe error:', error);
+      console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
     // Always try to fetch user on mount - middleware handles authentication
-    console.log('[AuthContext] useEffect iniciado');
     (async () => {
       await fetchMe();
-      console.log('[AuthContext] fetchMe completado, setting loading to false');
       setLoading(false);
     })();
   }, [fetchMe]);
@@ -100,30 +92,33 @@ export function AuthProvider({ children }) {
       method: "POST",
       body: JSON.stringify({ email }),
     });
-    if (!res.ok && res.status !== 204) throw new Error("No se pudo solicitar OTP");
+    if (!res.ok && res.status !== 204) {
+      // Intentar obtener el mensaje de error del servidor
+      let errorMessage = "No se pudo solicitar OTP";
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.detail || errorMessage;
+      } catch {
+        // Si no se puede parsear, usar mensaje genérico
+      }
+      throw new Error(errorMessage);
+    }
     return true;
   };
 
   const verifyOtp = async (email, code) => {
-    console.log('[AuthContext] verifyOtp iniciado para:', email);
     const res = await apiRequest(`${API}/auth/verify-otp`, {
       method: "POST",
       body: JSON.stringify({ email, code }),
     });
-    console.log('[AuthContext] verifyOtp response status:', res.status);
     if (!res.ok) {
       const msg = await res.text();
-      console.error('[AuthContext] verifyOtp error:', msg);
       throw new Error(msg || "Código inválido o expirado");
     }
     const data = await res.json();
-    console.log('[AuthContext] verifyOtp success, data:', data);
-    console.log('[AuthContext] Cookies después de verifyOtp:', document.cookie);
 
     // Update user state after successful verification
-    console.log('[AuthContext] Llamando fetchMe después de verifyOtp...');
     await fetchMe();
-    console.log('[AuthContext] fetchMe completado después de verifyOtp');
     return data;
   };
 

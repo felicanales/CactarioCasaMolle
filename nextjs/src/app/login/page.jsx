@@ -135,7 +135,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/staff");
+      router.replace("/staff");
     }
   }, [user, authLoading, router]);
 
@@ -148,7 +148,9 @@ export default function LoginPage() {
       setStep("code");
       setStatus({ type: "success", text: "Te enviamos un código a tu correo." });
     } catch (err) {
-      setStatus({ type: "error", text: "No fue posible solicitar el código (verifica tu correo autorizado)." });
+      // Usar el mensaje de error del servidor si está disponible
+      const errorMessage = err.message || "No fue posible solicitar el código. Verifica tu correo.";
+      setStatus({ type: "error", text: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -210,9 +212,9 @@ export default function LoginPage() {
       )}
 
       {step === "email" && (
-        <form onSubmit={onRequestOtp} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 8, fontSize: "14px" }}>Correo</label>
+        <form onSubmit={onRequestOtp} style={{ display: "flex", flexDirection: "column", gap: "20px", width: "100%" }}>
+          <div style={{ width: "100%" }}>
+            <label style={{ display: "block", fontWeight: 600, marginBottom: 8, fontSize: "14px", color: "#374151" }}>Correo electrónico</label>
             <input
               type="email"
               required
@@ -226,7 +228,8 @@ export default function LoginPage() {
                 border: "2px solid #e5e7eb",
                 fontSize: "16px",
                 transition: "border-color 0.2s ease",
-                outline: "none"
+                outline: "none",
+                boxSizing: "border-box"
               }}
               onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
               onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
@@ -237,13 +240,15 @@ export default function LoginPage() {
             disabled={loading}
             className="btn-primary"
             style={{
+              width: "100%",
               padding: "14px 24px",
               fontSize: "16px",
               fontWeight: "600",
               borderRadius: 10,
               border: "none",
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
+              boxSizing: "border-box"
             }}
           >
             {loading ? "Enviando..." : "Enviar código"}
@@ -252,9 +257,9 @@ export default function LoginPage() {
       )}
 
       {step === "code" && (
-        <form onSubmit={onVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <div>
-            <label style={{ display: "block", fontWeight: 600, marginBottom: 8, fontSize: "14px" }}>Correo</label>
+        <form onSubmit={onVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%" }}>
+          <div style={{ width: "100%" }}>
+            <label style={{ display: "block", fontWeight: 600, marginBottom: 8, fontSize: "14px", color: "#374151" }}>Correo electrónico</label>
             <input
               type="email"
               required
@@ -268,7 +273,8 @@ export default function LoginPage() {
                 border: "2px solid #e5e7eb",
                 background: "#f8fafc",
                 fontSize: "16px",
-                color: "#64748b"
+                color: "#64748b",
+                boxSizing: "border-box"
               }}
             />
           </div>
@@ -291,12 +297,13 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
             <button
               type="submit"
               disabled={loading || code.length !== 6}
               className="btn-primary"
               style={{
+                width: "100%",
                 padding: "14px 24px",
                 fontSize: "16px",
                 fontWeight: "600",
@@ -304,7 +311,8 @@ export default function LoginPage() {
                 border: "none",
                 opacity: code.length !== 6 ? 0.6 : 1,
                 cursor: code.length !== 6 ? 'not-allowed' : 'pointer',
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
+                boxSizing: "border-box"
               }}
             >
               {loading ? "Verificando..." : "Ingresar"}
@@ -315,6 +323,7 @@ export default function LoginPage() {
               onClick={() => setStep("email")}
               className="btn-secondary"
               style={{
+                width: "100%",
                 padding: "12px 24px",
                 fontSize: "14px",
                 fontWeight: "500",
@@ -323,7 +332,8 @@ export default function LoginPage() {
                 background: "#ffffff",
                 color: "#6b7280",
                 cursor: "pointer",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
+                boxSizing: "border-box"
               }}
             >
               Cambiar correo

@@ -21,13 +21,10 @@ IS_PRODUCTION = (
     os.getenv("PRODUCTION", "").lower() == "true"
 )
 
-# Debug log para verificar entorno
-print(f"[security] Environment detection:")
-print(f"  RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT')}")
-print(f"  RAILWAY_ENVIRONMENT_NAME: {os.getenv('RAILWAY_ENVIRONMENT_NAME')}")
-print(f"  PRODUCTION: {os.getenv('PRODUCTION')}")
-print(f"  IS_PRODUCTION: {IS_PRODUCTION}")
-print(f"  Cookies will use secure={IS_PRODUCTION}")
+# Log environment for debugging
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"Security module loaded - IS_PRODUCTION: {IS_PRODUCTION}, secure cookies: {IS_PRODUCTION}")
 
 def set_supabase_session_cookies(response: Response, session) -> None:
     """
@@ -44,8 +41,6 @@ def set_supabase_session_cookies(response: Response, session) -> None:
         samesite="strict", 
         path="/"
     )
-    
-    print(f"[security] Setting cookies - IS_PRODUCTION: {IS_PRODUCTION}, secure: {IS_PRODUCTION}")
     
     # Access token: 1 hour
     response.set_cookie(
@@ -98,12 +93,11 @@ def validate_supabase_jwt(token: str) -> Optional[Dict[str, Any]]:
         
         if user_response.user:
             return {
-                "id": user_response.user.id,
+                "id": str(user_response.user.id),
                 "email": user_response.user.email,
-                "aud": user_response.user.aud,
                 "role": user_response.user.role,
-                "exp": user_response.user.exp,
-                "iat": user_response.user.iat,
+                # Note: exp, iat, aud are in the JWT token itself, not in the User object
+                # We only return what's available in the User object from Supabase
             }
         return None
     except Exception as e:
