@@ -6,13 +6,17 @@ const AuthContext = createContext(null);
 
 // Configuración dinámica de API por entorno
 const getApiUrl = () => {
+  // Prioridad 1: Variable de entorno NEXT_PUBLIC_API_URL
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
+  
+  // Prioridad 2: Detectar Railway y usar backend de producción
   if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-    // En Railway, usar el backend específico
     return "https://cactario-backend-production.up.railway.app";
   }
+  
+  // Prioridad 3: Desarrollo local
   return "http://localhost:8000";
 };
 
