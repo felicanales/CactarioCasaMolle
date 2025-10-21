@@ -78,9 +78,9 @@ npm run build
 │   │   ├── api/         # Rutas de la API
 │   │   ├── core/        # Configuración core
 │   │   └── models/      # Modelos de datos
+│   ├── Dockerfile       # Configuración Docker
+│   ├── railway.json     # Configuración Railway backend
 │   └── requirements.txt
-├── railway.json         # Configuración de Railway
-├── nixpacks.toml        # Configuración de build
 └── package.json         # Scripts principales
 ```
 

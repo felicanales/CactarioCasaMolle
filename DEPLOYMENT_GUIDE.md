@@ -77,12 +77,13 @@ npm run start:fastapi
 ## 🛠️ Archivos de Configuración
 
 ### Configuración Railway
-- ✅ `railway.json` - Configuración principal de Railway
-- ✅ `nixpacks.toml` - Configuración de build para ambos servicios
-- ✅ `package.json` - Scripts para manejar frontend y backend
+- ✅ `package.json` - Scripts para manejar frontend
+- ✅ `fastapi/railway.json` - Configuración Railway backend
+- ✅ `fastapi/Dockerfile` - Build con Docker
 
 ### Backend (`fastapi/`)
-- ✅ `api/index.py` - Punto de entrada para Railway
+- ✅ `Dockerfile` - Imagen Docker personalizada
+- ✅ `railway.json` - Configuración de despliegue
 - ✅ `app/main.py` - CORS configurado para Railway
 
 ### Frontend (`nextjs/`)
