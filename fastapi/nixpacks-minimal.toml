@@ -1,2 +1,0 @@
-# Minimal Nixpacks configuration - let Railway auto-detect Python
-providers = ["python"]

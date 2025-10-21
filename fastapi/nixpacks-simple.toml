@@ -1,2 +1,0 @@
-# Simple Nixpacks configuration for FastAPI backend
-providers = ["python"]
