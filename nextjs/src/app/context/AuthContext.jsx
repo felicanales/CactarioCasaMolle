@@ -22,6 +22,11 @@ const getApiUrl = () => {
 
 const API = getApiUrl();
 
+// Log API URL for debugging
+if (typeof window !== 'undefined') {
+  console.log('[AuthContext] Using API URL:', API);
+}
+
 // Helper para obtener CSRF token
 const getCsrfToken = () => {
   if (typeof document !== 'undefined') {
