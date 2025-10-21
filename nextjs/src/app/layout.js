@@ -4,7 +4,10 @@ import { AuthProvider } from "./context/AuthContext";
 
 export const metadata = {
   title: "Cactario Casa Molle",
-  description: "Sistema Cactario",
+  description: "Sistema de gestión de cactáceas - Casa Molle",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }) {
