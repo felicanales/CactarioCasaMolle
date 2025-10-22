@@ -12,7 +12,8 @@ const { spawn } = require('child_process');
 
 // Railway provides PORT, default to 3000 for local development
 const PORT = process.env.PORT || 3000;
-const HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
+// MUST be 0.0.0.0 for Railway (ignore any other HOSTNAME env var)
+const HOSTNAME = '0.0.0.0';
 
 console.log('🔍 Railway Frontend Deployment');
 console.log('================================');
