@@ -28,19 +28,19 @@ const path = require('path');
 
 function copyStaticFiles() {
     console.log('🔍 Checking for static files...');
-    
+
     const staticSource = '.next/static';
     const staticDest = '.next/standalone/nextjs/.next/static';
     const publicSource = 'public';
     const publicDest = '.next/standalone/nextjs/public';
-    
+
     try {
         if (existsSync(staticSource) && !existsSync(staticDest)) {
             console.log('📦 Copying .next/static to standalone...');
             fs.cpSync(staticSource, staticDest, { recursive: true });
             console.log('   ✅ Static files copied');
         }
-        
+
         if (existsSync(publicSource) && !existsSync(publicDest)) {
             console.log('📦 Copying public to standalone...');
             fs.cpSync(publicSource, publicDest, { recursive: true });

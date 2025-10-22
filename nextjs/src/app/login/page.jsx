@@ -66,13 +66,13 @@ function CodeInput({ code, setCode, length = 6 }) {
   return (
     <div style={{
       display: 'flex',
-      gap: '8px',
+      gap: 'clamp(4px, 2vw, 8px)',
       justifyContent: 'center',
       transform: pasted ? 'scale(1.02)' : 'scale(1)',
       transition: 'transform 0.2s ease',
       padding: '8px 0',
       width: '100%',
-      maxWidth: '320px',
+      maxWidth: '100%',
       margin: '0 auto'
     }}>
       {Array.from({ length }, (_, index) => (
@@ -88,12 +88,12 @@ function CodeInput({ code, setCode, length = 6 }) {
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           style={{
-            width: '42px',
-            height: '48px',
+            width: 'clamp(38px, 13vw, 48px)',
+            height: 'clamp(42px, 14vw, 54px)',
             textAlign: 'center',
-            fontSize: '20px',
+            fontSize: 'clamp(18px, 5vw, 22px)',
             fontWeight: '700',
-            borderRadius: '10px',
+            borderRadius: 'clamp(8px, 2vw, 12px)',
             border: code[index] ? '2px solid #10b981' : '2px solid #e5e7eb',
             background: code[index] ? '#f0fdf4' : '#ffffff',
             outline: 'none',
@@ -102,8 +102,9 @@ function CodeInput({ code, setCode, length = 6 }) {
               ? '0 2px 8px rgba(16, 185, 129, 0.15)'
               : '0 1px 3px rgba(0, 0, 0, 0.05)',
             color: code[index] ? '#059669' : '#374151',
-            flex: '1',
-            minWidth: '42px'
+            flex: '0 1 auto',
+            minWidth: '0',
+            boxSizing: 'border-box'
           }}
           onFocus={(e) => {
             e.target.style.borderColor = '#3b82f6';
