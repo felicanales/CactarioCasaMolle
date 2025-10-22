@@ -22,6 +22,38 @@ console.log(`🌐 Server will listen on: ${HOSTNAME}:${PORT}`);
 console.log(`🔐 PORT from Railway: ${process.env.PORT || '(not set, using 3000)'}`);
 console.log('');
 
+// Copy static files if they don't exist in standalone directory
+const fs = require('fs');
+const path = require('path');
+
+function copyStaticFiles() {
+    console.log('🔍 Checking for static files...');
+    
+    const staticSource = '.next/static';
+    const staticDest = '.next/standalone/nextjs/.next/static';
+    const publicSource = 'public';
+    const publicDest = '.next/standalone/nextjs/public';
+    
+    try {
+        if (existsSync(staticSource) && !existsSync(staticDest)) {
+            console.log('📦 Copying .next/static to standalone...');
+            fs.cpSync(staticSource, staticDest, { recursive: true });
+            console.log('   ✅ Static files copied');
+        }
+        
+        if (existsSync(publicSource) && !existsSync(publicDest)) {
+            console.log('📦 Copying public to standalone...');
+            fs.cpSync(publicSource, publicDest, { recursive: true });
+            console.log('   ✅ Public files copied');
+        }
+    } catch (error) {
+        console.warn('⚠️  Error copying files:', error.message);
+    }
+}
+
+// Run copy before checking server paths
+copyStaticFiles();
+
 // Possible locations for server.js in standalone build
 const possiblePaths = [
     '.next/standalone/nextjs/server.js',     // Monorepo with outputFileTracingRoot
