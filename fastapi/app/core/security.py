@@ -38,7 +38,7 @@ def set_supabase_session_cookies(response: Response, session) -> None:
     common = dict(
         httponly=True, 
         secure=IS_PRODUCTION,  # Only secure in production
-        samesite="strict", 
+        samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
         path="/"
     )
     
@@ -62,8 +62,9 @@ def clear_supabase_session_cookies(response: Response) -> None:
     """
     Clear Supabase session cookies
     """
-    response.delete_cookie(SB_ACCESS_TOKEN, path="/", samesite="strict", secure=IS_PRODUCTION)
-    response.delete_cookie(SB_REFRESH_TOKEN, path="/", samesite="strict", secure=IS_PRODUCTION)
+    samesite_value = "lax" if not IS_PRODUCTION else "strict"
+    response.delete_cookie(SB_ACCESS_TOKEN, path="/", samesite=samesite_value, secure=IS_PRODUCTION)
+    response.delete_cookie(SB_REFRESH_TOKEN, path="/", samesite=samesite_value, secure=IS_PRODUCTION)
 
 def get_token_from_request(request: Request) -> Optional[str]:
     """

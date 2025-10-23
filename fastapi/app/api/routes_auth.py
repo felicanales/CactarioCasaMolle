@@ -197,7 +197,7 @@ def verify_otp(payload: VerifyOtpIn, response: Response):
         csrf_token,
         httponly=False,  # Necesario para que JS lo lea
         secure=IS_PRODUCTION,  # Only secure in production
-        samesite="strict",
+        samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
         path="/",
         max_age=3600
     )
@@ -238,7 +238,7 @@ def refresh_token(response: Response, request: Request):
             csrf_token,
             httponly=False,
             secure=IS_PRODUCTION,  # Only secure in production
-            samesite="strict",
+            samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
             path="/",
             max_age=3600
         )
@@ -262,7 +262,8 @@ def logout(response: Response, request: Request):
     clear_supabase_session_cookies(response)
     
     # Clear CSRF token
-    response.delete_cookie("csrf-token", path="/", samesite="strict", secure=IS_PRODUCTION)
+    samesite_value = "lax" if not IS_PRODUCTION else "strict"
+    response.delete_cookie("csrf-token", path="/", samesite=samesite_value, secure=IS_PRODUCTION)
     
     # Optional: Sign out from Supabase
     token = get_token_from_request(request)

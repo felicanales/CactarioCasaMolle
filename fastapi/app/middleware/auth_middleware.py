@@ -46,6 +46,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Get token from request
         token = get_token_from_request(request)
         
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[AuthMiddleware] Path: {request.url.path}, Method: {request.method}")
+        logger.info(f"[AuthMiddleware] Cookies: {list(request.cookies.keys())}")
+        logger.info(f"[AuthMiddleware] Token found: {bool(token)}")
+        
         if not token:
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
