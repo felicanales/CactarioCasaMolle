@@ -52,6 +52,38 @@ CORS_ORIGINS=https://tu-dominio.railway.app
 - **Frontend**: `https://tu-proyecto.railway.app` (puerto 3000)
 - **Backend**: `https://tu-proyecto.railway.app` (puerto 8000)
 
+## 🔐 SEGURIDAD: Configurar Row-Level Security (RLS)
+
+⚠️ **CRÍTICO**: Antes de hacer deploy a producción, **DEBES** configurar RLS en Supabase.
+
+**Problema detectado**: 10 tablas están expuestas públicamente sin protección.
+
+### Pasos para Aplicar RLS:
+
+1. **Abrir Supabase Dashboard**
+   - Ir a: https://supabase.com/dashboard
+   - Seleccionar tu proyecto
+
+2. **Ir al SQL Editor**
+   - Click en "SQL Editor" en el menú lateral
+
+3. **Ejecutar el script de seguridad**
+   - Abrir: `fastapi/app/core/rls_policies_secure.sql`
+   - Copiar TODO el contenido
+   - Pegar en el SQL Editor
+   - Click en "Run" o `Ctrl+Enter`
+
+4. **Verificar**
+   - Abrir: `fastapi/verify_rls.sql`
+   - Ejecutar en el SQL Editor
+   - Verificar que todas las tablas muestren "✅ SECURE"
+
+📖 **Guía completa**: Ver `fastapi/RLS_SECURITY_GUIDE.md`
+
+✅ **Tu API FastAPI no necesita cambios** - usa service role que bypasa RLS
+
+---
+
 ## 🔧 Configuración por Entornos
 
 ### Desarrollo Local

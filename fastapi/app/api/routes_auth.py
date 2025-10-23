@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Response, Request
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional
+import re
 from app.core.supabase_auth import get_public, get_service
 from app.core.security import (
     set_supabase_session_cookies,
@@ -17,12 +18,67 @@ from app.middleware.auth_middleware import get_current_user
 
 router = APIRouter()
 
+# Validadores de seguridad
+def sanitize_email(email: str) -> str:
+    """Sanitiza y valida email para prevenir inyecciones"""
+    if not email:
+        raise ValueError("Email no puede estar vacío")
+    
+    # Eliminar espacios y convertir a minúsculas
+    email = email.strip().lower()
+    
+    # Validar longitud
+    if len(email) < 5 or len(email) > 254:
+        raise ValueError("Email debe tener entre 5 y 254 caracteres")
+    
+    # Validar formato estricto
+    email_regex = r'^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email):
+        raise ValueError("Formato de email inválido")
+    
+    # Verificar partes del email
+    local, domain = email.split('@')
+    if len(local) > 64:
+        raise ValueError("Parte local del email demasiado larga")
+    
+    return email
+
+def sanitize_otp_code(code: str) -> str:
+    """Sanitiza y valida código OTP para prevenir inyecciones"""
+    if not code:
+        raise ValueError("Código OTP no puede estar vacío")
+    
+    # Eliminar espacios y caracteres no numéricos
+    code = re.sub(r'\D', '', code.strip())
+    
+    # Validar longitud exacta
+    if len(code) != 6:
+        raise ValueError("Código OTP debe tener exactamente 6 dígitos")
+    
+    # Validar que sean solo dígitos
+    if not code.isdigit():
+        raise ValueError("Código OTP debe contener solo dígitos")
+    
+    return code
+
 class RequestOtpIn(BaseModel):
-    email: EmailStr
+    email: EmailStr = Field(..., max_length=254)
+    
+    @validator('email')
+    def validate_email(cls, v):
+        return sanitize_email(v)
 
 class VerifyOtpIn(BaseModel):
-    email: EmailStr
-    code: str  # OTP numérico
+    email: EmailStr = Field(..., max_length=254)
+    code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$')
+    
+    @validator('email')
+    def validate_email(cls, v):
+        return sanitize_email(v)
+    
+    @validator('code')
+    def validate_code(cls, v):
+        return sanitize_otp_code(v)
 
 # Legacy functions removed - now using security.py helpers
 
@@ -95,12 +151,10 @@ def verify_otp(payload: VerifyOtpIn, response: Response):
     """
     sb = get_public()
     sb_admin = get_service()
-    email = payload.email.strip().lower()
-
-    # 1) Normalización del código
-    code = payload.code.strip().replace(" ", "")
-    if not code.isdigit():
-        raise HTTPException(400, "El código debe ser numérico")
+    email = payload.email  # Ya sanitizado por el validador
+    code = payload.code    # Ya sanitizado por el validador
+    
+    print(f"[verify_otp] Verificando código para: {email}")
 
     # 2) Verificar OTP con Supabase
     try:
