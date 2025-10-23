@@ -35,6 +35,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/"
         ]
         
+        # Skip OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        
         # Check if path should skip auth
         if any(request.url.path.startswith(path) for path in skip_auth_paths):
             return await call_next(request)
