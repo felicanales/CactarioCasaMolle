@@ -178,6 +178,7 @@ export default function LoginPage() {
 
   const [step, setStep] = useState("email"); // "email" | "code"
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -241,6 +242,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
+    // Prevenir doble submit
+    if (submitting) {
+      console.log("Ya se está procesando la verificación");
+      return;
+    }
+
     // Validar rate limiting
     if (!checkRateLimit()) return;
 
@@ -252,6 +259,7 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    setSubmitting(true);
     setAttempts(prev => prev + 1);
     setLastAttempt(Date.now());
 
@@ -266,15 +274,16 @@ export default function LoginPage() {
       setCode("");
     } finally {
       setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  // Auto-submit cuando se complete el código
+  // Auto-submit cuando se complete el código (solo si no está ya procesando)
   useEffect(() => {
-    if (code.length === 6 && step === "code" && !loading) {
+    if (code.length === 6 && step === "code" && !loading && !submitting) {
       handleVerifyOtp(new Event('submit'));
     }
-  }, [code]);
+  }, [code, loading, submitting]);
 
   // Sanitizar email en cada cambio
   const handleEmailChange = (e) => {
