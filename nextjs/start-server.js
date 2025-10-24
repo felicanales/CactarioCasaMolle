@@ -54,54 +54,42 @@ function copyStaticFiles() {
 // Run copy before checking server paths
 copyStaticFiles();
 
-// Possible locations for server.js in standalone build
-const possiblePaths = [
-    '.next/standalone/nextjs/server.js',     // Monorepo with outputFileTracingRoot
-    '.next/standalone/server.js',             // Standard standalone
-    '../.next/standalone/nextjs/server.js',   // Alternative monorepo structure
-];
+// Use our custom server.js instead of the standalone one
+const customServerPath = resolve('./server.js');
 
-console.log('🔍 Searching for standalone server.js...');
+console.log('🔍 Using custom server.js for Railway...');
+console.log(`   Server file: ${customServerPath}`);
 
-let serverPath = null;
-
-for (const path of possiblePaths) {
-    const fullPath = resolve(path);
-    console.log(`   Checking: ${fullPath}`);
-    if (existsSync(fullPath)) {
-        serverPath = fullPath;
-        console.log(`   ✅ Found: ${fullPath}`);
-        break;
-    } else {
-        console.log(`   ❌ Not found: ${fullPath}`);
-    }
-}
-
-if (!serverPath) {
+if (!existsSync(customServerPath)) {
     console.error('');
-    console.error('❌ ERROR: Could not find server.js in any expected location');
-    console.error('Searched paths:');
-    possiblePaths.forEach(p => console.error(`  - ${resolve(p)}`));
+    console.error('❌ ERROR: Custom server.js not found');
+    console.error(`   Expected: ${customServerPath}`);
     console.error('');
-    console.error('💡 TIP: Make sure "npm run build" completed successfully');
     process.exit(1);
 }
 
 console.log('');
-console.log(`🚀 Starting Next.js standalone server...`);
-console.log(`   Server file: ${serverPath}`);
+console.log(`🚀 Starting Next.js server...`);
+console.log(`   Server file: ${customServerPath}`);
 console.log(`   Listening on: http://${HOSTNAME}:${PORT}`);
 console.log('');
 
-// Ensure environment variables are set correctly for Next.js standalone
+// Ensure environment variables are set correctly for Next.js
 const env = {
     ...process.env,
     PORT: PORT.toString(),
     HOSTNAME: HOSTNAME,
+    NODE_ENV: 'production',
 };
 
+console.log(`🔧 Environment variables for Next.js:`);
+console.log(`   PORT: ${env.PORT}`);
+console.log(`   HOSTNAME: ${env.HOSTNAME}`);
+console.log(`   NODE_ENV: ${env.NODE_ENV}`);
+console.log('');
+
 // Start the server
-const child = spawn('node', [serverPath], {
+const child = spawn('node', [customServerPath], {
     stdio: 'inherit',
     env: env,
     cwd: process.cwd()
