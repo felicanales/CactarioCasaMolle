@@ -36,9 +36,32 @@ const getCsrfToken = () => {
   return null;
 };
 
-// Helper para hacer requests con CSRF
+// Helper para obtener el access token de cookies o localStorage
+const getAccessToken = () => {
+  if (typeof window === 'undefined') return null;
+
+  // Prioridad 1: localStorage (para compatibilidad con usuarios existentes)
+  const localStorageToken = localStorage.getItem('access_token');
+  if (localStorageToken) {
+    console.log('[AuthContext] Using token from localStorage');
+    return localStorageToken;
+  }
+
+  // Prioridad 2: cookies
+  const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+  if (match) {
+    console.log('[AuthContext] Using token from cookies');
+    return match[2];
+  }
+
+  return null;
+};
+
+// Helper para hacer requests con CSRF y Authorization
 const apiRequest = async (url, options = {}) => {
   const csrfToken = getCsrfToken();
+  const accessToken = getAccessToken();
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -47,6 +70,14 @@ const apiRequest = async (url, options = {}) => {
   // Add CSRF token for state-changing operations
   if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
     headers['X-CSRF-Token'] = csrfToken;
+  }
+
+  // Add Authorization header if token is available
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+    console.log('[AuthContext] Adding Authorization header to request:', url);
+  } else {
+    console.log('[AuthContext] No access token available for request:', url);
   }
 
   return fetch(url, {
@@ -59,33 +90,63 @@ const apiRequest = async (url, options = {}) => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState(null);
 
   const fetchMe = useCallback(async () => {
     try {
       const res = await apiRequest(`${API}/auth/me`, {
         method: "GET",
       });
+
       if (!res.ok) {
+        console.log('[AuthContext] fetchMe failed:', res.status);
         setUser(null);
-        return;
+        setAccessToken(null);
+        // Limpiar localStorage si la autenticación falla
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+        }
+        return false;
       }
+
       const data = await res.json();
+      console.log('[AuthContext] fetchMe success:', data);
 
       // Check if user is authenticated
       if (data.authenticated === false) {
         setUser(null);
+        setAccessToken(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+        }
+        return false;
       } else {
         setUser(data);
+        // Guardar token en estado y localStorage si está disponible
+        if (data.access_token) {
+          setAccessToken(data.access_token);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', data.access_token);
+            console.log('[AuthContext] Token updated in localStorage from /auth/me');
+          }
+        }
+        return true;
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
+      setAccessToken(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+      }
+      return false;
     }
   }, []);
 
   useEffect(() => {
-    // Always try to fetch user on mount - middleware handles authentication
+    // Intentar obtener el usuario al cargar
     (async () => {
+      console.log('[AuthContext] Initializing...');
       await fetchMe();
       setLoading(false);
     })();
@@ -122,8 +183,25 @@ export function AuthProvider({ children }) {
     }
     const data = await res.json();
 
-    // Update user state after successful verification
+    console.log('[AuthContext] OTP verified, data:', data);
+
+    // Guardar token y usuario
+    if (data.access_token) {
+      setAccessToken(data.access_token);
+      // Guardar en localStorage para compatibilidad
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', data.access_token);
+        console.log('[AuthContext] Token saved to localStorage');
+      }
+    }
+    if (data.user) {
+      setUser(data.user);
+    }
+
+    // Actualizar el estado del usuario llamando a fetchMe
+    console.log('[AuthContext] Updating user state after OTP verification');
     await fetchMe();
+    
     return data;
   };
 
@@ -154,12 +232,18 @@ export function AuthProvider({ children }) {
       });
     } finally {
       setUser(null);
-      // No need to clear localStorage - we don't use it anymore
+      setAccessToken(null);
+      // Limpiar localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        console.log('[AuthContext] Token removed from localStorage');
+      }
+      console.log('[AuthContext] User logged out');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, requestOtp, verifyOtp, refreshToken, logout }}>
+    <AuthContext.Provider value={{ user, loading, accessToken, requestOtp, verifyOtp, refreshToken, logout, fetchMe }}>
       {children}
     </AuthContext.Provider>
   );
