@@ -242,11 +242,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
+    console.log('[LoginPage] handleVerifyOtp called - submitting:', submitting, 'loading:', loading);
+
     // Prevenir doble submit - múltiples verificaciones
     if (submitting || loading) {
-      console.log("Ya se está procesando la verificación o ya está cargando");
+      console.log('[LoginPage] ❌ Ya se está procesando la verificación - BLOQUEADO');
       return;
     }
+
+    console.log('[LoginPage] ✅ Iniciando verificación OTP...');
 
     // Validar rate limiting
     if (!checkRateLimit()) return;
@@ -258,6 +262,7 @@ export default function LoginPage() {
       return;
     }
 
+    console.log('[LoginPage] Setting loading=true, submitting=true');
     setLoading(true);
     setSubmitting(true);
     setAttempts(prev => prev + 1);
@@ -277,10 +282,16 @@ export default function LoginPage() {
       // Limpiar código en error
       setCode("");
     } finally {
+      console.log('[LoginPage] Resetting loading=false, submitting=false');
       setLoading(false);
       setSubmitting(false);
     }
   };
+
+  // Monitorear cambios de estado para debug
+  useEffect(() => {
+    console.log('[LoginPage] State changed - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length);
+  }, [loading, submitting, code.length]);
 
   // Auto-submit deshabilitado para prevenir doble submit
   // El usuario debe hacer click en el botón para verificar
@@ -510,6 +521,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || code.length !== 6 || submitting}
+              onClick={(e) => {
+                console.log('[LoginPage] Button clicked - disabled:', loading || code.length !== 6 || submitting);
+                console.log('[LoginPage] Button state - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length);
+              }}
               style={{
                 width: "100%",
                 padding: "12px",
