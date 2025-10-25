@@ -278,12 +278,13 @@ export default function LoginPage() {
     }
   };
 
-  // Auto-submit cuando se complete el código (solo si no está ya procesando)
-  useEffect(() => {
-    if (code.length === 6 && step === "code" && !loading && !submitting) {
-      handleVerifyOtp(new Event('submit'));
-    }
-  }, [code, loading, submitting]);
+  // Auto-submit deshabilitado para prevenir doble submit
+  // El usuario debe hacer click en el botón para verificar
+  // useEffect(() => {
+  //   if (code.length === 6 && step === "code" && !loading && !submitting) {
+  //     handleVerifyOtp(new Event('submit'));
+  //   }
+  // }, [code, loading, submitting]);
 
   // Sanitizar email en cada cambio
   const handleEmailChange = (e) => {
@@ -444,6 +445,17 @@ export default function LoginPage() {
               textAlign: "center"
             }}>
               Ingresa el código de 6 dígitos
+              {code.length === 6 && (
+                <span style={{
+                  display: "block",
+                  fontSize: "12px",
+                  color: "#16a34a",
+                  marginTop: "4px",
+                  fontWeight: "600"
+                }}>
+                  ✓ Código completo - Haz clic en "Verificar"
+                </span>
+              )}
             </label>
 
             <div style={{ marginBottom: "16px" }}>
