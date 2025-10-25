@@ -242,9 +242,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    // Prevenir doble submit
-    if (submitting) {
-      console.log("Ya se está procesando la verificación");
+    // Prevenir doble submit - múltiples verificaciones
+    if (submitting || loading) {
+      console.log("Ya se está procesando la verificación o ya está cargando");
       return;
     }
 
@@ -267,7 +267,7 @@ export default function LoginPage() {
       await verifyOtp(email, codeValidation.sanitized);
       setSuccess("✅ Autenticación exitosa");
       setAttempts(0); // Resetear intentos en éxito
-      
+
       // Pequeño delay para asegurar que el estado se actualice
       setTimeout(() => {
         router.push("/staff");
@@ -449,7 +449,7 @@ export default function LoginPage() {
               textAlign: "center"
             }}>
               Ingresa el código de 6 dígitos
-              {code.length === 6 && (
+              {code.length === 6 && !loading && !submitting && (
                 <span style={{
                   display: "block",
                   fontSize: "12px",
@@ -458,6 +458,17 @@ export default function LoginPage() {
                   fontWeight: "600"
                 }}>
                   ✓ Código completo - Haz clic en "Verificar"
+                </span>
+              )}
+              {(loading || submitting) && (
+                <span style={{
+                  display: "block",
+                  fontSize: "12px",
+                  color: "#6b7280",
+                  marginTop: "4px",
+                  fontWeight: "600"
+                }}>
+                  ⏳ Verificando código...
                 </span>
               )}
             </label>
@@ -498,28 +509,29 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6}
+              disabled={loading || code.length !== 6 || submitting}
               style={{
                 width: "100%",
                 padding: "12px",
                 fontSize: "16px",
                 fontWeight: "600",
                 color: "white",
-                backgroundColor: (loading || code.length !== 6) ? "#9ca3af" : "#3b82f6",
+                backgroundColor: (loading || code.length !== 6 || submitting) ? "#9ca3af" : "#3b82f6",
                 border: "none",
                 borderRadius: "8px",
-                cursor: (loading || code.length !== 6) ? "not-allowed" : "pointer",
+                cursor: (loading || code.length !== 6 || submitting) ? "not-allowed" : "pointer",
                 transition: "background-color 0.2s",
-                marginBottom: "12px"
+                marginBottom: "12px",
+                opacity: (loading || submitting) ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                if (!loading && code.length === 6) e.target.style.backgroundColor = "#2563eb";
+                if (!loading && !submitting && code.length === 6) e.target.style.backgroundColor = "#2563eb";
               }}
               onMouseLeave={(e) => {
-                if (!loading && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
+                if (!loading && !submitting && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
               }}
             >
-              {loading ? "Conectando..." : "Verificar código"}
+              {loading || submitting ? "Verificando..." : "Verificar código"}
             </button>
 
             <button
