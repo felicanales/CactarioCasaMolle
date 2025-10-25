@@ -12,12 +12,18 @@ export default function StaffPage() {
 
   useEffect(() => {
     console.log('[StaffPage] useEffect - loading:', loading, 'user:', user);
-    if (!loading && !user) {
-      console.log('[StaffPage] ❌ No hay usuario autenticado, redirigiendo al login...');
-      router.replace("/login");
-    } else if (!loading && user) {
-      console.log('[StaffPage] ✅ Usuario autenticado:', user);
-    }
+    
+    // Esperar un poco más para que el AuthContext se inicialice completamente
+    const timer = setTimeout(() => {
+      if (!loading && !user) {
+        console.log('[StaffPage] ❌ No hay usuario autenticado después del timeout, redirigiendo al login...');
+        router.replace("/login");
+      } else if (!loading && user) {
+        console.log('[StaffPage] ✅ Usuario autenticado:', user);
+      }
+    }, 1000); // Esperar 1 segundo
+
+    return () => clearTimeout(timer);
   }, [user, loading, router]);
 
   const handleLogout = async () => {

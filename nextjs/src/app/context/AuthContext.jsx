@@ -91,6 +91,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+  const [initialized, setInitialized] = useState(false);
 
   const fetchMe = useCallback(async () => {
     try {
@@ -148,14 +149,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // Intentar obtener el usuario al cargar
-    (async () => {
-      console.log('[AuthContext] Initializing...');
-      await fetchMe();
-      setLoading(false);
-      console.log('[AuthContext] Initialization complete - user:', user, 'loading:', loading);
-    })();
-  }, [fetchMe]);
+    // Intentar obtener el usuario al cargar solo una vez
+    if (!initialized) {
+      (async () => {
+        console.log('[AuthContext] Initializing...');
+        await fetchMe();
+        setLoading(false);
+        setInitialized(true);
+        console.log('[AuthContext] Initialization complete - user:', user, 'loading:', loading);
+      })();
+    }
+  }, [fetchMe, initialized]);
 
   // Monitorear cambios en el estado del usuario
   useEffect(() => {
