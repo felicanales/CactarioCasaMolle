@@ -181,6 +181,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [verificationComplete, setVerificationComplete] = useState(false);
 
   // Rate limiting simple (cliente)
   const [attempts, setAttempts] = useState(0);
@@ -272,7 +273,8 @@ export default function LoginPage() {
       await verifyOtp(email, codeValidation.sanitized);
       setSuccess("✅ Autenticación exitosa");
       setAttempts(0); // Resetear intentos en éxito
-
+      setVerificationComplete(true); // Deshabilitar botón después de verificación exitosa
+      
       // Pequeño delay para asegurar que el estado se actualice
       setTimeout(() => {
         router.push("/staff");
@@ -290,8 +292,8 @@ export default function LoginPage() {
 
   // Monitorear cambios de estado para debug
   useEffect(() => {
-    console.log('[LoginPage] State changed - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length);
-  }, [loading, submitting, code.length]);
+    console.log('[LoginPage] State changed - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length, 'verificationComplete:', verificationComplete);
+  }, [loading, submitting, code.length, verificationComplete]);
 
   // Auto-submit deshabilitado para prevenir doble submit
   // El usuario debe hacer click en el botón para verificar
@@ -460,7 +462,7 @@ export default function LoginPage() {
               textAlign: "center"
             }}>
               Ingresa el código de 6 dígitos
-              {code.length === 6 && !loading && !submitting && (
+              {code.length === 6 && !loading && !submitting && !verificationComplete && (
                 <span style={{
                   display: "block",
                   fontSize: "12px",
@@ -480,6 +482,17 @@ export default function LoginPage() {
                   fontWeight: "600"
                 }}>
                   ⏳ Verificando código...
+                </span>
+              )}
+              {verificationComplete && (
+                <span style={{
+                  display: "block",
+                  fontSize: "12px",
+                  color: "#16a34a",
+                  marginTop: "4px",
+                  fontWeight: "600"
+                }}>
+                  ✅ Verificación exitosa - Redirigiendo...
                 </span>
               )}
             </label>
@@ -520,10 +533,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6 || submitting}
+              disabled={loading || code.length !== 6 || submitting || verificationComplete}
               onClick={(e) => {
-                console.log('[LoginPage] Button clicked - disabled:', loading || code.length !== 6 || submitting);
-                console.log('[LoginPage] Button state - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length);
+                console.log('[LoginPage] Button clicked - disabled:', loading || code.length !== 6 || submitting || verificationComplete);
+                console.log('[LoginPage] Button state - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length, 'verificationComplete:', verificationComplete);
               }}
               style={{
                 width: "100%",
@@ -531,22 +544,22 @@ export default function LoginPage() {
                 fontSize: "16px",
                 fontWeight: "600",
                 color: "white",
-                backgroundColor: (loading || code.length !== 6 || submitting) ? "#9ca3af" : "#3b82f6",
+                backgroundColor: (loading || code.length !== 6 || submitting || verificationComplete) ? "#9ca3af" : "#3b82f6",
                 border: "none",
                 borderRadius: "8px",
-                cursor: (loading || code.length !== 6 || submitting) ? "not-allowed" : "pointer",
+                cursor: (loading || code.length !== 6 || submitting || verificationComplete) ? "not-allowed" : "pointer",
                 transition: "background-color 0.2s",
                 marginBottom: "12px",
-                opacity: (loading || submitting) ? 0.7 : 1
+                opacity: (loading || submitting || verificationComplete) ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                if (!loading && !submitting && code.length === 6) e.target.style.backgroundColor = "#2563eb";
+                if (!loading && !submitting && !verificationComplete && code.length === 6) e.target.style.backgroundColor = "#2563eb";
               }}
               onMouseLeave={(e) => {
-                if (!loading && !submitting && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
+                if (!loading && !submitting && !verificationComplete && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
               }}
             >
-              {loading || submitting ? "Verificando..." : "Verificar código"}
+              {loading || submitting ? "Verificando..." : verificationComplete ? "Verificado ✓" : "Verificar código"}
             </button>
 
             <button
