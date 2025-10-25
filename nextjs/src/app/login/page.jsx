@@ -170,7 +170,7 @@ function CodeInput({ code, setCode, length = 6 }) {
 }
 
 export default function LoginPage() {
-  const { requestOtp, verifyOtp } = useAuth();
+  const { requestOtp, verifyOtp, user } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -274,9 +274,9 @@ export default function LoginPage() {
       setSuccess("✅ Autenticación exitosa");
       setAttempts(0); // Resetear intentos en éxito
       setVerificationComplete(true); // Deshabilitar botón después de verificación exitosa
-      
+
       console.log('[LoginPage] ✅ OTP verificado exitosamente, iniciando redirección...');
-      
+
       // Pequeño delay para asegurar que el estado se actualice
       setTimeout(() => {
         console.log('[LoginPage] 🚀 Redirigiendo a /staff...');
