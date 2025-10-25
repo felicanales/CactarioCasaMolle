@@ -134,12 +134,6 @@ export function AuthProvider({ children }) {
           }
         }
         console.log('[AuthContext] User state updated, returning true');
-        
-        // Pequeño delay para asegurar que el estado se actualice
-        setTimeout(() => {
-          console.log('[AuthContext] After timeout - user:', user, 'loading:', loading);
-        }, 100);
-        
         return true;
       }
     } catch (error) {
