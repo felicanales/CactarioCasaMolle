@@ -275,8 +275,11 @@ export default function LoginPage() {
       setAttempts(0); // Resetear intentos en éxito
       setVerificationComplete(true); // Deshabilitar botón después de verificación exitosa
       
+      console.log('[LoginPage] ✅ OTP verificado exitosamente, iniciando redirección...');
+      
       // Pequeño delay para asegurar que el estado se actualice
       setTimeout(() => {
+        console.log('[LoginPage] 🚀 Redirigiendo a /staff...');
         router.push("/staff");
       }, 500);
     } catch (err) {
@@ -294,6 +297,14 @@ export default function LoginPage() {
   useEffect(() => {
     console.log('[LoginPage] State changed - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length, 'verificationComplete:', verificationComplete);
   }, [loading, submitting, code.length, verificationComplete]);
+
+  // Redirección automática si el usuario está autenticado
+  useEffect(() => {
+    if (user && user.authenticated && verificationComplete) {
+      console.log('[LoginPage] 🔄 Usuario autenticado detectado, redirigiendo...');
+      router.push("/staff");
+    }
+  }, [user, verificationComplete, router]);
 
   // Auto-submit deshabilitado para prevenir doble submit
   // El usuario debe hacer click en el botón para verificar
@@ -562,6 +573,37 @@ export default function LoginPage() {
               {loading || submitting ? "Verificando..." : verificationComplete ? "Verificado ✓" : "Verificar código"}
             </button>
 
+            {verificationComplete && (
+              <button
+                type="button"
+                onClick={() => {
+                  console.log('[LoginPage] 🔄 Redirección manual a /staff...');
+                  router.push("/staff");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "white",
+                  backgroundColor: "#16a34a",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
+                  marginBottom: "12px"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#15803d";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#16a34a";
+                }}
+              >
+                🚀 Ir al Panel Staff
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -570,6 +612,7 @@ export default function LoginPage() {
                 setError("");
                 setSuccess("");
                 setAttempts(0);
+                setVerificationComplete(false);
               }}
               style={{
                 width: "100%",
