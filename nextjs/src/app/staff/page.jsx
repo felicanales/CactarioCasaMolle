@@ -11,8 +11,12 @@ export default function StaffPage() {
   const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
+    console.log('[StaffPage] useEffect - loading:', loading, 'user:', user);
     if (!loading && !user) {
+      console.log('[StaffPage] ❌ No hay usuario autenticado, redirigiendo al login...');
       router.replace("/login");
+    } else if (!loading && user) {
+      console.log('[StaffPage] ✅ Usuario autenticado:', user);
     }
   }, [user, loading, router]);
 

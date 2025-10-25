@@ -114,6 +114,7 @@ export function AuthProvider({ children }) {
 
       // Check if user is authenticated
       if (data.authenticated === false) {
+        console.log('[AuthContext] ❌ User not authenticated, clearing state');
         setUser(null);
         setAccessToken(null);
         if (typeof window !== 'undefined') {
@@ -121,6 +122,7 @@ export function AuthProvider({ children }) {
         }
         return false;
       } else {
+        console.log('[AuthContext] ✅ User authenticated, updating state');
         setUser(data);
         // Guardar token en estado y localStorage si está disponible
         if (data.access_token) {
@@ -149,6 +151,7 @@ export function AuthProvider({ children }) {
       console.log('[AuthContext] Initializing...');
       await fetchMe();
       setLoading(false);
+      console.log('[AuthContext] Initialization complete - user:', user, 'loading:', loading);
     })();
   }, [fetchMe]);
 
@@ -201,7 +204,7 @@ export function AuthProvider({ children }) {
     // Actualizar el estado del usuario llamando a fetchMe
     console.log('[AuthContext] Updating user state after OTP verification');
     await fetchMe();
-    
+
     return data;
   };
 
