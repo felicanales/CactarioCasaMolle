@@ -280,8 +280,19 @@ export default function LoginPage() {
       // Pequeño delay para asegurar que el estado se actualice
       setTimeout(() => {
         console.log('[LoginPage] 🚀 Redirigiendo a /staff...');
-        router.push("/staff");
+        try {
+          router.push("/staff");
+        } catch (error) {
+          console.log('[LoginPage] ❌ Error con router.push, usando window.location:', error);
+          window.location.href = "/staff";
+        }
       }, 500);
+
+      // Fallback adicional después de 2 segundos
+      setTimeout(() => {
+        console.log('[LoginPage] 🔄 Fallback: Forzando redirección con window.location...');
+        window.location.href = "/staff";
+      }, 2000);
     } catch (err) {
       setError(err.message || "Código inválido");
       // Limpiar código en error
@@ -302,7 +313,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (user && user.authenticated && verificationComplete) {
       console.log('[LoginPage] 🔄 Usuario autenticado detectado, redirigiendo...');
-      router.push("/staff");
+      try {
+        router.push("/staff");
+      } catch (error) {
+        console.log('[LoginPage] ❌ Error con router.push en useEffect, usando window.location:', error);
+        window.location.href = "/staff";
+      }
     }
   }, [user, verificationComplete, router]);
 
@@ -578,7 +594,12 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   console.log('[LoginPage] 🔄 Redirección manual a /staff...');
-                  router.push("/staff");
+                  try {
+                    router.push("/staff");
+                  } catch (error) {
+                    console.log('[LoginPage] ❌ Error con router.push manual, usando window.location:', error);
+                    window.location.href = "/staff";
+                  }
                 }}
                 style={{
                   width: "100%",
