@@ -123,6 +123,7 @@ export function AuthProvider({ children }) {
         return false;
       } else {
         console.log('[AuthContext] ✅ User authenticated, updating state');
+        console.log('[AuthContext] Setting user to:', data);
         setUser(data);
         // Guardar token en estado y localStorage si está disponible
         if (data.access_token) {
@@ -132,6 +133,13 @@ export function AuthProvider({ children }) {
             console.log('[AuthContext] Token updated in localStorage from /auth/me');
           }
         }
+        console.log('[AuthContext] User state updated, returning true');
+        
+        // Pequeño delay para asegurar que el estado se actualice
+        setTimeout(() => {
+          console.log('[AuthContext] After timeout - user:', user, 'loading:', loading);
+        }, 100);
+        
         return true;
       }
     } catch (error) {
@@ -154,6 +162,11 @@ export function AuthProvider({ children }) {
       console.log('[AuthContext] Initialization complete - user:', user, 'loading:', loading);
     })();
   }, [fetchMe]);
+
+  // Monitorear cambios en el estado del usuario
+  useEffect(() => {
+    console.log('[AuthContext] User state changed - user:', user, 'loading:', loading);
+  }, [user, loading]);
 
 
   const requestOtp = async (email) => {
