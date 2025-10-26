@@ -59,15 +59,15 @@ const apiRequest = async (url, options = {}) => {
     // Agregar CSRF token para operaciones que modifican datos
     if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
-        console.log('[SpeciesPage] Adding CSRF token to:', options.method, url);
+        console.log('[SectorsPage] Adding CSRF token to:', options.method, url);
     }
 
     // Agregar Authorization header si hay token disponible
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
-        console.log('[SpeciesPage] Adding Authorization header to:', url);
+        console.log('[SectorsPage] Adding Authorization header to:', url);
     } else {
-        console.warn('[SpeciesPage] ⚠️ No access token available for:', url);
+        console.warn('[SectorsPage] ⚠️ No access token available for:', url);
     }
 
     return fetch(url, {
@@ -161,148 +161,112 @@ function Modal({ isOpen, onClose, title, children }) {
     );
 }
 
-export default function SpeciesPage() {
+export default function SectorsPage() {
     const { user, loading: authLoading, logout, fetchMe } = useAuth();
     const router = useRouter();
 
-    const [species, setSpecies] = useState([]);
+    const [sectors, setSectors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create"); // "create" | "edit" | "view"
-    const [selectedSpecies, setSelectedSpecies] = useState(null);
+    const [selectedSector, setSelectedSector] = useState(null);
     const [checkedAuth, setCheckedAuth] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [speciesIdToDelete, setSpeciesIdToDelete] = useState(null);
+    const [sectorIdToDelete, setSectorIdToDelete] = useState(null);
     const [formData, setFormData] = useState({
-        scientific_name: "",
-        nombre_común: "",
-        nombres_comunes: "",
-        tipo_planta: "",
-        tipo_morfología: "",
-        habitat: "",
-        distribución: "",
-        estado_conservación: "",
-        Endémica: false,
-        expectativa_vida: "",
-        floración: "",
-        cuidado: "",
-        usos: "",
-        historia_nombre: "",
-        historia_y_leyendas: "",
-        image_url: "", // URL de la imagen de la especie
+        name: "",
+        description: "",
+        location: "",
+        qr_code: "",
     });
     const [submitting, setSubmitting] = useState(false);
 
     // Verificar autenticación solo UNA vez
     useEffect(() => {
         if (!authLoading && !checkedAuth) {
-            console.log('[SpeciesPage] Checking auth, user:', user);
+            console.log('[SectorsPage] Checking auth, user:', user);
             if (!user) {
-                console.log('[SpeciesPage] No user, redirecting to login');
+                console.log('[SectorsPage] No user, redirecting to login');
                 router.replace("/login");
             }
             setCheckedAuth(true);
         }
     }, [user, authLoading, router, checkedAuth]);
 
-    // Fetch species
-    const fetchSpecies = async () => {
+    // Fetch sectors
+    const fetchSectors = async () => {
         try {
             setLoading(true);
             setError("");
 
             const url = searchQuery
-                ? `${API}/species/staff?q=${encodeURIComponent(searchQuery)}`
-                : `${API}/species/staff`;
+                ? `${API}/sectors/staff?q=${encodeURIComponent(searchQuery)}`
+                : `${API}/sectors/staff`;
 
-            console.log('[SpeciesPage] Fetching species from:', url);
+            console.log('[SectorsPage] Fetching sectors from:', url);
             const res = await apiRequest(url);
 
             if (!res.ok) {
-                console.error('[SpeciesPage] Fetch failed:', res.status);
+                console.error('[SectorsPage] Fetch failed:', res.status);
                 if (res.status === 401) {
                     // Usuario no autenticado - redirigir a login
-                    console.log('[SpeciesPage] 401 Unauthorized, redirecting to login');
+                    console.log('[SectorsPage] 401 Unauthorized, redirecting to login');
                     setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
                     setTimeout(() => router.replace("/login"), 1500);
                     return;
                 }
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al cargar especies");
+                throw new Error(errorData.detail || "Error al cargar sectores");
             }
             const data = await res.json();
-            console.log('[SpeciesPage] Species loaded:', data.length);
-            setSpecies(data);
+            console.log('[SectorsPage] Sectors loaded:', data.length);
+            setSectors(data);
             setError("");
         } catch (err) {
-            console.error('[SpeciesPage] Error:', err);
-            setError(err.message || "Error al cargar especies");
+            console.error('[SectorsPage] Error:', err);
+            setError(err.message || "Error al cargar sectores");
         } finally {
             setLoading(false);
         }
     };
 
-    // Cargar especies solo cuando el usuario esté autenticado y se haya verificado
+    // Cargar sectores solo cuando el usuario esté autenticado y se haya verificado
     useEffect(() => {
         if (user && checkedAuth) {
-            console.log('[SpeciesPage] User authenticated, loading species');
-            fetchSpecies();
+            console.log('[SectorsPage] User authenticated, loading sectors');
+            fetchSectors();
         }
     }, [user, checkedAuth, searchQuery]);
 
     const handleCreate = () => {
         setModalMode("create");
-        setSelectedSpecies(null);
+        setSelectedSector(null);
         setFormData({
-            scientific_name: "",
-            nombre_común: "",
-            nombres_comunes: "",
-            tipo_planta: "",
-            tipo_morfología: "",
-            habitat: "",
-            distribución: "",
-            estado_conservación: "",
-            Endémica: false,
-            expectativa_vida: "",
-            floración: "",
-            cuidado: "",
-            usos: "",
-            historia_nombre: "",
-            historia_y_leyendas: "",
-            image_url: "",
+            name: "",
+            description: "",
+            location: "",
+            qr_code: "",
         });
         setShowModal(true);
     };
 
-    const handleEdit = (sp) => {
+    const handleEdit = (sector) => {
         setModalMode("edit");
-        setSelectedSpecies(sp);
+        setSelectedSector(sector);
         setFormData({
-            scientific_name: sp.scientific_name || "",
-            nombre_común: sp.nombre_común || "",
-            nombres_comunes: sp.nombres_comunes || "",
-            tipo_planta: sp.tipo_planta || "",
-            tipo_morfología: sp.tipo_morfología || "",
-            habitat: sp.habitat || "",
-            distribución: sp.distribución || "",
-            estado_conservación: sp.estado_conservación || "",
-            Endémica: sp.Endémica || false,
-            expectativa_vida: sp.expectativa_vida || "",
-            floración: sp.floración || "",
-            cuidado: sp.cuidado || "",
-            usos: sp.usos || "",
-            historia_nombre: sp.historia_nombre || "",
-            historia_y_leyendas: sp.historia_y_leyendas || "",
-            image_url: sp.image_url || "",
+            name: sector.name || "",
+            description: sector.description || "",
+            location: sector.location || "",
+            qr_code: sector.qr_code || "",
         });
         setShowModal(true);
     };
 
-    const handleView = (sp) => {
+    const handleView = (sector) => {
         setModalMode("view");
-        setSelectedSpecies(sp);
+        setSelectedSector(sector);
         setShowModal(true);
     };
 
@@ -312,27 +276,16 @@ export default function SpeciesPage() {
         setError("");
 
         try {
-            // Generate slug from scientific name
-            const slug = formData.scientific_name
-                .toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^\w\-]/g, '');
-
-            const payload = {
-                ...formData,
-                slug,
-            };
-
             let res;
             if (modalMode === "create") {
-                res = await apiRequest(`${API}/species/staff`, {
+                res = await apiRequest(`${API}/sectors/staff`, {
                     method: "POST",
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(formData),
                 });
             } else if (modalMode === "edit") {
-                res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
+                res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(formData),
                 });
             }
 
@@ -348,7 +301,7 @@ export default function SpeciesPage() {
             }
 
             setShowModal(false);
-            fetchSpecies();
+            fetchSectors();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -357,15 +310,15 @@ export default function SpeciesPage() {
     };
 
     const handleDeleteClick = (id) => {
-        setSpeciesIdToDelete(id);
+        setSectorIdToDelete(id);
         setShowDeleteModal(true);
     };
 
     const confirmDelete = async () => {
-        if (!speciesIdToDelete) return;
+        if (!sectorIdToDelete) return;
 
         try {
-            const res = await apiRequest(`${API}/species/staff/${speciesIdToDelete}`, {
+            const res = await apiRequest(`${API}/sectors/staff/${sectorIdToDelete}`, {
                 method: "DELETE",
             });
 
@@ -381,8 +334,8 @@ export default function SpeciesPage() {
             }
 
             setShowDeleteModal(false);
-            setSpeciesIdToDelete(null);
-            fetchSpecies();
+            setSectorIdToDelete(null);
+            fetchSectors();
         } catch (err) {
             setError(err.message);
             setShowDeleteModal(false);
@@ -391,10 +344,10 @@ export default function SpeciesPage() {
 
     const cancelDelete = () => {
         setShowDeleteModal(false);
-        setSpeciesIdToDelete(null);
+        setSectorIdToDelete(null);
     };
 
-    if (authLoading || (loading && species.length === 0)) {
+    if (authLoading || (loading && sectors.length === 0)) {
         return (
             <div style={{
                 minHeight: "100vh",
@@ -413,7 +366,7 @@ export default function SpeciesPage() {
                         animation: "spin 1s linear infinite",
                         margin: "0 auto 16px"
                     }}></div>
-                    <p style={{ color: "#6b7280" }}>Cargando especies...</p>
+                    <p style={{ color: "#6b7280" }}>Cargando sectores...</p>
                 </div>
             </div>
         );
@@ -468,14 +421,14 @@ export default function SpeciesPage() {
                                     color: "#111827",
                                     margin: 0
                                 }}>
-                                    Gestión de Especies
+                                    Gestión de Sectores
                                 </h1>
                                 <p style={{
                                     fontSize: "13px",
                                     color: "#6b7280",
                                     margin: 0
                                 }}>
-                                    {species.length} especies registradas
+                                    {sectors.length} sectores registrados
                                 </p>
                             </div>
                         </div>
@@ -519,7 +472,7 @@ export default function SpeciesPage() {
                     }}>
                         <input
                             type="text"
-                            placeholder="Buscar por nombre científico o común..."
+                            placeholder="Buscar por nombre de sector..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
@@ -554,7 +507,7 @@ export default function SpeciesPage() {
                             onMouseLeave={(e) => e.target.style.backgroundColor = "#10b981"}
                         >
                             <span style={{ fontSize: "18px" }}>+</span>
-                            Nueva Especie
+                            Nuevo Sector
                         </button>
                     </div>
 
@@ -572,7 +525,7 @@ export default function SpeciesPage() {
                         </div>
                     )}
 
-                    {/* Species Table */}
+                    {/* Sectors Table */}
                     <div style={{
                         backgroundColor: "white",
                         borderRadius: "12px",
@@ -596,10 +549,9 @@ export default function SpeciesPage() {
                                             fontWeight: "600",
                                             color: "#6b7280",
                                             textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            width: "120px"
+                                            letterSpacing: "0.05em"
                                         }}>
-                                            Imagen
+                                            Nombre
                                         </th>
                                         <th style={{
                                             padding: "12px 16px",
@@ -610,7 +562,7 @@ export default function SpeciesPage() {
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
-                                            Nombre Científico
+                                            Descripción
                                         </th>
                                         <th style={{
                                             padding: "12px 16px",
@@ -621,7 +573,7 @@ export default function SpeciesPage() {
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
-                                            Nombre Común
+                                            Ubicación
                                         </th>
                                         <th style={{
                                             padding: "12px 16px",
@@ -632,18 +584,7 @@ export default function SpeciesPage() {
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
-                                            Estado
-                                        </th>
-                                        <th style={{
-                                            padding: "12px 16px",
-                                            textAlign: "left",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em"
-                                        }}>
-                                            Endémica
+                                            Código QR
                                         </th>
                                         <th style={{
                                             padding: "12px 16px",
@@ -659,20 +600,20 @@ export default function SpeciesPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {species.length === 0 ? (
+                                    {sectors.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" style={{
+                                            <td colSpan="5" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
                                             }}>
-                                                No hay especies registradas. ¡Crea la primera!
+                                                No hay sectores registrados. ¡Crea el primero!
                                             </td>
                                         </tr>
                                     ) : (
-                                        species.map((sp) => (
+                                        sectors.map((sector) => (
                                             <tr
-                                                key={sp.id}
+                                                key={sector.id}
                                                 style={{
                                                     borderBottom: "1px solid #e5e7eb",
                                                     transition: "background-color 0.2s"
@@ -681,86 +622,41 @@ export default function SpeciesPage() {
                                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
                                             >
                                                 <td style={{
-                                                    padding: "12px 16px",
-                                                    textAlign: "center",
-                                                    verticalAlign: "middle"
+                                                    padding: "16px",
+                                                    fontSize: "14px",
+                                                    color: "#111827",
+                                                    fontWeight: "500"
                                                 }}>
-                                                    {sp.cover_photo ? (
-                                                        <img
-                                                            src={sp.cover_photo}
-                                                            alt={sp.scientific_name}
-                                                            style={{
-                                                                width: "100px",
-                                                                height: "100px",
-                                                                objectFit: "cover",
-                                                                borderRadius: "12px",
-                                                                border: "3px solid #e5e7eb",
-                                                                boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
-                                                            }}
-                                                            onError={(e) => {
-                                                                e.target.style.display = "none";
-                                                                e.target.nextSibling.style.display = "flex";
-                                                            }}
-                                                        />
-                                                    ) : null}
-                                                    <div
-                                                        style={{
-                                                            width: "100px",
-                                                            height: "100px",
-                                                            backgroundColor: "#f3f4f6",
-                                                            borderRadius: "12px",
-                                                            border: "3px solid #e5e7eb",
-                                                            display: sp.cover_photo ? "none" : "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            fontSize: "40px",
-                                                            color: "#9ca3af"
-                                                        }}
-                                                    >
-                                                        🌵
-                                                    </div>
+                                                    {sector.name}
                                                 </td>
                                                 <td style={{
                                                     padding: "16px",
                                                     fontSize: "14px",
-                                                    color: "#111827",
-                                                    fontWeight: "500",
-                                                    fontStyle: "italic"
+                                                    color: "#374151",
+                                                    maxWidth: "300px"
                                                 }}>
-                                                    {sp.scientific_name}
+                                                    <div style={{
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap"
+                                                    }}>
+                                                        {sector.description || "-"}
+                                                    </div>
                                                 </td>
                                                 <td style={{
                                                     padding: "16px",
                                                     fontSize: "14px",
                                                     color: "#374151"
                                                 }}>
-                                                    {sp.nombre_común || "-"}
+                                                    {sector.location || "-"}
                                                 </td>
-                                                <td style={{ padding: "16px" }}>
-                                                    <span style={{
-                                                        display: "inline-block",
-                                                        padding: "4px 12px",
-                                                        borderRadius: "12px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
-                                                                "#f0fdf4",
-                                                        color: sp.estado_conservación === "En peligro" ? "#dc2626" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#ea580c" :
-                                                                "#16a34a"
-                                                    }}>
-                                                        {sp.estado_conservación || "No especificado"}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: "16px", textAlign: "center" }}>
-                                                    <span style={{
-                                                        fontSize: "14px",
-                                                        fontWeight: "500",
-                                                        color: sp.Endémica ? "#16a34a" : "#6b7280"
-                                                    }}>
-                                                        {sp.Endémica ? "Sí" : "-"}
-                                                    </span>
+                                                <td style={{
+                                                    padding: "16px",
+                                                    fontSize: "14px",
+                                                    color: "#374151",
+                                                    fontFamily: "monospace"
+                                                }}>
+                                                    {sector.qr_code || "-"}
                                                 </td>
                                                 <td style={{
                                                     padding: "16px",
@@ -772,7 +668,7 @@ export default function SpeciesPage() {
                                                         justifyContent: "flex-end"
                                                     }}>
                                                         <button
-                                                            onClick={() => handleView(sp)}
+                                                            onClick={() => handleView(sector)}
                                                             style={{
                                                                 padding: "6px 12px",
                                                                 backgroundColor: "#eff6ff",
@@ -790,7 +686,7 @@ export default function SpeciesPage() {
                                                             Ver
                                                         </button>
                                                         <button
-                                                            onClick={() => handleEdit(sp)}
+                                                            onClick={() => handleEdit(sector)}
                                                             style={{
                                                                 padding: "6px 12px",
                                                                 backgroundColor: "#fef3c7",
@@ -808,7 +704,7 @@ export default function SpeciesPage() {
                                                             Editar
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteClick(sp.id)}
+                                                            onClick={() => handleDeleteClick(sector.id)}
                                                             style={{
                                                                 padding: "6px 12px",
                                                                 backgroundColor: "#fef2f2",
@@ -842,15 +738,15 @@ export default function SpeciesPage() {
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 title={
-                    modalMode === "create" ? "Nueva Especie" :
-                        modalMode === "edit" ? "Editar Especie" :
-                            "Detalles de Especie"
+                    modalMode === "create" ? "Nuevo Sector" :
+                        modalMode === "edit" ? "Editar Sector" :
+                            "Detalles de Sector"
                 }
             >
                 {modalMode === "view" ? (
                     // View Mode
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                        {selectedSpecies && (
+                        {selectedSector && (
                             <>
                                 <div>
                                     <label style={{
@@ -860,56 +756,16 @@ export default function SpeciesPage() {
                                         color: "#6b7280",
                                         marginBottom: "4px"
                                     }}>
-                                        Nombre Científico
+                                        Nombre
                                     </label>
                                     <p style={{
                                         fontSize: "16px",
                                         fontWeight: "500",
                                         color: "#111827",
-                                        fontStyle: "italic",
                                         margin: 0
                                     }}>
-                                        {selectedSpecies.scientific_name}
+                                        {selectedSector.name}
                                     </p>
-                                </div>
-
-                                {/* Espacio para imagen en modo vista */}
-                                <div style={{
-                                    padding: "20px",
-                                    backgroundColor: "#f9fafb",
-                                    border: "2px dashed #d1d5db",
-                                    borderRadius: "8px",
-                                    textAlign: "center"
-                                }}>
-                                    {selectedSpecies.image_url ? (
-                                        <img
-                                            src={selectedSpecies.image_url}
-                                            alt={selectedSpecies.scientific_name}
-                                            style={{
-                                                maxWidth: "100%",
-                                                maxHeight: "300px",
-                                                borderRadius: "6px",
-                                                objectFit: "cover"
-                                            }}
-                                        />
-                                    ) : (
-                                        <>
-                                            <div style={{
-                                                fontSize: "48px",
-                                                marginBottom: "8px"
-                                            }}>
-                                                🌵
-                                            </div>
-                                            <p style={{
-                                                fontSize: "13px",
-                                                color: "#6b7280",
-                                                fontStyle: "italic",
-                                                margin: 0
-                                            }}>
-                                                Sin imagen disponible
-                                            </p>
-                                        </>
-                                    )}
                                 </div>
 
                                 <div>
@@ -920,10 +776,25 @@ export default function SpeciesPage() {
                                         color: "#6b7280",
                                         marginBottom: "4px"
                                     }}>
-                                        Nombre Común
+                                        Descripción
+                                    </label>
+                                    <p style={{ fontSize: "14px", color: "#374151", margin: 0, lineHeight: 1.6 }}>
+                                        {selectedSector.description || "-"}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label style={{
+                                        display: "block",
+                                        fontSize: "13px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        marginBottom: "4px"
+                                    }}>
+                                        Ubicación
                                     </label>
                                     <p style={{ fontSize: "14px", color: "#374151", margin: 0 }}>
-                                        {selectedSpecies.nombre_común || "-"}
+                                        {selectedSector.location || "-"}
                                     </p>
                                 </div>
 
@@ -935,66 +806,20 @@ export default function SpeciesPage() {
                                         color: "#6b7280",
                                         marginBottom: "4px"
                                     }}>
-                                        Estado de Conservación
-                                    </label>
-                                    <p style={{ fontSize: "14px", color: "#374151", margin: 0 }}>
-                                        {selectedSpecies.estado_conservación || "-"}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Endémica de Chile
+                                        Código QR
                                     </label>
                                     <p style={{
                                         fontSize: "14px",
-                                        color: selectedSpecies.Endémica ? "#16a34a" : "#374151",
+                                        color: "#374151",
                                         margin: 0,
-                                        fontWeight: selectedSpecies.Endémica ? "500" : "400"
+                                        fontFamily: "monospace",
+                                        backgroundColor: "#f3f4f6",
+                                        padding: "8px 12px",
+                                        borderRadius: "6px"
                                     }}>
-                                        {selectedSpecies.Endémica ? "Sí" : "No"}
+                                        {selectedSector.qr_code || "-"}
                                     </p>
                                 </div>
-
-                                {selectedSpecies.habitat && (
-                                    <div>
-                                        <label style={{
-                                            display: "block",
-                                            fontSize: "13px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            marginBottom: "4px"
-                                        }}>
-                                            Hábitat
-                                        </label>
-                                        <p style={{ fontSize: "14px", color: "#374151", margin: 0, lineHeight: 1.6 }}>
-                                            {selectedSpecies.habitat}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {selectedSpecies.cuidado && (
-                                    <div>
-                                        <label style={{
-                                            display: "block",
-                                            fontSize: "13px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            marginBottom: "4px"
-                                        }}>
-                                            Cuidado
-                                        </label>
-                                        <p style={{ fontSize: "14px", color: "#374151", margin: 0, lineHeight: 1.6 }}>
-                                            {selectedSpecies.cuidado}
-                                        </p>
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
@@ -1010,211 +835,111 @@ export default function SpeciesPage() {
                                     color: "#374151",
                                     marginBottom: "6px"
                                 }}>
-                                    Nombre Científico *
+                                    Nombre *
                                 </label>
                                 <input
                                     type="text"
                                     required
-                                    value={formData.scientific_name}
-                                    onChange={(e) => setFormData({ ...formData, scientific_name: e.target.value })}
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
                                         border: "1px solid #d1d5db",
                                         borderRadius: "6px",
                                         fontSize: "14px",
-                                        fontStyle: "italic",
                                         boxSizing: "border-box"
                                     }}
-                                    placeholder="Ej: Echinopsis chiloensis"
+                                    placeholder="Ej: Sector Norte"
                                 />
                             </div>
 
-                            {/* Espacio para imagen */}
-                            <div style={{
-                                padding: "20px",
-                                backgroundColor: "#f9fafb",
-                                border: "2px dashed #d1d5db",
-                                borderRadius: "8px",
-                                textAlign: "center"
-                            }}>
-                                <div style={{
-                                    fontSize: "48px",
-                                    marginBottom: "12px"
-                                }}>
-                                    🌵
-                                </div>
-                                <p style={{
+                            <div>
+                                <label style={{
+                                    display: "block",
                                     fontSize: "14px",
-                                    fontWeight: "600",
+                                    fontWeight: "500",
                                     color: "#374151",
-                                    marginBottom: "8px"
+                                    marginBottom: "6px"
                                 }}>
-                                    Imagen de la Especie
-                                </p>
+                                    Descripción
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows={3}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                    placeholder="Descripción del sector..."
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{
+                                    display: "block",
+                                    fontSize: "14px",
+                                    fontWeight: "500",
+                                    color: "#374151",
+                                    marginBottom: "6px"
+                                }}>
+                                    Ubicación
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.location}
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "14px",
+                                        boxSizing: "border-box"
+                                    }}
+                                    placeholder="Ej: Zona norte del jardín"
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{
+                                    display: "block",
+                                    fontSize: "14px",
+                                    fontWeight: "500",
+                                    color: "#374151",
+                                    marginBottom: "6px"
+                                }}>
+                                    Código QR
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.qr_code}
+                                    onChange={(e) => setFormData({ ...formData, qr_code: e.target.value })}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "14px",
+                                        fontFamily: "monospace",
+                                        boxSizing: "border-box"
+                                    }}
+                                    placeholder="Ej: SECTOR_NORTE_001"
+                                />
                                 <p style={{
                                     fontSize: "12px",
                                     color: "#6b7280",
-                                    marginBottom: "12px",
-                                    lineHeight: "1.5"
+                                    margin: "4px 0 0 0"
                                 }}>
-                                    Espacio reservado para la fotografía identificativa de la especie.
-                                    <br />
-                                    <span style={{ fontStyle: "italic" }}>
-                                        (Funcionalidad de carga de imágenes próximamente)
-                                    </span>
+                                    Código único para identificar el sector mediante QR
                                 </p>
-                                <input
-                                    type="text"
-                                    value={formData.image_url}
-                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "13px",
-                                        boxSizing: "border-box",
-                                        backgroundColor: "white"
-                                    }}
-                                    placeholder="URL de imagen temporal (opcional)"
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "block",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    marginBottom: "6px"
-                                }}>
-                                    Nombre Común
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.nombre_común}
-                                    onChange={(e) => setFormData({ ...formData, nombre_común: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box"
-                                    }}
-                                    placeholder="Ej: Copao"
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "block",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    marginBottom: "6px"
-                                }}>
-                                    Estado de Conservación
-                                </label>
-                                <select
-                                    value={formData.estado_conservación}
-                                    onChange={(e) => setFormData({ ...formData, estado_conservación: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box"
-                                    }}
-                                >
-                                    <option value="">Seleccionar...</option>
-                                    <option value="No amenazada">No amenazada</option>
-                                    <option value="Vulnerable">Vulnerable</option>
-                                    <option value="En peligro">En peligro</option>
-                                    <option value="En peligro crítico">En peligro crítico</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    cursor: "pointer"
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.Endémica}
-                                        onChange={(e) => setFormData({ ...formData, Endémica: e.target.checked })}
-                                        style={{
-                                            width: "18px",
-                                            height: "18px",
-                                            cursor: "pointer"
-                                        }}
-                                    />
-                                    Endémica de Chile 🇨🇱
-                                </label>
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "block",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    marginBottom: "6px"
-                                }}>
-                                    Hábitat
-                                </label>
-                                <textarea
-                                    value={formData.habitat}
-                                    onChange={(e) => setFormData({ ...formData, habitat: e.target.value })}
-                                    rows={3}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "14px",
-                                        fontFamily: "inherit",
-                                        resize: "vertical",
-                                        boxSizing: "border-box"
-                                    }}
-                                    placeholder="Descripción del hábitat natural..."
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "block",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    marginBottom: "6px"
-                                }}>
-                                    Cuidado
-                                </label>
-                                <textarea
-                                    value={formData.cuidado}
-                                    onChange={(e) => setFormData({ ...formData, cuidado: e.target.value })}
-                                    rows={3}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "14px",
-                                        fontFamily: "inherit",
-                                        resize: "vertical",
-                                        boxSizing: "border-box"
-                                    }}
-                                    placeholder="Instrucciones de cuidado..."
-                                />
                             </div>
 
                             {error && (
@@ -1268,7 +993,7 @@ export default function SpeciesPage() {
                                         transition: "background-color 0.2s"
                                     }}
                                 >
-                                    {submitting ? "Guardando..." : (modalMode === "create" ? "Crear Especie" : "Guardar Cambios")}
+                                    {submitting ? "Guardando..." : (modalMode === "create" ? "Crear Sector" : "Guardar Cambios")}
                                 </button>
                             </div>
                         </div>
@@ -1326,7 +1051,7 @@ export default function SpeciesPage() {
                                 color: "#111827",
                                 margin: "0 0 8px 0"
                             }}>
-                                ¿Eliminar Especie?
+                                ¿Eliminar Sector?
                             </h3>
                             <p style={{
                                 fontSize: "14px",
@@ -1334,7 +1059,7 @@ export default function SpeciesPage() {
                                 lineHeight: "1.6",
                                 margin: 0
                             }}>
-                                Esta acción no se puede deshacer. La especie será eliminada permanentemente de la base de datos.
+                                Esta acción no se puede deshacer. El sector será eliminado permanentemente de la base de datos.
                             </p>
                         </div>
 
@@ -1418,5 +1143,3 @@ export default function SpeciesPage() {
         </>
     );
 }
-
-

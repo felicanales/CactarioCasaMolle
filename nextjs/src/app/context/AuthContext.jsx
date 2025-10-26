@@ -4,6 +4,19 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 
 const AuthContext = createContext(null);
 
+// ========================================
+// MODO DESARROLLO - SIN AUTENTICACIÓN
+// ========================================
+// ✅ AUTH DESACTIVADA - Para desarrollo local y Railway
+// Para reactivar: cambiar DEV_MODE a false
+const DEV_MODE = true; // Cambiar a false para activar autenticación
+const MOCK_USER = {
+  id: 1,
+  email: "admin@cactario.local",
+  name: "Usuario de Desarrollo",
+  role: "admin"
+};
+
 // Configuración dinámica de API por entorno
 const getApiUrl = () => {
   // Prioridad 1: Variable de entorno NEXT_PUBLIC_API_URL
@@ -25,6 +38,7 @@ const API = getApiUrl();
 // Log API URL for debugging
 if (typeof window !== 'undefined') {
   console.log('[AuthContext] Using API URL:', API);
+  console.log('[AuthContext] DEV_MODE:', DEV_MODE);
 }
 
 // Helper para obtener CSRF token
@@ -88,6 +102,24 @@ const apiRequest = async (url, options = {}) => {
 };
 
 export function AuthProvider({ children }) {
+  // Modo desarrollo: usar mock user sin autenticación
+  if (DEV_MODE) {
+    return <AuthContext.Provider value={{
+      user: MOCK_USER,
+      loading: false,
+      accessToken: "dev-token",
+      requestOtp: async () => { },
+      verifyOtp: async () => { },
+      refreshToken: async () => { },
+      logout: () => {
+        console.log('[AuthContext] Logout llamado pero ignorado en DEV_MODE');
+      },
+      fetchMe: async () => { }
+    }}>
+      {children}
+    </AuthContext.Provider>;
+  }
+
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);

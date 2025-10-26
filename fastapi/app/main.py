@@ -105,9 +105,14 @@ app.add_middleware(
 )
 logger.info("   ✅ CORSMiddleware configurado")
 
-# Add authentication middleware AFTER CORS
-app.add_middleware(AuthMiddleware)
-logger.info("   ✅ AuthMiddleware configurado")
+# ========================================
+# AUTENTICACIÓN DESACTIVADA - DESARROLLO
+# ========================================
+# ✅ AuthMiddleware comentado para desarrollo (local y Railway)
+# Para reactivar: descomentar la línea de abajo
+# app.add_middleware(AuthMiddleware)
+# logger.info("   ✅ AuthMiddleware configurado")
+logger.info("   ⚠️ AuthMiddleware DESACTIVADO para desarrollo")
 
 logger.info("📡 Registrando rutas de API...")
 app.include_router(routes_auth.router,    prefix="/auth",    tags=["Auth"])
