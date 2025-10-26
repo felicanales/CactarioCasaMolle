@@ -5,11 +5,15 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 const AuthContext = createContext(null);
 
 // ========================================
-// MODO DESARROLLO - SIN AUTENTICACIÓN
+// MODO DESARROLLO - SIN AUTENTICACIÓN (SOLO LOCAL)
 // ========================================
-// ✅ AUTH DESACTIVADA - Para desarrollo local y Railway
-// Para reactivar: cambiar DEV_MODE a false
-const DEV_MODE = true; // Cambiar a false para activar autenticación
+// ✅ AUTH DESACTIVADA - Solo para desarrollo LOCAL
+// En Railway/PRODUCCIÓN: autenticación activada
+const isLocalhost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1'
+);
+const DEV_MODE = isLocalhost; // Solo dev mode en localhost
 const MOCK_USER = {
   id: 1,
   email: "admin@cactario.local",

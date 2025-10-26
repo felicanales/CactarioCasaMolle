@@ -37,19 +37,17 @@ def list_species_by_sector_public(qr_code: str):
     return out
 
 # ===========================
-#       STAFF (privado) - Auth DESACTIVADA temporalmente
+#       STAFF (privado)
 # ===========================
 
-# @router.get("/staff", dependencies=[Depends(get_current_user)])
-@router.get("/staff")  # Auth desactivada para desarrollo
+@router.get("/staff", dependencies=[Depends(get_current_user)])
 def list_sectors_staff(q: Optional[str] = Query(None, description="Filtro por nombre (opcional)")):
     """
     Lista privada de sectores (requiere usuario autenticado).
     """
     return svc.list_staff(q)
 
-# @router.get("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
-@router.get("/staff/{sector_id}")  # Auth desactivada para desarrollo
+@router.get("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
 def get_sector_staff(sector_id: int = Path(..., ge=1)):
     """
     Detalle privado de sector (requiere usuario autenticado).
@@ -59,8 +57,7 @@ def get_sector_staff(sector_id: int = Path(..., ge=1)):
         raise HTTPException(404, "Sector no encontrado")
     return row
 
-# @router.post("/staff", dependencies=[Depends(get_current_user)])
-@router.post("/staff")  # Auth desactivada para desarrollo
+@router.post("/staff", dependencies=[Depends(get_current_user)])
 def create_sector_staff(payload: Dict[str, Any]):
     """
     Crea un sector (requiere usuario autenticado).
@@ -71,8 +68,7 @@ def create_sector_staff(payload: Dict[str, Any]):
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-# @router.put("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
-@router.put("/staff/{sector_id}")  # Auth desactivada para desarrollo
+@router.put("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
 def update_sector_staff(sector_id: int, payload: Dict[str, Any]):
     """
     Actualiza un sector (requiere usuario autenticado).
@@ -85,8 +81,7 @@ def update_sector_staff(sector_id: int, payload: Dict[str, Any]):
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-# @router.delete("/staff/{sector_id}", status_code=204, dependencies=[Depends(get_current_user)])
-@router.delete("/staff/{sector_id}", status_code=204)  # Auth desactivada para desarrollo
+@router.delete("/staff/{sector_id}", status_code=204, dependencies=[Depends(get_current_user)])
 def delete_sector_admin(sector_id: int):
     """
     Elimina un sector (requiere usuario autenticado).
