@@ -72,7 +72,8 @@ origins = [
     "http://127.0.0.1:3000",
     "https://cactario-casa-molle.vercel.app",
     "https://cactario-frontend-production.up.railway.app",  # Frontend Railway
-    "https://cactario-backend-production.up.railway.app"    # Backend Railway
+    "https://cactario-backend-production.up.railway.app",    # Backend Railway
+    "https://lymphatolytic-remona-jingly.ngrok-free.dev"      # ngrok tunneling
 ]
 
 # Agregar orígenes desde variables de entorno si existen
@@ -100,8 +101,8 @@ for origin in origins:
 logger.info("🔧 Configurando middlewares...")
 
 # Permitir ngrok y desarrollo: usar allow_origin_regex con un solo patrón que cubre todos los dominios de ngrok
-# Permite CUALQUIER dominio de ngrok (incluyendo .ngrok-free.dev)
-ngrok_regex = r"https://.*\.ngrok.*\.(io|app|dev|com)"
+# Permite CUALQUIER dominio de ngrok incluyendo .ngrok-free.dev, .ngrok.io, etc.
+ngrok_regex = r"https://.*\.ngrok.*"
 
 app.add_middleware(
     CORSMiddleware,
