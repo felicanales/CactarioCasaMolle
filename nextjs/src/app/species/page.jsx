@@ -5,14 +5,30 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+// Por defecto está ACTIVADO en desarrollo local (no requiere .env)
+// Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+
 // Configuración dinámica de API
 const getApiUrl = () => {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
-    if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-        return "https://cactario-backend-production.up.railway.app";
+
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+
+        // Si se accede por ngrok o railway, usar backend de producción
+        if (hostname.includes('railway.app') ||
+            hostname.includes('ngrok.io') ||
+            hostname.includes('ngrok-free.app') ||
+            hostname.includes('ngrok-free.dev') ||
+            hostname.includes('ngrokapp.com')) {
+            return "https://cactariocasamolle-production.up.railway.app";
+        }
     }
+
     return "http://localhost:8000";
 };
 
@@ -197,6 +213,12 @@ export default function SpeciesPage() {
 
     // Verificar autenticación solo UNA vez
     useEffect(() => {
+        // BYPASS: No redirigir en desarrollo
+        if (BYPASS_AUTH) {
+            setCheckedAuth(true);
+            return;
+        }
+
         if (!authLoading && !checkedAuth) {
             console.log('[SpeciesPage] Checking auth, user:', user);
             if (!user) {
@@ -222,7 +244,7 @@ export default function SpeciesPage() {
 
             if (!res.ok) {
                 console.error('[SpeciesPage] Fetch failed:', res.status);
-                if (res.status === 401) {
+                if (res.status === 401 && !BYPASS_AUTH) {
                     // Usuario no autenticado - redirigir a login
                     console.log('[SpeciesPage] 401 Unauthorized, redirecting to login');
                     setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
@@ -597,7 +619,8 @@ export default function SpeciesPage() {
                                             color: "#6b7280",
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em",
-                                            width: "120px"
+                                            width: "150px",
+                                            minWidth: "150px"
                                         }}>
                                             Imagen
                                         </th>
@@ -682,43 +705,53 @@ export default function SpeciesPage() {
                                             >
                                                 <td style={{
                                                     padding: "12px 16px",
-                                                    textAlign: "center",
                                                     verticalAlign: "middle"
                                                 }}>
-                                                    {sp.cover_photo ? (
+                                                    {sp.image_url ? (
                                                         <img
-                                                            src={sp.cover_photo}
-                                                            alt={sp.scientific_name}
+                                                            src={sp.image_url}
+                                                            alt={sp.nombre_común || sp.scientific_name}
                                                             style={{
-                                                                width: "100px",
-                                                                height: "100px",
+                                                                width: "120px",
+                                                                height: "120px",
+                                                                minWidth: "120px",
+                                                                minHeight: "120px",
                                                                 objectFit: "cover",
                                                                 borderRadius: "12px",
-                                                                border: "3px solid #e5e7eb",
-                                                                boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
+                                                                border: "2px solid #e5e7eb",
+                                                                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                                                                cursor: "pointer",
+                                                                transition: "all 0.2s",
+                                                                display: "block"
                                                             }}
-                                                            onError={(e) => {
-                                                                e.target.style.display = "none";
-                                                                e.target.nextSibling.style.display = "flex";
+                                                            onClick={() => handleView(sp)}
+                                                            onMouseEnter={(e) => {
+                                                                e.target.style.transform = "scale(1.08)";
+                                                                e.target.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.target.style.transform = "scale(1)";
+                                                                e.target.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
                                                             }}
                                                         />
-                                                    ) : null}
-                                                    <div
-                                                        style={{
-                                                            width: "100px",
-                                                            height: "100px",
-                                                            backgroundColor: "#f3f4f6",
+                                                    ) : (
+                                                        <div style={{
+                                                            width: "120px",
+                                                            height: "120px",
+                                                            minWidth: "120px",
+                                                            minHeight: "120px",
                                                             borderRadius: "12px",
-                                                            border: "3px solid #e5e7eb",
-                                                            display: sp.cover_photo ? "none" : "flex",
+                                                            backgroundColor: "#f3f4f6",
+                                                            border: "2px dashed #d1d5db",
+                                                            display: "flex",
                                                             alignItems: "center",
                                                             justifyContent: "center",
-                                                            fontSize: "40px",
-                                                            color: "#9ca3af"
-                                                        }}
-                                                    >
-                                                        🌵
-                                                    </div>
+                                                            color: "#9ca3af",
+                                                            fontSize: "48px"
+                                                        }}>
+                                                            🌵
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td style={{
                                                     padding: "16px",
@@ -755,11 +788,9 @@ export default function SpeciesPage() {
                                                 </td>
                                                 <td style={{ padding: "16px", textAlign: "center" }}>
                                                     <span style={{
-                                                        fontSize: "14px",
-                                                        fontWeight: "500",
-                                                        color: sp.Endémica ? "#16a34a" : "#6b7280"
+                                                        fontSize: "20px"
                                                     }}>
-                                                        {sp.Endémica ? "Sí" : "-"}
+                                                        {sp.Endémica ? "🇨🇱" : "-"}
                                                     </span>
                                                 </td>
                                                 <td style={{
@@ -952,13 +983,8 @@ export default function SpeciesPage() {
                                     }}>
                                         Endémica de Chile
                                     </label>
-                                    <p style={{
-                                        fontSize: "14px",
-                                        color: selectedSpecies.Endémica ? "#16a34a" : "#374151",
-                                        margin: 0,
-                                        fontWeight: selectedSpecies.Endémica ? "500" : "400"
-                                    }}>
-                                        {selectedSpecies.Endémica ? "Sí" : "No"}
+                                    <p style={{ fontSize: "14px", color: "#374151", margin: 0 }}>
+                                        {selectedSpecies.Endémica ? "Sí 🇨🇱" : "No"}
                                     </p>
                                 </div>
 

@@ -79,6 +79,9 @@ origins = [
 if os.getenv("CORS_ORIGINS"):
     origins.extend(os.getenv("CORS_ORIGINS").split(","))
 
+# Filtrar strings vacíos de la lista
+origins = [origin for origin in origins if origin]
+
 # En producción, permitir el mismo dominio (para Railway)
 if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
     origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}")
@@ -95,15 +98,20 @@ for origin in origins:
 
 # IMPORTANTE: CORS debe ir ANTES del middleware de autenticación
 logger.info("🔧 Configurando middlewares...")
+
+# Permitir ngrok y desarrollo: usar allow_origin_regex con un solo patrón que cubre todos los dominios de ngrok
+ngrok_regex = r"https://.*\.(ngrok\.io|ngrok-free\.app|ngrok-free\.dev|ngrokapp\.com)"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=ngrok_regex,  # Permitir dominios de ngrok con regex
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type"],
     expose_headers=["*"],
 )
-logger.info("   ✅ CORSMiddleware configurado")
+logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok")
 
 # Add authentication middleware AFTER CORS
 app.add_middleware(AuthMiddleware)

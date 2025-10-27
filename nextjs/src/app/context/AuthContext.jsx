@@ -4,22 +4,10 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 
 const AuthContext = createContext(null);
 
-// ========================================
-// MODO DESARROLLO - SIN AUTENTICACIÓN (SOLO LOCAL)
-// ========================================
-// ✅ AUTH DESACTIVADA - Solo para desarrollo LOCAL
-// En Railway/PRODUCCIÓN: autenticación activada
-const isLocalhost = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1'
-);
-const DEV_MODE = isLocalhost; // Solo dev mode en localhost
-const MOCK_USER = {
-  id: 1,
-  email: "admin@cactario.local",
-  name: "Usuario de Desarrollo",
-  role: "admin"
-};
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+// Por defecto está ACTIVADO en desarrollo local (no requiere .env)
+// Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
 
 // Configuración dinámica de API por entorno
 const getApiUrl = () => {
@@ -28,9 +16,18 @@ const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
-  // Prioridad 2: Detectar Railway y usar backend de producción
-  if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-    return "https://cactario-backend-production.up.railway.app";
+  // Prioridad 2: Detectar ngrok o Railway y usar backend de producción
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+
+    // Si se accede por ngrok o railway, usar backend de producción
+    if (hostname.includes('railway.app') ||
+      hostname.includes('ngrok.io') ||
+      hostname.includes('ngrok-free.app') ||
+      hostname.includes('ngrok-free.dev') ||
+      hostname.includes('ngrokapp.com')) {
+      return "https://cactariocasamolle-production.up.railway.app";
+    }
   }
 
   // Prioridad 3: Desarrollo local
@@ -42,7 +39,6 @@ const API = getApiUrl();
 // Log API URL for debugging
 if (typeof window !== 'undefined') {
   console.log('[AuthContext] Using API URL:', API);
-  console.log('[AuthContext] DEV_MODE:', DEV_MODE);
 }
 
 // Helper para obtener CSRF token
@@ -54,18 +50,11 @@ const getCsrfToken = () => {
   return null;
 };
 
-// Helper para obtener el access token de cookies o localStorage
+// Helper para obtener el access token SOLO de cookies (más seguro)
 const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
 
-  // Prioridad 1: localStorage (para compatibilidad con usuarios existentes)
-  const localStorageToken = localStorage.getItem('access_token');
-  if (localStorageToken) {
-    console.log('[AuthContext] Using token from localStorage');
-    return localStorageToken;
-  }
-
-  // Prioridad 2: cookies
+  // Solo usar cookies (más seguro, HttpOnly)
   const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
   if (match) {
     console.log('[AuthContext] Using token from cookies');
@@ -106,28 +95,50 @@ const apiRequest = async (url, options = {}) => {
 };
 
 export function AuthProvider({ children }) {
-  // Modo desarrollo: usar mock user sin autenticación
-  if (DEV_MODE) {
-    return <AuthContext.Provider value={{
-      user: MOCK_USER,
-      loading: false,
-      accessToken: "dev-token",
-      requestOtp: async () => { },
-      verifyOtp: async () => { },
-      refreshToken: async () => { },
-      logout: () => {
-        console.log('[AuthContext] Logout llamado pero ignorado en DEV_MODE');
-      },
-      fetchMe: async () => { }
-    }}>
-      {children}
-    </AuthContext.Provider>;
-  }
-
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
-  const [initialized, setInitialized] = useState(false);
+
+  // Función para verificar si el token está expirando pronto
+  const isTokenExpiringSoon = () => {
+    try {
+      const token = getAccessToken();
+      if (!token) return true;
+
+      // Decodificar JWT para obtener exp (expiración)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const exp = payload.exp * 1000; // Convertir a milisegundos
+      const now = Date.now();
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
+
+      // Retornar true si expira en menos de 5 minutos
+      return (exp - now) < fiveMinutes;
+    } catch (error) {
+      console.error('[AuthContext] Error checking token expiration:', error);
+      return true; // En caso de error, asumir que expiró
+    }
+  };
+
+  const refreshToken = async () => {
+    try {
+      const res = await apiRequest(`${API}/auth/refresh`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        throw new Error("Token refresh failed");
+      }
+      const data = await res.json();
+
+      // Update user state after refresh
+      // No llamar fetchMe aquí porque puede causar un ciclo
+      return data;
+    } catch (error) {
+      // If refresh fails, clear state and force re-login
+      setUser(null);
+      setAccessToken(null);
+      throw error;
+    }
+  };
 
   const fetchMe = useCallback(async () => {
     try {
@@ -139,10 +150,6 @@ export function AuthProvider({ children }) {
         console.log('[AuthContext] fetchMe failed:', res.status);
         setUser(null);
         setAccessToken(null);
-        // Limpiar localStorage si la autenticación falla
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-        }
         return false;
       }
 
@@ -151,57 +158,44 @@ export function AuthProvider({ children }) {
 
       // Check if user is authenticated
       if (data.authenticated === false) {
-        console.log('[AuthContext] ❌ User not authenticated, clearing state');
         setUser(null);
         setAccessToken(null);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-        }
         return false;
       } else {
-        console.log('[AuthContext] ✅ User authenticated, updating state');
-        console.log('[AuthContext] Setting user to:', data);
         setUser(data);
-        // Guardar token en estado y localStorage si está disponible
+        // Token se maneja solo a través de cookies (más seguro)
         if (data.access_token) {
           setAccessToken(data.access_token);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('access_token', data.access_token);
-            console.log('[AuthContext] Token updated in localStorage from /auth/me');
-          }
+          console.log('[AuthContext] User authenticated, token available via cookies');
         }
-        console.log('[AuthContext] User state updated, returning true');
         return true;
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
       setAccessToken(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-      }
       return false;
     }
   }, []);
 
   useEffect(() => {
-    // Intentar obtener el usuario al cargar solo una vez
-    if (!initialized) {
-      (async () => {
-        console.log('[AuthContext] Initializing...');
-        await fetchMe();
-        setLoading(false);
-        setInitialized(true);
-        console.log('[AuthContext] Initialization complete - user:', user, 'loading:', loading);
-      })();
+    // BYPASS: No hacer fetch inicial en desarrollo
+    if (BYPASS_AUTH) {
+      setUser({ id: "dev-user-123", email: "dev@cactario.local" });
+      setAccessToken("bypassed");
+      setLoading(false);
+      return;
     }
-  }, [fetchMe, initialized]);
 
-  // Monitorear cambios en el estado del usuario
-  useEffect(() => {
-    console.log('[AuthContext] User state changed - user:', user, 'loading:', loading);
-  }, [user, loading]);
-
+    // Intentar obtener el usuario al cargar
+    (async () => {
+      console.log('[AuthContext] Initializing...');
+      await fetchMe();
+      setLoading(false);
+    })();
+    // fetchMe ya está memoizado con useCallback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar
 
   const requestOtp = async (email) => {
     const res = await apiRequest(`${API}/auth/request-otp`, {
@@ -235,44 +229,18 @@ export function AuthProvider({ children }) {
 
     console.log('[AuthContext] OTP verified, data:', data);
 
-    // Guardar token y usuario
+    // Token se guarda en cookies automáticamente por el backend (más seguro)
     if (data.access_token) {
       setAccessToken(data.access_token);
-      // Guardar en localStorage para compatibilidad
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', data.access_token);
-        console.log('[AuthContext] Token saved to localStorage');
-      }
+      console.log('[AuthContext] Token available via cookies from backend');
     }
     if (data.user) {
       setUser(data.user);
     }
 
-    // Actualizar el estado del usuario llamando a fetchMe
-    console.log('[AuthContext] Updating user state after OTP verification');
+    // Actualizar estado completo
     await fetchMe();
-
     return data;
-  };
-
-  const refreshToken = async () => {
-    try {
-      const res = await apiRequest(`${API}/auth/refresh`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        throw new Error("Token refresh failed");
-      }
-      const data = await res.json();
-
-      // Update user state after refresh
-      await fetchMe();
-      return data;
-    } catch (error) {
-      // If refresh fails, logout user
-      await logout();
-      throw error;
-    }
   };
 
   const logout = async () => {
@@ -283,17 +251,12 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null);
       setAccessToken(null);
-      // Limpiar localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        console.log('[AuthContext] Token removed from localStorage');
-      }
-      console.log('[AuthContext] User logged out');
+      console.log('[AuthContext] User logged out, cookies cleared by backend');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, accessToken, requestOtp, verifyOtp, refreshToken, logout, fetchMe }}>
+    <AuthContext.Provider value={{ user, loading, accessToken, requestOtp, verifyOtp, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
       {children}
     </AuthContext.Provider>
   );
