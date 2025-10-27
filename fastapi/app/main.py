@@ -100,7 +100,8 @@ for origin in origins:
 logger.info("🔧 Configurando middlewares...")
 
 # Permitir ngrok y desarrollo: usar allow_origin_regex con un solo patrón que cubre todos los dominios de ngrok
-ngrok_regex = r"https://.*\.(ngrok\.io|ngrok-free\.app|ngrok-free\.dev|ngrokapp\.com)"
+# Permite CUALQUIER dominio de ngrok (incluyendo .ngrok-free.dev)
+ngrok_regex = r"https://.*\.ngrok.*\.(io|app|dev|com)"
 
 app.add_middleware(
     CORSMiddleware,
