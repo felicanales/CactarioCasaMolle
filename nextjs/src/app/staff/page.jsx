@@ -5,25 +5,25 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+// Por defecto está ACTIVADO en desarrollo local (no requiere .env)
+// Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+
 export default function StaffPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
-    console.log('[StaffPage] useEffect - loading:', loading, 'user:', user);
-    
-    // Esperar un poco más para que el AuthContext se inicialice completamente
-    const timer = setTimeout(() => {
-      if (!loading && !user) {
-        console.log('[StaffPage] ❌ No hay usuario autenticado después del timeout, redirigiendo al login...');
-        router.replace("/login");
-      } else if (!loading && user) {
-        console.log('[StaffPage] ✅ Usuario autenticado:', user);
-      }
-    }, 1000); // Esperar 1 segundo
+    // BYPASS: No redirigir en desarrollo
+    if (BYPASS_AUTH) {
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    if (!loading && !user) {
+      router.replace("/login");
+    }
   }, [user, loading, router]);
 
   const handleLogout = async () => {
@@ -99,6 +99,14 @@ export default function StaffPage() {
       color: "#8b5cf6",
       bgColor: "#ede9fe",
       disabled: true
+    },
+    {
+      title: "Editor de Contenido App",
+      description: "Edita información para la app de escaneo QR",
+      icon: "📱",
+      href: "/species-editor",
+      color: "#ec4899",
+      bgColor: "#fce7f3"
     }
   ];
 
@@ -123,6 +131,7 @@ export default function StaffPage() {
         .card:nth-child(2) { animation-delay: 0.2s; }
         .card:nth-child(3) { animation-delay: 0.3s; }
         .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
       `}</style>
 
       <div style={{

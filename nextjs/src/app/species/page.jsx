@@ -34,6 +34,15 @@ const getApiUrl = () => {
 
 const API = getApiUrl();
 
+// Helper para formatear nombres comunes
+const formatCommonNames = (nombre_común, nombres_comunes) => {
+    // Si hay nombres_comunes y es diferente de nombre_común, mostrar ambos
+    if (nombres_comunes && nombres_comunes.trim() && nombres_comunes !== nombre_común) {
+        return `${nombre_común || ''} ${nombres_comunes ? `(${nombres_comunes})` : ''}`;
+    }
+    return nombre_común || nombres_comunes || '';
+};
+
 // Helper para obtener el access token de localStorage o cookies
 const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
@@ -191,6 +200,8 @@ export default function SpeciesPage() {
     const [checkedAuth, setCheckedAuth] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [speciesIdToDelete, setSpeciesIdToDelete] = useState(null);
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
     const [formData, setFormData] = useState({
         scientific_name: "",
         nombre_común: "",
@@ -200,6 +211,7 @@ export default function SpeciesPage() {
         habitat: "",
         distribución: "",
         estado_conservación: "",
+        categoria_conservacion: "",
         Endémica: false,
         expectativa_vida: "",
         floración: "",
@@ -256,6 +268,11 @@ export default function SpeciesPage() {
             }
             const data = await res.json();
             console.log('[SpeciesPage] Species loaded:', data.length);
+            if (data.length > 0) {
+                console.log('[SpeciesPage] First species data:', data[0]);
+                console.log('[SpeciesPage] nombre_común value:', data[0].nombre_común);
+                console.log('[SpeciesPage] All keys:', Object.keys(data[0]));
+            }
             setSpecies(data);
             setError("");
         } catch (err) {
@@ -286,6 +303,7 @@ export default function SpeciesPage() {
             habitat: "",
             distribución: "",
             estado_conservación: "",
+            categoria_conservacion: "",
             Endémica: false,
             expectativa_vida: "",
             floración: "",
@@ -310,6 +328,7 @@ export default function SpeciesPage() {
             habitat: sp.habitat || "",
             distribución: sp.distribución || "",
             estado_conservación: sp.estado_conservación || "",
+            categoria_conservacion: sp.categoria_conservacion || "",
             Endémica: sp.Endémica || false,
             expectativa_vida: sp.expectativa_vida || "",
             floración: sp.floración || "",
@@ -445,10 +464,60 @@ export default function SpeciesPage() {
 
     return (
         <>
-            <style jsx>{`
+            <style jsx global>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive para el botón */
+                @media (max-width: 400px) {
+                  .btn-text {
+                    display: none !important;
+                  }
+                }
+                
+                @media (max-width: 768px) {
+                  .grid-2-cols {
+                    grid-template-columns: 1fr !important;
+                  }
+                }
+        
+        /* Responsive para las imágenes en la tabla */
+        @media (max-width: 768px) {
+          .species-image {
+            width: 80px !important;
+            height: 80px !important;
+            min-width: 80px !important;
+            min-height: 80px !important;
+          }
+          
+          .species-image-placeholder {
+            width: 80px !important;
+            height: 80px !important;
+            min-width: 80px !important;
+            min-height: 80px !important;
+            font-size: 32px !important;
+          }
+        }
+        
+        /* Responsive para el ancho de la columna */
+        @media (max-width: 768px) {
+          .image-column {
+            width: 112px !important;
+            min-width: 112px !important;
+          }
+        }
+        
+        /* Responsive para el padding en móvil */
+        @media (max-width: 768px) {
+          .table-cell {
+            padding: 8px !important;
+          }
+          
+          .table-header {
+            padding: 8px !important;
+          }
         }
       `}</style>
 
@@ -457,7 +526,7 @@ export default function SpeciesPage() {
                 <header style={{
                     backgroundColor: "white",
                     borderBottom: "1px solid #e5e7eb",
-                    padding: "16px 24px",
+                    padding: "12px clamp(12px, 4vw, 24px)",
                     position: "sticky",
                     top: 0,
                     zIndex: 10,
@@ -468,36 +537,41 @@ export default function SpeciesPage() {
                         margin: "0 auto",
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center"
+                        alignItems: "center",
+                        gap: "8px"
                     }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
                             <Link href="/staff" style={{
-                                padding: "8px 12px",
+                                padding: "8px",
                                 borderRadius: "6px",
                                 border: "1px solid #e5e7eb",
                                 backgroundColor: "white",
                                 color: "#374151",
                                 textDecoration: "none",
                                 fontSize: "14px",
-                                transition: "all 0.2s"
+                                transition: "all 0.2s",
+                                flexShrink: 0
                             }}>
-                                ← Volver
+                                ←
                             </Link>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <h1 style={{
-                                    fontSize: "20px",
+                                    fontSize: "clamp(16px, 4vw, 20px)",
                                     fontWeight: "700",
                                     color: "#111827",
-                                    margin: 0
+                                    margin: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap"
                                 }}>
                                     Gestión de Especies
                                 </h1>
                                 <p style={{
-                                    fontSize: "13px",
+                                    fontSize: "clamp(11px, 3vw, 13px)",
                                     color: "#6b7280",
                                     margin: 0
                                 }}>
-                                    {species.length} especies registradas
+                                    {species.length} especies
                                 </p>
                             </div>
                         </div>
@@ -510,12 +584,13 @@ export default function SpeciesPage() {
                                 border: "1px solid #e5e7eb",
                                 backgroundColor: "white",
                                 color: "#dc2626",
-                                fontSize: "14px",
+                                fontSize: "clamp(12px, 3vw, 14px)",
                                 cursor: "pointer",
-                                transition: "all 0.2s"
+                                transition: "all 0.2s",
+                                flexShrink: 0
                             }}
                         >
-                            Cerrar sesión
+                            Salir
                         </button>
                     </div>
                 </header>
@@ -530,7 +605,7 @@ export default function SpeciesPage() {
                     <div style={{
                         backgroundColor: "white",
                         borderRadius: "12px",
-                        padding: "16px 20px",
+                        padding: "clamp(12px, 3vw, 16px) clamp(12px, 4vw, 20px)",
                         marginBottom: "24px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                         display: "flex",
@@ -541,16 +616,16 @@ export default function SpeciesPage() {
                     }}>
                         <input
                             type="text"
-                            placeholder="Buscar por nombre científico o común..."
+                            placeholder="Buscar..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
                                 flex: "1",
-                                minWidth: "250px",
-                                padding: "10px 16px",
+                                minWidth: "200px",
+                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)",
                                 border: "1px solid #d1d5db",
                                 borderRadius: "8px",
-                                fontSize: "14px",
+                                fontSize: "clamp(13px, 3vw, 14px)",
                                 outline: "none",
                                 transition: "border-color 0.2s"
                             }}
@@ -559,24 +634,25 @@ export default function SpeciesPage() {
                         <button
                             onClick={handleCreate}
                             style={{
-                                padding: "10px 20px",
+                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)",
                                 backgroundColor: "#10b981",
                                 color: "white",
                                 border: "none",
                                 borderRadius: "8px",
-                                fontSize: "14px",
+                                fontSize: "clamp(13px, 3vw, 14px)",
                                 fontWeight: "600",
                                 cursor: "pointer",
                                 transition: "background-color 0.2s",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "8px"
+                                gap: "8px",
+                                whiteSpace: "nowrap"
                             }}
                             onMouseEnter={(e) => e.target.style.backgroundColor = "#059669"}
                             onMouseLeave={(e) => e.target.style.backgroundColor = "#10b981"}
                         >
                             <span style={{ fontSize: "18px" }}>+</span>
-                            Nueva Especie
+                            <span className="btn-text">Nueva Especie</span>
                         </button>
                     </div>
 
@@ -611,8 +687,8 @@ export default function SpeciesPage() {
                                         backgroundColor: "#f9fafb",
                                         borderBottom: "1px solid #e5e7eb"
                                     }}>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="image-column table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -624,8 +700,8 @@ export default function SpeciesPage() {
                                         }}>
                                             Imagen
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -635,8 +711,8 @@ export default function SpeciesPage() {
                                         }}>
                                             Nombre Científico
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -646,8 +722,8 @@ export default function SpeciesPage() {
                                         }}>
                                             Nombre Común
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -657,8 +733,8 @@ export default function SpeciesPage() {
                                         }}>
                                             Estado
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -668,8 +744,8 @@ export default function SpeciesPage() {
                                         }}>
                                             Endémica
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "right",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -693,173 +769,216 @@ export default function SpeciesPage() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        species.map((sp) => (
-                                            <tr
-                                                key={sp.id}
-                                                style={{
-                                                    borderBottom: "1px solid #e5e7eb",
-                                                    transition: "background-color 0.2s"
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
-                                            >
-                                                <td style={{
-                                                    padding: "12px 16px",
-                                                    verticalAlign: "middle"
-                                                }}>
-                                                    {sp.image_url ? (
-                                                        <img
-                                                            src={sp.image_url}
-                                                            alt={sp.nombre_común || sp.scientific_name}
-                                                            style={{
-                                                                width: "120px",
-                                                                height: "120px",
-                                                                minWidth: "120px",
-                                                                minHeight: "120px",
-                                                                objectFit: "cover",
-                                                                borderRadius: "12px",
-                                                                border: "2px solid #e5e7eb",
-                                                                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s",
-                                                                display: "block"
-                                                            }}
-                                                            onClick={() => handleView(sp)}
-                                                            onMouseEnter={(e) => {
-                                                                e.target.style.transform = "scale(1.08)";
-                                                                e.target.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.target.style.transform = "scale(1)";
-                                                                e.target.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{
-                                                            width: "120px",
-                                                            height: "120px",
-                                                            minWidth: "120px",
-                                                            minHeight: "120px",
-                                                            borderRadius: "12px",
-                                                            backgroundColor: "#f3f4f6",
-                                                            border: "2px dashed #d1d5db",
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                            color: "#9ca3af",
-                                                            fontSize: "48px"
-                                                        }}>
-                                                            🌵
+                                        species.map((sp) => {
+                                            const isEndangered = sp.categoria_conservacion === "En peligro de extinción";
+                                            return (
+                                                <tr
+                                                    key={sp.id}
+                                                    style={{
+                                                        borderBottom: "1px solid #e5e7eb",
+                                                        transition: "background-color 0.2s",
+                                                        backgroundColor: isEndangered ? "#fee2e2" : "white",
+                                                        borderLeft: isEndangered ? "4px solid #ef4444" : "none"
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!isEndangered) {
+                                                            e.currentTarget.style.backgroundColor = "#f9fafb";
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = isEndangered ? "#fee2e2" : "white";
+                                                    }}
+                                                >
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px 16px",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        {sp.image_url ? (
+                                                            <img
+                                                                className="species-image"
+                                                                src={sp.image_url}
+                                                                alt={sp.nombre_común || sp.scientific_name}
+                                                                style={{
+                                                                    width: "120px",
+                                                                    height: "120px",
+                                                                    minWidth: "120px",
+                                                                    minHeight: "120px",
+                                                                    objectFit: "cover",
+                                                                    borderRadius: "12px",
+                                                                    border: "2px solid #e5e7eb",
+                                                                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s",
+                                                                    display: "block"
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedImage({ url: sp.image_url, name: sp.nombre_común || sp.scientific_name });
+                                                                    setShowImageModal(true);
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.target.style.transform = "scale(1.08)";
+                                                                    e.target.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.target.style.transform = "scale(1)";
+                                                                    e.target.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className="species-image-placeholder"
+                                                                style={{
+                                                                    width: "120px",
+                                                                    height: "120px",
+                                                                    minWidth: "120px",
+                                                                    minHeight: "120px",
+                                                                    borderRadius: "12px",
+                                                                    backgroundColor: "#f3f4f6",
+                                                                    border: "2px dashed #d1d5db",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    color: "#9ca3af",
+                                                                    fontSize: "48px"
+                                                                }}
+                                                            >
+                                                                🌵
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#111827",
+                                                        fontWeight: "500",
+                                                        fontStyle: "italic",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        {sp.scientific_name}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#374151",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                            {sp.nombre_común && (
+                                                                <span style={{ fontWeight: "500", fontSize: "14px" }}>{sp.nombre_común}</span>
+                                                            )}
+                                                            {sp.nombres_comunes && (
+                                                                <span style={{ fontSize: "12px", color: "#6b7280" }}>
+                                                                    {sp.nombres_comunes}
+                                                                </span>
+                                                            )}
+                                                            {!sp.nombre_común && !sp.nombres_comunes && (
+                                                                <span style={{ fontStyle: "italic", color: "#9ca3af", fontSize: "14px" }}>-</span>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#111827",
-                                                    fontWeight: "500",
-                                                    fontStyle: "italic"
-                                                }}>
-                                                    {sp.scientific_name}
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#374151"
-                                                }}>
-                                                    {sp.nombre_común || "-"}
-                                                </td>
-                                                <td style={{ padding: "16px" }}>
-                                                    <span style={{
-                                                        display: "inline-block",
-                                                        padding: "4px 12px",
-                                                        borderRadius: "12px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
-                                                                "#f0fdf4",
-                                                        color: sp.estado_conservación === "En peligro" ? "#dc2626" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#ea580c" :
-                                                                "#16a34a"
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        verticalAlign: "middle"
                                                     }}>
-                                                        {sp.estado_conservación || "No especificado"}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: "16px", textAlign: "center" }}>
-                                                    <span style={{
-                                                        fontSize: "20px"
+                                                        <span style={{
+                                                            display: "inline-block",
+                                                            padding: "4px 12px",
+                                                            borderRadius: "12px",
+                                                            fontSize: "12px",
+                                                            fontWeight: "600",
+                                                            backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
+                                                                sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
+                                                                    "#f0fdf4",
+                                                            color: sp.estado_conservación === "En peligro" ? "#dc2626" :
+                                                                sp.estado_conservación === "Vulnerable" ? "#ea580c" :
+                                                                    "#16a34a"
+                                                        }}>
+                                                            {sp.estado_conservación || "No especificado"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        textAlign: "center",
+                                                        verticalAlign: "middle"
                                                     }}>
-                                                        {sp.Endémica ? "🇨🇱" : "-"}
-                                                    </span>
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    textAlign: "right"
-                                                }}>
-                                                    <div style={{
-                                                        display: "flex",
-                                                        gap: "8px",
-                                                        justifyContent: "flex-end"
+                                                        <span style={{
+                                                            fontSize: "14px",
+                                                            fontWeight: "600",
+                                                            color: sp.Endémica ? "#16a34a" : "#9ca3af"
+                                                        }}>
+                                                            {sp.Endémica ? "Sí" : "-"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        textAlign: "right",
+                                                        verticalAlign: "middle"
                                                     }}>
-                                                        <button
-                                                            onClick={() => handleView(sp)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#eff6ff",
-                                                                color: "#2563eb",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
-                                                        >
-                                                            Ver
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleEdit(sp)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#fef3c7",
-                                                                color: "#d97706",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fde68a"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef3c7"}
-                                                        >
-                                                            Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(sp.id)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#fef2f2",
-                                                                color: "#dc2626",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                        <div style={{
+                                                            display: "flex",
+                                                            gap: "8px",
+                                                            justifyContent: "flex-end"
+                                                        }}>
+                                                            <button
+                                                                onClick={() => handleView(sp)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#eff6ff",
+                                                                    color: "#2563eb",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
+                                                            >
+                                                                Ver
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEdit(sp)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#fef3c7",
+                                                                    color: "#d97706",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#fde68a"}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#fef3c7"}
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(sp.id)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#fef2f2",
+                                                                    color: "#dc2626",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -1141,11 +1260,37 @@ export default function SpeciesPage() {
                                     color: "#374151",
                                     marginBottom: "6px"
                                 }}>
-                                    Estado de Conservación
+                                    Estado de Conservación (Descripción Libre)
                                 </label>
-                                <select
+                                <input
+                                    type="text"
                                     value={formData.estado_conservación}
                                     onChange={(e) => setFormData({ ...formData, estado_conservación: e.target.value })}
+                                    placeholder="Ej: Endémica de Chile central"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "14px",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{
+                                    display: "block",
+                                    fontSize: "14px",
+                                    fontWeight: "500",
+                                    color: "#374151",
+                                    marginBottom: "6px"
+                                }}>
+                                    Categoría de Conservación
+                                </label>
+                                <select
+                                    value={formData.categoria_conservacion}
+                                    onChange={(e) => setFormData({ ...formData, categoria_conservacion: e.target.value })}
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
@@ -1156,10 +1301,10 @@ export default function SpeciesPage() {
                                     }}
                                 >
                                     <option value="">Seleccionar...</option>
-                                    <option value="No amenazada">No amenazada</option>
-                                    <option value="Vulnerable">Vulnerable</option>
-                                    <option value="En peligro">En peligro</option>
-                                    <option value="En peligro crítico">En peligro crítico</option>
+                                    <option value="No amenazado">No amenazado</option>
+                                    <option value="Preocupación menor">Preocupación menor</option>
+                                    <option value="Protegido">Protegido</option>
+                                    <option value="En peligro de extinción">En peligro de extinción</option>
                                 </select>
                             </div>
 
@@ -1241,6 +1386,286 @@ export default function SpeciesPage() {
                                     }}
                                     placeholder="Instrucciones de cuidado..."
                                 />
+                            </div>
+
+                            <div style={{
+                                padding: "16px",
+                                backgroundColor: "#f9fafb",
+                                borderRadius: "8px",
+                                border: "1px solid #e5e7eb"
+                            }}>
+                                <h3 style={{
+                                    fontSize: "14px",
+                                    fontWeight: "600",
+                                    color: "#111827",
+                                    margin: "0 0 12px 0"
+                                }}>
+                                    Información Taxonómica
+                                </h3>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                    <div>
+                                        <label style={{
+                                            display: "block",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            color: "#374151",
+                                            marginBottom: "4px"
+                                        }}>
+                                            Nombres Comunes (separados por comas)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.nombres_comunes}
+                                            onChange={(e) => setFormData({ ...formData, nombres_comunes: e.target.value })}
+                                            placeholder="Ej: Copao, Quisco"
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                fontSize: "14px",
+                                                boxSizing: "border-box"
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                        <div>
+                                            <label style={{
+                                                display: "block",
+                                                fontSize: "13px",
+                                                fontWeight: "500",
+                                                color: "#374151",
+                                                marginBottom: "4px"
+                                            }}>
+                                                Tipo de Planta
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.tipo_planta}
+                                                onChange={(e) => setFormData({ ...formData, tipo_planta: e.target.value })}
+                                                placeholder="Ej: Cactácea"
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "8px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "6px",
+                                                    fontSize: "14px",
+                                                    boxSizing: "border-box"
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{
+                                                display: "block",
+                                                fontSize: "13px",
+                                                fontWeight: "500",
+                                                color: "#374151",
+                                                marginBottom: "4px"
+                                            }}>
+                                                Tipo de Morfología
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.tipo_morfología}
+                                                onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value })}
+                                                placeholder="Ej: Columnar, Espinoso"
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "8px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "6px",
+                                                    fontSize: "14px",
+                                                    boxSizing: "border-box"
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{
+                                            display: "block",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            color: "#374151",
+                                            marginBottom: "4px"
+                                        }}>
+                                            Distribución
+                                        </label>
+                                        <textarea
+                                            value={formData.distribución}
+                                            onChange={(e) => setFormData({ ...formData, distribución: e.target.value })}
+                                            rows={2}
+                                            placeholder="Región de distribución..."
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                resize: "vertical",
+                                                boxSizing: "border-box"
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                        <div>
+                                            <label style={{
+                                                display: "block",
+                                                fontSize: "13px",
+                                                fontWeight: "500",
+                                                color: "#374151",
+                                                marginBottom: "4px"
+                                            }}>
+                                                Expectativa de Vida
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.expectativa_vida}
+                                                onChange={(e) => setFormData({ ...formData, expectativa_vida: e.target.value })}
+                                                placeholder="Ej: 50-100 años"
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "8px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "6px",
+                                                    fontSize: "14px",
+                                                    boxSizing: "border-box"
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{
+                                                display: "block",
+                                                fontSize: "13px",
+                                                fontWeight: "500",
+                                                color: "#374151",
+                                                marginBottom: "4px"
+                                            }}>
+                                                Floración
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.floración}
+                                                onChange={(e) => setFormData({ ...formData, floración: e.target.value })}
+                                                placeholder="Ej: Primavera-Verano"
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "8px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "6px",
+                                                    fontSize: "14px",
+                                                    boxSizing: "border-box"
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                padding: "16px",
+                                backgroundColor: "#f9fafb",
+                                borderRadius: "8px",
+                                border: "1px solid #e5e7eb"
+                            }}>
+                                <h3 style={{
+                                    fontSize: "14px",
+                                    fontWeight: "600",
+                                    color: "#111827",
+                                    margin: "0 0 12px 0"
+                                }}>
+                                    Información Adicional
+                                </h3>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                    <div>
+                                        <label style={{
+                                            display: "block",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            color: "#374151",
+                                            marginBottom: "4px"
+                                        }}>
+                                            Usos
+                                        </label>
+                                        <textarea
+                                            value={formData.usos}
+                                            onChange={(e) => setFormData({ ...formData, usos: e.target.value })}
+                                            rows={2}
+                                            placeholder="Usos tradicionales, medicinales, etc."
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                resize: "vertical",
+                                                boxSizing: "border-box"
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{
+                                            display: "block",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            color: "#374151",
+                                            marginBottom: "4px"
+                                        }}>
+                                            Historia del Nombre
+                                        </label>
+                                        <textarea
+                                            value={formData.historia_nombre}
+                                            onChange={(e) => setFormData({ ...formData, historia_nombre: e.target.value })}
+                                            rows={2}
+                                            placeholder="Origen y significado del nombre científico..."
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                resize: "vertical",
+                                                boxSizing: "border-box"
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{
+                                            display: "block",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            color: "#374151",
+                                            marginBottom: "4px"
+                                        }}>
+                                            Historia y Leyendas
+                                        </label>
+                                        <textarea
+                                            value={formData.historia_y_leyendas}
+                                            onChange={(e) => setFormData({ ...formData, historia_y_leyendas: e.target.value })}
+                                            rows={3}
+                                            placeholder="Leyendas, mitos e historias relacionadas..."
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                fontSize: "14px",
+                                                fontFamily: "inherit",
+                                                resize: "vertical",
+                                                boxSizing: "border-box"
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             {error && (
@@ -1424,6 +1849,89 @@ export default function SpeciesPage() {
                                 Sí, Eliminar
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Imagen Ampliada */}
+            {showImageModal && selectedImage && (
+                <div
+                    onClick={() => setShowImageModal(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '20px'
+                    }}
+                >
+                    <div style={{
+                        maxWidth: '90vw',
+                        maxHeight: '90vh',
+                        position: 'relative'
+                    }}>
+                        <img
+                            src={selectedImage.url}
+                            alt={selectedImage.name}
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '90vh',
+                                objectFit: 'contain',
+                                borderRadius: '12px'
+                            }}
+                        />
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowImageModal(false);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: '-20px',
+                                right: '-20px',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                backgroundColor: 'white',
+                                color: '#1f2937',
+                                border: 'none',
+                                fontSize: '24px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = '#f3f4f6';
+                                e.target.style.transform = 'scale(1.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = 'white';
+                                e.target.style.transform = 'scale(1)';
+                            }}
+                        >
+                            ×
+                        </button>
+                        <p style={{
+                            position: 'absolute',
+                            bottom: '-40px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            color: 'white',
+                            fontSize: '16px',
+                            fontWeight: '500',
+                            textAlign: 'center'
+                        }}>
+                            {selectedImage.name}
+                        </p>
                     </div>
                 </div>
             )}
