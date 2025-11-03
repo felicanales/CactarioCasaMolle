@@ -20,12 +20,12 @@ def list_staff(
     sb = get_public()
     
     # Construir la consulta con joins
-    # En Supabase, los joins se hacen usando la sintaxis de foreign key
-    # especies:species_id significa la relación desde ejemplar.species_id hacia especies
+    # En Supabase PostgREST, los joins se hacen usando el nombre de la tabla relacionada
+    # La sintaxis es: tabla_relacionada(campos)
     query = sb.table("ejemplar").select(
         """
         *,
-        especies!ejemplar_species_id_fkey (
+        especies (
             id,
             scientific_name,
             nombre_común,
@@ -33,7 +33,7 @@ def list_staff(
             tipo_morfología,
             morfología_cactus
         ),
-        sectores!ejemplar_sector_id_fkey (
+        sectores (
             id,
             name,
             description
@@ -139,7 +139,7 @@ def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
     res = sb.table("ejemplar").select(
         """
         *,
-        especies!ejemplar_species_id_fkey (
+        especies (
             id,
             scientific_name,
             nombre_común,
@@ -147,7 +147,7 @@ def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
             tipo_morfología,
             morfología_cactus
         ),
-        sectores!ejemplar_sector_id_fkey (
+        sectores (
             id,
             name,
             description
