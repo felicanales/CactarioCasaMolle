@@ -253,10 +253,6 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     if "health_status" in clean_payload and clean_payload["health_status"] == "":
         clean_payload["health_status"] = None
     
-    # Convertir strings vacíos a None para ENUM de health_status
-    if "health_status" in clean_payload and clean_payload["health_status"] == "":
-        clean_payload["health_status"] = None
-    
     # Convertir valores numéricos vacíos a None
     numeric_fields = ["age_months", "purchase_price", "sale_price"]
     for field in numeric_fields:
