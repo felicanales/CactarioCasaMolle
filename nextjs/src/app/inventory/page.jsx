@@ -1431,8 +1431,8 @@ export default function InventoryPage() {
                                 </div>
                             </div>
                             
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                {/* Fecha de Compra */}
+                            {/* Fecha según el modo */}
+                            {modalMode === "compra" && (
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1443,10 +1443,11 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Fecha de Compra
+                                        Fecha de Compra *
                                     </label>
                                     <input
                                         type="date"
+                                        required
                                         value={formData.purchase_date}
                                         onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                                         style={{
@@ -1459,8 +1460,9 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                                
-                                {/* Fecha de Venta */}
+                            )}
+                            
+                            {modalMode === "venta" && (
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1471,10 +1473,11 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Fecha de Venta
+                                        Fecha de Venta *
                                     </label>
                                     <input
                                         type="date"
+                                        required
                                         value={formData.sale_date}
                                         onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
                                         style={{
@@ -1487,7 +1490,7 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                            </div>
+                            )}
                             
                             {/* Vivero - solo para compras */}
                             {modalMode === "compra" && (
