@@ -1482,7 +1482,7 @@ export default function InventoryPage() {
                             </div>
                             
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                {/* Precio de Compra */}
+                                {/* Precio de Compra (Unitario) */}
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1493,7 +1493,7 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Precio de Compra
+                                        Precio de Compra (Unitario)
                                     </label>
                                     <input
                                         type="number"
