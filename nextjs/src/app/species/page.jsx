@@ -758,7 +758,7 @@ export default function SpeciesPage() {
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
-                                            Estado
+                                            Categoría de Conservación
                                         </th>
                                         <th className="table-header" style={{
                                             padding: "16px",
@@ -770,6 +770,28 @@ export default function SpeciesPage() {
                                             letterSpacing: "0.05em"
                                         }}>
                                             Endémica
+                                        </th>
+                                        <th className="table-header" style={{
+                                            padding: "16px",
+                                            textAlign: "left",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em"
+                                        }}>
+                                            Cuidado y Recomendaciones
+                                        </th>
+                                        <th className="table-header" style={{
+                                            padding: "16px",
+                                            textAlign: "left",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em"
+                                        }}>
+                                            Hábitat
                                         </th>
                                         <th className="table-header" style={{
                                             padding: "16px",
@@ -787,7 +809,7 @@ export default function SpeciesPage() {
                                 <tbody>
                                     {species.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" style={{
+                                            <td colSpan="8" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
@@ -908,35 +930,73 @@ export default function SpeciesPage() {
                                                         padding: "16px",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                    <span style={{
-                                                        display: "inline-block",
-                                                        padding: "4px 12px",
-                                                        borderRadius: "12px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
-                                                                "#f0fdf4",
-                                                        color: sp.estado_conservación === "En peligro" ? "#dc2626" :
-                                                            sp.estado_conservación === "Vulnerable" ? "#ea580c" :
-                                                                "#16a34a"
-                                                    }}>
-                                                        {sp.estado_conservación || "No especificado"}
-                                                    </span>
-                                                </td>
+                                                        <span style={{
+                                                            display: "inline-block",
+                                                            padding: "4px 12px",
+                                                            borderRadius: "12px",
+                                                            fontSize: "12px",
+                                                            fontWeight: "600",
+                                                            backgroundColor: (sp.categoría_de_conservación === "En peligro de extinción" || sp.categoria_conservacion === "En peligro de extinción") ? "#fef2f2" :
+                                                                (sp.categoría_de_conservación === "Protegido" || sp.categoria_conservacion === "Protegido") ? "#fff7ed" :
+                                                                    (sp.categoría_de_conservación === "Preocupación menor" || sp.categoria_conservacion === "Preocupación menor") ? "#f0fdf4" :
+                                                                        "#f3f4f6",
+                                                            color: (sp.categoría_de_conservación === "En peligro de extinción" || sp.categoria_conservacion === "En peligro de extinción") ? "#dc2626" :
+                                                                (sp.categoría_de_conservación === "Protegido" || sp.categoria_conservacion === "Protegido") ? "#ea580c" :
+                                                                    (sp.categoría_de_conservación === "Preocupación menor" || sp.categoria_conservacion === "Preocupación menor") ? "#16a34a" :
+                                                                        "#6b7280"
+                                                        }}>
+                                                            {sp.categoría_de_conservación || sp.categoria_conservacion || "No especificado"}
+                                                        </span>
+                                                    </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
                                                         textAlign: "center",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                    <span style={{
+                                                        <span style={{
                                                             fontSize: "14px",
                                                             fontWeight: "600",
                                                             color: sp.Endémica ? "#16a34a" : "#9ca3af"
+                                                        }}>
+                                                            {sp.Endémica ? "Sí" : "No"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        verticalAlign: "middle",
+                                                        maxWidth: "300px"
                                                     }}>
-                                                            {sp.Endémica ? "Sí" : "-"}
-                                                    </span>
-                                                </td>
+                                                        <div style={{
+                                                            fontSize: "13px",
+                                                            color: "#374151",
+                                                            lineHeight: "1.5",
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 3,
+                                                            WebkitBoxOrient: "vertical"
+                                                        }}>
+                                                            {sp.cuidado || "-"}
+                                                        </div>
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        verticalAlign: "middle",
+                                                        maxWidth: "300px"
+                                                    }}>
+                                                        <div style={{
+                                                            fontSize: "13px",
+                                                            color: "#374151",
+                                                            lineHeight: "1.5",
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            display: "-webkit-box",
+                                                            WebkitLineClamp: 3,
+                                                            WebkitBoxOrient: "vertical"
+                                                        }}>
+                                                            {sp.habitat || "-"}
+                                                        </div>
+                                                    </td>
                                                     <td className="table-cell" style={{
                                                     padding: "16px",
                                                         textAlign: "right",
