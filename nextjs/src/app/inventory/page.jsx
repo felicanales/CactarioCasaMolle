@@ -320,6 +320,30 @@ export default function InventoryPage() {
             const basePayload = { ...formData };
             delete basePayload.cantidad; // Remover cantidad del payload
             
+            // Validar campos según el modo
+            if (modalMode === "compra" && !formData.purchase_date) {
+                setError("La fecha de compra es obligatoria");
+                setSubmitting(false);
+                return;
+            }
+            if (modalMode === "venta" && !formData.sale_date) {
+                setError("La fecha de venta es obligatoria");
+                setSubmitting(false);
+                return;
+            }
+            
+            // Limpiar campos según el modo
+            if (modalMode === "compra") {
+                // En compra, limpiar campos de venta
+                basePayload.sale_date = null;
+                basePayload.sale_price = null;
+            } else if (modalMode === "venta") {
+                // En venta, limpiar campos de compra
+                basePayload.purchase_date = null;
+                basePayload.purchase_price = null;
+                basePayload.nursery = null;
+            }
+            
             // Convertir IDs a números
             basePayload.species_id = parseInt(formData.species_id);
             basePayload.sector_id = parseInt(formData.sector_id);
@@ -1096,7 +1120,7 @@ export default function InventoryPage() {
                 onClose={() => {
                     setShowModal(false);
                     setError("");
-                    if (modalMode === "create") {
+                    if (modalMode === "compra" || modalMode === "venta") {
                         setFormData({
                             species_id: "",
                             sector_id: "",
@@ -1114,9 +1138,13 @@ export default function InventoryPage() {
                         });
                     }
                 }}
-                title={modalMode === "create" ? "Crear Nuevo Ejemplar" : "Detalle del Ejemplar"}
+                title={
+                    modalMode === "compra" ? "Ingresar Compra" :
+                    modalMode === "venta" ? "Ingresar Venta" :
+                    "Detalle del Ejemplar"
+                }
             >
-                {modalMode === "create" ? (
+                {modalMode === "compra" || modalMode === "venta" ? (
                     <form onSubmit={handleCreate}>
                         {error && (
                             <div style={{
@@ -1421,34 +1449,36 @@ export default function InventoryPage() {
                                 </div>
                             </div>
                             
-                            {/* Vivero */}
-                            <div>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#6b7280",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Vivero
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.nursery}
-                                    onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
-                                    placeholder="Nombre del vivero o proveedor"
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                />
-                            </div>
+                            {/* Vivero - solo para compras */}
+                            {modalMode === "compra" && (
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Vivero
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.nursery}
+                                        onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
+                                        placeholder="Nombre del vivero o proveedor"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                            )}
                             
                             {/* Ubicación Específica */}
                             <div>
@@ -1481,8 +1511,8 @@ export default function InventoryPage() {
                                 />
                             </div>
                             
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                {/* Precio de Compra (Unitario) */}
+                            {/* Precio según el modo */}
+                            {modalMode === "compra" && (
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1512,8 +1542,9 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                                
-                                {/* Precio de Venta (Unitario) */}
+                            )}
+                            
+                            {modalMode === "venta" && (
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1543,7 +1574,7 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                            </div>
+                            )}
                             
                             {/* Cantidad de Retoños/Hijos */}
                             <div>
