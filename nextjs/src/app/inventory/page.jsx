@@ -1107,10 +1107,10 @@ export default function InventoryPage() {
                             tamaño: "",
                             health_status: "",
                             location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
+                            purchase_price: "",
+                            sale_price: "",
+                            has_offshoots: 0,
+                            cantidad: 1
                         });
                     }
                 }}
