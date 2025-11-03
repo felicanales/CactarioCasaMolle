@@ -246,10 +246,19 @@ export default function InventoryPage() {
             }
             
             const data = await res.json();
-            setEjemplares(data);
+            // Asegurar que data es un array
+            if (Array.isArray(data)) {
+                setEjemplares(data);
+            } else {
+                console.error('[InventoryPage] Respuesta no es un array:', data);
+                setEjemplares([]);
+                setError("Error: respuesta del servidor no válida");
+            }
         } catch (err) {
             console.error('[InventoryPage] Error:', err);
             setError(err.message || "Error al cargar ejemplares");
+            // Asegurar que ejemplares es un array en caso de error
+            setEjemplares([]);
         } finally {
             setLoading(false);
         }

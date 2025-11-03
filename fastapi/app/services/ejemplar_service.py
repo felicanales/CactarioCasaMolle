@@ -17,46 +17,68 @@ def list_staff(
     Lista ejemplares con información completa de especie y sector.
     Soporta filtros por especie, sector, tamaño, morfología y nombre común.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
     
-    # Construir la consulta con joins
-    # En Supabase PostgREST, los joins se hacen usando el nombre de la tabla relacionada
-    # La sintaxis es: tabla_relacionada(campos)
-    query = sb.table("ejemplar").select(
-        """
-        *,
-        especies (
-            id,
-            scientific_name,
-            nombre_común,
-            nombres_comunes,
-            tipo_morfología,
-            morfología_cactus
-        ),
-        sectores (
-            id,
-            name,
-            description
-        )
-        """
-    )
-    
-    # Aplicar filtros
-    if species_id:
-        query = query.eq("species_id", species_id)
-    
-    if sector_id:
-        query = query.eq("sector_id", sector_id)
-    
-    if size_min is not None:
-        query = query.gte("size_cm", size_min)
-    
-    if size_max is not None:
-        query = query.lte("size_cm", size_max)
-    
-    # Ejecutar la consulta
-    res = query.execute()
-    ejemplares = res.data or []
+    try:
+        # Consultar ejemplares directamente (sin joins, más confiable)
+        query = sb.table("ejemplar").select("*")
+        
+        # Aplicar filtros directos
+        if species_id:
+            query = query.eq("species_id", species_id)
+        
+        if sector_id:
+            query = query.eq("sector_id", sector_id)
+        
+        if size_min is not None:
+            query = query.gte("size_cm", size_min)
+        
+        if size_max is not None:
+            query = query.lte("size_cm", size_max)
+        
+        # Ejecutar la consulta
+        res = query.execute()
+        ejemplares = res.data or []
+        
+        # Si no hay ejemplares, retornar lista vacía
+        if not ejemplares:
+            return []
+        
+        # Obtener IDs únicos de especies y sectores
+        species_ids = list(set([e.get("species_id") for e in ejemplares if e.get("species_id")]))
+        sector_ids = list(set([e.get("sector_id") for e in ejemplares if e.get("sector_id")]))
+        
+        # Consultar especies relacionadas
+        especies_map = {}
+        if species_ids:
+            try:
+                especies_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología, morfología_cactus").in_("id", species_ids).execute()
+                for especie in (especies_res.data or []):
+                    especies_map[especie["id"]] = especie
+            except Exception as e:
+                logger.warning(f"[list_staff] Error cargando especies: {str(e)}")
+        
+        # Consultar sectores relacionados
+        sectores_map = {}
+        if sector_ids:
+            try:
+                sectores_res = sb.table("sectores").select("id, name, description").in_("id", sector_ids).execute()
+                for sector in (sectores_res.data or []):
+                    sectores_map[sector["id"]] = sector
+            except Exception as e:
+                logger.warning(f"[list_staff] Error cargando sectores: {str(e)}")
+        
+        # Combinar datos
+        for ej in ejemplares:
+            ej["especies"] = especies_map.get(ej.get("species_id"))
+            ej["sectores"] = sectores_map.get(ej.get("sector_id"))
+        
+    except Exception as e:
+        logger.error(f"[list_staff] Error al listar ejemplares: {str(e)}")
+        return []
     
     # Filtros adicionales que requieren procesamiento en memoria
     # (porque involucran campos de las tablas relacionadas)
@@ -135,27 +157,45 @@ def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
     """
     Obtiene un ejemplar por su ID con información completa.
     """
-    sb = get_public()
-    res = sb.table("ejemplar").select(
-        """
-        *,
-        especies (
-            id,
-            scientific_name,
-            nombre_común,
-            nombres_comunes,
-            tipo_morfología,
-            morfología_cactus
-        ),
-        sectores (
-            id,
-            name,
-            description
-        )
-        """
-    ).eq("id", ejemplar_id).limit(1).execute()
+    import logging
+    logger = logging.getLogger(__name__)
     
-    return res.data[0] if res.data else None
+    sb = get_public()
+    
+    try:
+        # Consultar ejemplar
+        res = sb.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
+        
+        if not res.data:
+            return None
+        
+        ejemplar = res.data[0]
+        
+        # Consultar especie relacionada
+        species_id = ejemplar.get("species_id")
+        if species_id:
+            try:
+                especie_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología, morfología_cactus").eq("id", species_id).limit(1).execute()
+                ejemplar["especies"] = especie_res.data[0] if especie_res.data else None
+            except Exception as e:
+                logger.warning(f"[get_staff] Error cargando especie: {str(e)}")
+                ejemplar["especies"] = None
+        
+        # Consultar sector relacionado
+        sector_id = ejemplar.get("sector_id")
+        if sector_id:
+            try:
+                sector_res = sb.table("sectores").select("id, name, description").eq("id", sector_id).limit(1).execute()
+                ejemplar["sectores"] = sector_res.data[0] if sector_res.data else None
+            except Exception as e:
+                logger.warning(f"[get_staff] Error cargando sector: {str(e)}")
+                ejemplar["sectores"] = None
+        
+        return ejemplar
+        
+    except Exception as e:
+        logger.error(f"[get_staff] Error al obtener ejemplar: {str(e)}")
+        return None
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
