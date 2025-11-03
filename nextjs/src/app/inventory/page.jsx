@@ -1419,34 +1419,6 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                                
-                                {/* Fecha de Colección */}
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Fecha de Colección
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.collection_date}
-                                        onChange={(e) => setFormData({ ...formData, collection_date: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
                             </div>
                             
                             {/* Vivero */}
