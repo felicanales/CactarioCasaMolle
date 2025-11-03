@@ -185,7 +185,8 @@ export default function InventoryPage() {
         purchase_price: "",
         sale_price: "",
         collection_date: "",
-        has_offshoots: false
+        has_offshoots: false,
+        cantidad: 1 // Cantidad de ejemplares a crear
     });
 
     useEffect(() => {
@@ -301,61 +302,102 @@ export default function InventoryPage() {
             return;
         }
         
+        // Validar cantidad
+        const cantidad = parseInt(formData.cantidad) || 1;
+        if (cantidad < 1) {
+            setError("La cantidad debe ser al menos 1");
+            return;
+        }
+        if (cantidad > 100) {
+            setError("La cantidad máxima permitida es 100 ejemplares por operación");
+            return;
+        }
+        
         try {
             setSubmitting(true);
             setError("");
             
-            // Preparar payload
-            const payload = { ...formData };
+            // Preparar payload base (sin cantidad)
+            const basePayload = { ...formData };
+            delete basePayload.cantidad; // Remover cantidad del payload
             
             // Convertir IDs a números
-            payload.species_id = parseInt(formData.species_id);
-            payload.sector_id = parseInt(formData.sector_id);
+            basePayload.species_id = parseInt(formData.species_id);
+            basePayload.sector_id = parseInt(formData.sector_id);
             
             // Convertir age_months a número si existe
-            if (payload.age_months) {
-                payload.age_months = parseInt(payload.age_months);
+            if (basePayload.age_months) {
+                basePayload.age_months = parseInt(basePayload.age_months);
             }
             
             // Convertir precios a números si existen
-            if (payload.purchase_price) {
-                payload.purchase_price = parseFloat(payload.purchase_price);
+            if (basePayload.purchase_price) {
+                basePayload.purchase_price = parseFloat(basePayload.purchase_price);
             }
-            if (payload.sale_price) {
-                payload.sale_price = parseFloat(payload.sale_price);
-            }
-            
-            const res = await apiRequest(`${API}/ejemplar/staff`, {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al crear el ejemplar");
+            if (basePayload.sale_price) {
+                basePayload.sale_price = parseFloat(basePayload.sale_price);
             }
             
-            // Recargar lista y cerrar modal
-            await fetchEjemplares();
-            setShowModal(false);
-            setFormData({
-                species_id: "",
-                sector_id: "",
-                purchase_date: "",
-                sale_date: "",
-                nursery: "",
-                age_months: "",
-                tamaño: "",
-                health_status: "",
-                location: "",
-                purchase_price: "",
-                sale_price: "",
-                collection_date: "",
-                has_offshoots: false
-            });
+            // Crear múltiples ejemplares
+            let created = 0;
+            let failed = 0;
+            const errors = [];
+            
+            for (let i = 0; i < cantidad; i++) {
+                try {
+                    const res = await apiRequest(`${API}/ejemplar/staff`, {
+                        method: "POST",
+                        body: JSON.stringify(basePayload)
+                    });
+                    
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        throw new Error(errorData.detail || "Error al crear el ejemplar");
+                    }
+                    
+                    created++;
+                } catch (err) {
+                    failed++;
+                    errors.push(`Ejemplar ${i + 1}: ${err.message}`);
+                    // Continuar con los siguientes ejemplares incluso si uno falla
+                }
+            }
+            
+            // Mostrar resultado
+            if (created > 0) {
+                // Recargar lista y cerrar modal solo si al menos uno se creó
+                await fetchEjemplares();
+                
+                if (failed === 0) {
+                    // Todos exitosos
+                    setShowModal(false);
+                    setFormData({
+                        species_id: "",
+                        sector_id: "",
+                        purchase_date: "",
+                        sale_date: "",
+                        nursery: "",
+                        age_months: "",
+                        tamaño: "",
+                        health_status: "",
+                        location: "",
+                        purchase_price: "",
+                        sale_price: "",
+                        collection_date: "",
+                        has_offshoots: false,
+                        cantidad: 1
+                    });
+                } else {
+                    // Algunos fallaron
+                    setError(`Se crearon ${created} de ${cantidad} ejemplares. Errores: ${errors.join('; ')}`);
+                }
+            } else {
+                // Todos fallaron
+                throw new Error(`No se pudo crear ningún ejemplar. Errores: ${errors.join('; ')}`);
+            }
         } catch (err) {
-            console.error('[InventoryPage] Error creating ejemplar:', err);
-            setError(err.message || "Error al crear el ejemplar");
+            console.error('[InventoryPage] Error creating ejemplares:', err);
+            setError(err.message || "Error al crear los ejemplares");
         } finally {
             setSubmitting(false);
         }
@@ -516,7 +558,8 @@ export default function InventoryPage() {
                                         purchase_price: "",
                                         sale_price: "",
                                         collection_date: "",
-                                        has_offshoots: false
+                                        has_offshoots: false,
+                                        cantidad: 1
                                     });
                                     setShowModal(true);
                                 }}
@@ -1499,7 +1542,8 @@ export default function InventoryPage() {
                                             purchase_price: "",
                                             sale_price: "",
                                             collection_date: "",
-                                            has_offshoots: false
+                                            has_offshoots: false,
+                                            cantidad: 1
                                         });
                                     }}
                                     style={{
@@ -1532,7 +1576,9 @@ export default function InventoryPage() {
                                     }}
                                     disabled={submitting}
                                 >
-                                    {submitting ? "Creando..." : "Crear Ejemplar"}
+                                    {submitting 
+                                        ? `Creando ${formData.cantidad} ejemplar${formData.cantidad > 1 ? 'es' : ''}...` 
+                                        : `Crear ${formData.cantidad === 1 ? 'Ejemplar' : `${formData.cantidad} Ejemplares`}`}
                                 </button>
                             </div>
                         </div>
