@@ -1098,7 +1098,8 @@ export default function InventoryPage() {
                             purchase_price: "",
                             sale_price: "",
                             collection_date: "",
-                            has_offshoots: false
+                            has_offshoots: false,
+                            cantidad: 1
                         });
                     }
                 }}
@@ -1121,6 +1122,66 @@ export default function InventoryPage() {
                         )}
                         
                         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            {/* Cantidad de ejemplares */}
+                            <div style={{
+                                padding: "12px 16px",
+                                backgroundColor: "#eff6ff",
+                                border: "1px solid #bfdbfe",
+                                borderRadius: "8px",
+                                marginBottom: "8px"
+                            }}>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#1e40af",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Cantidad de Ejemplares
+                                </label>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        value={formData.cantidad}
+                                        onChange={(e) => {
+                                            const value = Math.max(1, Math.min(100, parseInt(e.target.value) || 1));
+                                            setFormData({ ...formData, cantidad: value });
+                                        }}
+                                        style={{
+                                            width: "120px",
+                                            padding: "10px 12px",
+                                            border: "1px solid #93c5fd",
+                                            borderRadius: "8px",
+                                            fontSize: "16px",
+                                            fontWeight: "600",
+                                            outline: "none",
+                                            textAlign: "center"
+                                        }}
+                                    />
+                                    <span style={{
+                                        fontSize: "14px",
+                                        color: "#1e40af",
+                                        fontWeight: "500"
+                                    }}>
+                                        {formData.cantidad === 1 
+                                            ? "ejemplar" 
+                                            : `${formData.cantidad} ejemplares`} se crearán con los mismos datos
+                                    </span>
+                                </div>
+                                <p style={{
+                                    margin: "8px 0 0",
+                                    fontSize: "12px",
+                                    color: "#3b82f6",
+                                    fontStyle: "italic"
+                                }}>
+                                    Perfecto para compras masivas. Todos los ejemplares tendrán la misma información excepto el ID.
+                                </p>
+                            </div>
+                            
                             {/* Especie (obligatorio) */}
                             <div>
                                 <label style={{
