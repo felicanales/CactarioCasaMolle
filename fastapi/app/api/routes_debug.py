@@ -181,3 +181,32 @@ def environment_info():
         "dependencies": dependencies,
         "config_status": config_status,
     }
+
+@router.get("/cookies", summary="Debug cookies y headers")
+def debug_cookies(request: Request):
+    """
+    Endpoint de debug para ver todas las cookies y headers de la request.
+    Útil para diagnosticar problemas de autenticación.
+    """
+    cookie_header = request.headers.get("cookie", "")
+    
+    return {
+        "status": "ok",
+        "cookies_found": len(request.cookies),
+        "cookies": dict(request.cookies),
+        "headers": {
+            "origin": request.headers.get("origin"),
+            "authorization": request.headers.get("authorization", "Not present")[:50] + "..." if request.headers.get("authorization") and len(request.headers.get("authorization")) > 50 else request.headers.get("authorization", "Not present"),
+            "user-agent": request.headers.get("user-agent"),
+            "referer": request.headers.get("referer"),
+            "cookie_header": cookie_header[:200] + "..." if len(cookie_header) > 200 else cookie_header if cookie_header else "Not present",
+            "host": request.headers.get("host"),
+            "content-type": request.headers.get("content-type", "Not present"),
+        },
+        "request_info": {
+            "url": str(request.url),
+            "method": request.method,
+            "client": str(request.client) if request.client else "Unknown",
+            "path": request.url.path,
+        }
+    }

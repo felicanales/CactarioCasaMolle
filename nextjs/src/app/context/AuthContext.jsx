@@ -16,28 +16,55 @@ const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
-  // Prioridad 2: Detectar ngrok o Railway y usar backend de producción
+  // Prioridad 2: Detectar si estamos en un dominio público (ngrok, railway, etc.)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
 
-    // Si se accede por ngrok o railway, usar backend de producción
+    // Si estamos en un dominio ngrok o railway, SIEMPRE usar backend de producción
     if (hostname.includes('railway.app') ||
       hostname.includes('ngrok.io') ||
       hostname.includes('ngrok-free.app') ||
       hostname.includes('ngrok-free.dev') ||
-      hostname.includes('ngrokapp.com')) {
+      hostname.includes('ngrokapp.com') ||
+      hostname.includes('ngrok')) {
       return "https://cactariocasamolle-production.up.railway.app";
+    }
+
+    // Si estamos en HTTPS, SIEMPRE usar producción (ngrok, producción, etc.)
+    if (protocol === 'https:') {
+      return "https://cactariocasamolle-production.up.railway.app";
+    }
+
+    // Si estamos en HTTP pero en una IP local (192.168.x.x, 10.x.x.x, 172.x.x.x), usar backend de producción
+    // Esto cubre el caso de acceder desde celular en la misma red local
+    if (protocol === 'http:') {
+      if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+        // IP local desde móvil o red local - usar producción
+        return "https://cactariocasamolle-production.up.railway.app";
+      }
     }
   }
 
-  // Prioridad 3: Desarrollo local
-  return "http://localhost:8000";
+  // Prioridad 3: Desarrollo local (solo funciona en la misma máquina con localhost)
+  // Solo usar localhost si estamos en localhost exacto y HTTP
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    
+    if ((hostname === 'localhost' || hostname === '127.0.0.1') && protocol === 'http:') {
+      return "http://localhost:8000";
+    }
+  }
+
+  // Fallback seguro: usar producción (Railway)
+  return "https://cactariocasamolle-production.up.railway.app";
 };
 
 const API = getApiUrl();
 
-// Log API URL for debugging
-if (typeof window !== 'undefined') {
+// Log API URL for debugging (solo en desarrollo)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   console.log('[AuthContext] Using API URL:', API);
 }
 

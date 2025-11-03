@@ -1,14 +1,14 @@
 # app/services/species_service.py
 from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import get_public
-import os
 
 PUBLIC_SPECIES_FIELDS = [
     "id", "slug", "nombre_común", "scientific_name",
     "habitat", "estado_conservación", "tipo_planta", "distribución", "floración", "cuidado", "usos"
 ]
 STAFF_EXTRA_FIELDS = [
-    "historia_y_leyendas", "historia_nombre", "Endémica", "expectativa_vida", "tipo_morfología", "created_at", "updated_at"
+    "nombres_comunes", "image_url", "historia_y_leyendas", "historia_nombre", 
+    "Endémica", "expectativa_vida", "tipo_morfología", "created_at", "updated_at"
 ]
 
 def _cover_photo_map(species_ids: List[int]) -> Dict[int, Optional[str]]:
@@ -22,7 +22,6 @@ def _cover_photo_map(species_ids: List[int]) -> Dict[int, Optional[str]]:
     for p in (photos.data or []):
         by_sid.setdefault(p["especie_id"], []).append(p)
     out: Dict[int, Optional[str]] = {}
-    supabase_url = os.getenv("SUPABASE_URL", "")
     for sid, plist in by_sid.items():
         chosen = None
         for p in plist:
@@ -32,11 +31,7 @@ def _cover_photo_map(species_ids: List[int]) -> Dict[int, Optional[str]]:
             plist_sorted = sorted(plist, key=lambda x: (x.get("order_index") or 0))
             if plist_sorted:
                 chosen = plist_sorted[0]["storage_path"]
-        # Construir URL completa de Supabase Storage
-        if chosen:
-            out[sid] = f"{supabase_url}/storage/v1/object/public/{chosen}"
-        else:
-            out[sid] = None
+        out[sid] = chosen
     return out
 
 # ----------------- PÚBLICO -----------------
@@ -63,38 +58,23 @@ def get_public_by_slug(slug: str) -> Optional[Dict[str, Any]]:
     species = res.data[0]
     # Todas las fotos
     photos = sb.table("fotos_especies").select("id, storage_path, is_cover, order_index").eq("especie_id", species["id"]).order("order_index").execute()
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    # Construir URLs completas para las fotos
-    photos_with_urls = []
-    for photo in (photos.data or []):
-        photo_copy = photo.copy()
-        if photo_copy.get("storage_path"):
-            photo_copy["url"] = f"{supabase_url}/storage/v1/object/public/{photo_copy['storage_path']}"
-        photos_with_urls.append(photo_copy)
-    species["photos"] = photos_with_urls
+    species["photos"] = photos.data or []
     return species
 
 # ----------------- STAFF (privado) -----------------
 
 def list_staff(q: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
     sb = get_public()
-    fields = PUBLIC_SPECIES_FIELDS + STAFF_EXTRA_FIELDS
-    query = sb.table("especies").select(",".join(fields))
+    # Usar * para obtener todos los campos de la tabla
+    query = sb.table("especies").select("*")
     if q:
         query = query.or_(f"nombre_común.ilike.%{q}%,scientific_name.ilike.%{q}%")
     res = query.order("updated_at", desc=True).range(offset, offset + limit - 1).execute()
-    rows = res.data or []
-    # Incluir imágenes de portada
-    cover = _cover_photo_map([r["id"] for r in rows])
-    out = []
-    for r in rows:
-        out.append({**r, "cover_photo": cover.get(r["id"])})
-    return out
+    return res.data or []
 
 def get_staff(species_id: int) -> Optional[Dict[str, Any]]:
     sb = get_public()
-    fields = PUBLIC_SPECIES_FIELDS + STAFF_EXTRA_FIELDS
-    res = sb.table("especies").select(",".join(fields)).eq("id", species_id).limit(1).execute()
+    res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
     return res.data[0] if res.data else None
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:

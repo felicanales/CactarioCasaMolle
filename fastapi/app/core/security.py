@@ -35,12 +35,16 @@ def set_supabase_session_cookies(response: Response, session) -> None:
     at = session.access_token
     rt = session.refresh_token
     
+    # En desarrollo, NO especificar dominio para que funcione entre puertos
+    # En producción, el dominio se maneja automáticamente
     common = dict(
         httponly=True, 
         secure=IS_PRODUCTION,  # Only secure in production
-        samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
+        samesite="lax",  # SIEMPRE lax para permitir cookies entre puertos en localhost
         path="/"
     )
+    
+    logger.info(f"[Security] Configurando cookies con: secure={IS_PRODUCTION}, samesite=lax, httponly=True")
     
     # Access token: 1 hour
     response.set_cookie(
@@ -49,6 +53,7 @@ def set_supabase_session_cookies(response: Response, session) -> None:
         max_age=3600, 
         **common
     )
+    logger.info(f"[Security] Cookie {SB_ACCESS_TOKEN} configurada (expires en 1h)")
     
     # Refresh token: 30 days
     response.set_cookie(
@@ -57,6 +62,7 @@ def set_supabase_session_cookies(response: Response, session) -> None:
         max_age=60*60*24*30, 
         **common
     )
+    logger.info(f"[Security] Cookie {SB_REFRESH_TOKEN} configurada (expires en 30d)")
 
 def clear_supabase_session_cookies(response: Response) -> None:
     """

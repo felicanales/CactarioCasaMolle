@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional
+from typing import Optional, Dict, Tuple
 import re
+from datetime import datetime, timedelta
+from collections import defaultdict
+import threading
 from app.core.supabase_auth import get_public, get_service
 from app.core.security import (
     set_supabase_session_cookies,
@@ -17,6 +20,51 @@ from app.core.security import (
 from app.middleware.auth_middleware import get_current_user
 
 router = APIRouter()
+
+# Rate limiting storage
+_rate_limit_store: Dict[str, list] = defaultdict(list)
+_rate_limit_lock = threading.Lock()
+
+def check_rate_limit(request: Request, limit: int, window_seconds: int) -> Tuple[bool, int]:
+    """
+    Check if request is within rate limit
+    
+    Args:
+        request: FastAPI request object
+        limit: Maximum number of requests allowed
+        window_seconds: Time window in seconds
+        
+    Returns:
+        Tuple of (is_allowed, time_remaining)
+    """
+    now = datetime.now()
+    client_ip = request.client.host if request.client else "unknown"
+    
+    with _rate_limit_lock:
+        # Clean old entries
+        client_requests = _rate_limit_store[client_ip]
+        cutoff_time = now - timedelta(seconds=window_seconds)
+        client_requests = [req_time for req_time in client_requests if req_time > cutoff_time]
+        
+        # Check if limit exceeded
+        if len(client_requests) >= limit:
+            # Calculate time remaining until oldest request expires
+            oldest_request = min(client_requests)
+            time_remaining = int((oldest_request + timedelta(seconds=window_seconds) - now).total_seconds())
+            return False, max(0, time_remaining)
+        
+        # Add current request
+        client_requests.append(now)
+        _rate_limit_store[client_ip] = client_requests
+        
+        # Calculate time remaining
+        if len(client_requests) > 1:
+            oldest_request = min(client_requests)
+            time_remaining = int((oldest_request + timedelta(seconds=window_seconds) - now).total_seconds())
+        else:
+            time_remaining = window_seconds
+        
+        return True, time_remaining
 
 # Validadores de seguridad
 def sanitize_email(email: str) -> str:
@@ -83,11 +131,19 @@ class VerifyOtpIn(BaseModel):
 # Legacy functions removed - now using security.py helpers
 
 @router.post("/request-otp", status_code=204)
-def request_otp(payload: RequestOtpIn):
+def request_otp(request: Request, payload: RequestOtpIn):
     """
     Whitelist por email (tabla 'usuarios', active=true). Usamos service role para evitar RLS
     y creamos el usuario de Auth si aún no existe. Luego enviamos OTP.
     """
+    # Rate limiting: máximo 5 requests por minuto
+    is_allowed, time_remaining = check_rate_limit(request, limit=5, window_seconds=60)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos. Espera {time_remaining} segundos."
+        )
+    
     email = payload.email.strip().lower()
     print(f"[request_otp] Solicitud recibida para: {email}")
 
@@ -145,10 +201,18 @@ def request_otp(payload: RequestOtpIn):
     return  # 204
 
 @router.post("/verify-otp")
-def verify_otp(payload: VerifyOtpIn, response: Response):
+def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
     """
     Verifica OTP usando Supabase como IdP, revalida whitelist y sincroniza supabase_uid
     """
+    # Rate limiting: máximo 10 intentos por minuto
+    is_allowed, time_remaining = check_rate_limit(request, limit=10, window_seconds=60)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos de verificación. Espera {time_remaining} segundos."
+        )
+    
     sb = get_public()
     sb_admin = get_service()
     email = payload.email  # Ya sanitizado por el validador
@@ -222,8 +286,8 @@ def refresh_token(response: Response, request: Request):
     
     try:
         sb = get_public()
-        # Set session with refresh token to get new tokens
-        session_response = sb.auth.set_session(refresh_token, refresh_token)
+        # Use refresh_session instead of set_session to properly refresh tokens
+        session_response = sb.auth.refresh_session(refresh_token)
         
         if not session_response.session:
             raise HTTPException(401, "Invalid refresh token")
@@ -306,10 +370,11 @@ def me(request: Request):
     if not validate_user_active(user_claims["id"]):
         raise HTTPException(403, "User account is inactive")
     
-    # Return user information
+    # Return user information including the access token
     return {
         "id": user_claims["id"],
         "email": user_claims["email"],
         "role": user_claims.get("role", "authenticated"),
-        "authenticated": True
+        "authenticated": True,
+        "access_token": token  # Include the token so frontend can update localStorage
     }

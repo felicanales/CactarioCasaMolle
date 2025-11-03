@@ -772,10 +772,10 @@ export default function SpeciesPage() {
                                         species.map((sp) => {
                                             const isEndangered = sp.categoria_conservacion === "En peligro de extinción";
                                             return (
-                                                <tr
-                                                    key={sp.id}
-                                                    style={{
-                                                        borderBottom: "1px solid #e5e7eb",
+                                            <tr
+                                                key={sp.id}
+                                                style={{
+                                                    borderBottom: "1px solid #e5e7eb",
                                                         transition: "background-color 0.2s",
                                                         backgroundColor: isEndangered ? "#fee2e2" : "white",
                                                         borderLeft: isEndangered ? "4px solid #ef4444" : "none"
@@ -848,18 +848,18 @@ export default function SpeciesPage() {
                                                         )}
                                                     </td>
                                                     <td className="table-cell" style={{
-                                                        padding: "16px",
-                                                        fontSize: "14px",
-                                                        color: "#111827",
-                                                        fontWeight: "500",
+                                                    padding: "16px",
+                                                    fontSize: "14px",
+                                                    color: "#111827",
+                                                    fontWeight: "500",
                                                         fontStyle: "italic",
                                                         verticalAlign: "middle"
-                                                    }}>
-                                                        {sp.scientific_name}
-                                                    </td>
+                                                }}>
+                                                    {sp.scientific_name}
+                                                </td>
                                                     <td className="table-cell" style={{
-                                                        padding: "16px",
-                                                        fontSize: "14px",
+                                                    padding: "16px",
+                                                    fontSize: "14px",
                                                         color: "#374151",
                                                         verticalAlign: "middle"
                                                     }}>
@@ -876,107 +876,89 @@ export default function SpeciesPage() {
                                                                 <span style={{ fontStyle: "italic", color: "#9ca3af", fontSize: "14px" }}>-</span>
                                                             )}
                                                         </div>
-                                                    </td>
+                                                </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                        <span style={{
-                                                            display: "inline-block",
-                                                            padding: "4px 12px",
-                                                            borderRadius: "12px",
-                                                            fontSize: "12px",
-                                                            fontWeight: "600",
-                                                            backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
-                                                                sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
-                                                                    "#f0fdf4",
-                                                            color: sp.estado_conservación === "En peligro" ? "#dc2626" :
-                                                                sp.estado_conservación === "Vulnerable" ? "#ea580c" :
-                                                                    "#16a34a"
-                                                        }}>
-                                                            {sp.estado_conservación || "No especificado"}
-                                                        </span>
-                                                    </td>
+                                                    <span style={{
+                                                        display: "inline-block",
+                                                        padding: "4px 12px",
+                                                        borderRadius: "12px",
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        backgroundColor: sp.estado_conservación === "En peligro" ? "#fef2f2" :
+                                                            sp.estado_conservación === "Vulnerable" ? "#fff7ed" :
+                                                                "#f0fdf4",
+                                                        color: sp.estado_conservación === "En peligro" ? "#dc2626" :
+                                                            sp.estado_conservación === "Vulnerable" ? "#ea580c" :
+                                                                "#16a34a"
+                                                    }}>
+                                                        {sp.estado_conservación || "No especificado"}
+                                                    </span>
+                                                </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
                                                         textAlign: "center",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                        <span style={{
+                                                    <span style={{
                                                             fontSize: "14px",
                                                             fontWeight: "600",
                                                             color: sp.Endémica ? "#16a34a" : "#9ca3af"
-                                                        }}>
+                                                    }}>
                                                             {sp.Endémica ? "Sí" : "-"}
-                                                        </span>
-                                                    </td>
+                                                    </span>
+                                                </td>
                                                     <td className="table-cell" style={{
-                                                        padding: "16px",
+                                                    padding: "16px",
                                                         textAlign: "right",
                                                         verticalAlign: "middle"
+                                                }}>
+                                                    <div style={{
+                                                        display: "flex",
+                                                        gap: "8px",
+                                                        justifyContent: "flex-end"
                                                     }}>
-                                                        <div style={{
-                                                            display: "flex",
-                                                            gap: "8px",
-                                                            justifyContent: "flex-end"
-                                                        }}>
-                                                            <button
-                                                                onClick={() => handleView(sp)}
-                                                                style={{
-                                                                    padding: "6px 12px",
-                                                                    backgroundColor: "#eff6ff",
-                                                                    color: "#2563eb",
-                                                                    border: "none",
-                                                                    borderRadius: "6px",
-                                                                    fontSize: "13px",
-                                                                    fontWeight: "500",
-                                                                    cursor: "pointer",
-                                                                    transition: "all 0.2s"
-                                                                }}
-                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
-                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
-                                                            >
-                                                                Ver
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleEdit(sp)}
-                                                                style={{
-                                                                    padding: "6px 12px",
-                                                                    backgroundColor: "#fef3c7",
-                                                                    color: "#d97706",
-                                                                    border: "none",
-                                                                    borderRadius: "6px",
-                                                                    fontSize: "13px",
-                                                                    fontWeight: "500",
-                                                                    cursor: "pointer",
-                                                                    transition: "all 0.2s"
-                                                                }}
-                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#fde68a"}
-                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#fef3c7"}
-                                                            >
-                                                                Editar
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteClick(sp.id)}
-                                                                style={{
-                                                                    padding: "6px 12px",
-                                                                    backgroundColor: "#fef2f2",
-                                                                    color: "#dc2626",
-                                                                    border: "none",
-                                                                    borderRadius: "6px",
-                                                                    fontSize: "13px",
-                                                                    fontWeight: "500",
-                                                                    cursor: "pointer",
-                                                                    transition: "all 0.2s"
-                                                                }}
-                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
-                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
-                                                            >
-                                                                Eliminar
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                                        <button
+                                                            onClick={() => handleView(sp)}
+                                                            style={{
+                                                                padding: "6px 12px",
+                                                                backgroundColor: "#eff6ff",
+                                                                color: "#2563eb",
+                                                                border: "none",
+                                                                borderRadius: "6px",
+                                                                fontSize: "13px",
+                                                                fontWeight: "500",
+                                                                cursor: "pointer",
+                                                                transition: "all 0.2s"
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
+                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
+                                                        >
+                                                            Ver
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(sp.id)}
+                                                            style={{
+                                                                padding: "6px 12px",
+                                                                backgroundColor: "#fef2f2",
+                                                                color: "#dc2626",
+                                                                border: "none",
+                                                                borderRadius: "6px",
+                                                                fontSize: "13px",
+                                                                fontWeight: "500",
+                                                                cursor: "pointer",
+                                                                transition: "all 0.2s"
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
+                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
                                             );
                                         })
                                     )}

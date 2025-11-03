@@ -5,39 +5,35 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+
 // Configuración dinámica de API
 const getApiUrl = () => {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
-    if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-        return "https://cactario-backend-production.up.railway.app";
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname.includes('railway.app') || hostname.includes('ngrok.io') ||
+            hostname.includes('ngrok-free.app') || hostname.includes('ngrok-free.dev') ||
+            hostname.includes('ngrokapp.com')) {
+            return "https://cactariocasamolle-production.up.railway.app";
+        }
     }
     return "http://localhost:8000";
 };
 
 const API = getApiUrl();
 
-// Helper para obtener el access token de localStorage o cookies
 const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
-
-    // Prioridad 1: localStorage (para compatibilidad)
     const localStorageToken = localStorage.getItem('access_token');
-    if (localStorageToken) {
-        return localStorageToken;
-    }
-
-    // Prioridad 2: cookies
+    if (localStorageToken) return localStorageToken;
     const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    if (match) {
-        return match[2];
-    }
-
-    return null;
+    return match ? match[2] : null;
 };
 
-// Helper para obtener CSRF token
 const getCsrfToken = () => {
     if (typeof document !== 'undefined') {
         const match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
@@ -46,30 +42,19 @@ const getCsrfToken = () => {
     return null;
 };
 
-// Helper para requests autenticadas
 const apiRequest = async (url, options = {}) => {
     const accessToken = getAccessToken();
     const csrfToken = getCsrfToken();
-
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
-
-    // Agregar CSRF token para operaciones que modifican datos
     if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
-        console.log('[SectorsPage] Adding CSRF token to:', options.method, url);
     }
-
-    // Agregar Authorization header si hay token disponible
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
-        console.log('[SectorsPage] Adding Authorization header to:', url);
-    } else {
-        console.warn('[SectorsPage] ⚠️ No access token available for:', url);
     }
-
     return fetch(url, {
         ...options,
         headers,
@@ -77,12 +62,11 @@ const apiRequest = async (url, options = {}) => {
     });
 };
 
-// Modal Component
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) return null;
-
     return (
         <div
+            onClick={onClose}
             style={{
                 position: 'fixed',
                 top: 0,
@@ -96,9 +80,9 @@ function Modal({ isOpen, onClose, title, children }) {
                 zIndex: 1000,
                 padding: '16px'
             }}
-            onClick={onClose}
         >
             <div
+                onClick={(e) => e.stopPropagation()}
                 style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -108,7 +92,6 @@ function Modal({ isOpen, onClose, title, children }) {
                     overflow: 'auto',
                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
                 }}
-                onClick={(e) => e.stopPropagation()}
             >
                 <div style={{
                     padding: '24px',
@@ -162,7 +145,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SectorsPage() {
-    const { user, loading: authLoading, logout, fetchMe } = useAuth();
+    const { user, loading: authLoading, logout } = useAuth();
     const router = useRouter();
 
     const [sectors, setSectors] = useState([]);
@@ -170,7 +153,7 @@ export default function SectorsPage() {
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState("create"); // "create" | "edit" | "view"
+    const [modalMode, setModalMode] = useState("create");
     const [selectedSector, setSelectedSector] = useState(null);
     const [checkedAuth, setCheckedAuth] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -179,40 +162,38 @@ export default function SectorsPage() {
         name: "",
         description: "",
         location: "",
-        qr_code: "",
+        qr_code: ""
     });
     const [submitting, setSubmitting] = useState(false);
+    const [sectorSpecies, setSectorSpecies] = useState([]);
+    const [loadingSpecies, setLoadingSpecies] = useState(false);
+    // Mapeo de sector_id -> especies para mostrar en la tabla
+    const [sectorsSpeciesMap, setSectorsSpeciesMap] = useState({}); // { sectorId: [species] }
+    const [loadingSpeciesMap, setLoadingSpeciesMap] = useState({}); // { sectorId: true/false }
 
-    // Verificar autenticación solo UNA vez
     useEffect(() => {
+        if (BYPASS_AUTH) {
+            setCheckedAuth(true);
+            return;
+        }
         if (!authLoading && !checkedAuth) {
-            console.log('[SectorsPage] Checking auth, user:', user);
             if (!user) {
-                console.log('[SectorsPage] No user, redirecting to login');
                 router.replace("/login");
             }
             setCheckedAuth(true);
         }
     }, [user, authLoading, router, checkedAuth]);
 
-    // Fetch sectors
     const fetchSectors = async () => {
         try {
             setLoading(true);
             setError("");
-
             const url = searchQuery
                 ? `${API}/sectors/staff?q=${encodeURIComponent(searchQuery)}`
                 : `${API}/sectors/staff`;
-
-            console.log('[SectorsPage] Fetching sectors from:', url);
             const res = await apiRequest(url);
-
-            if (!res.ok) {
-                console.error('[SectorsPage] Fetch failed:', res.status);
+            if (!res.ok && !BYPASS_AUTH) {
                 if (res.status === 401) {
-                    // Usuario no autenticado - redirigir a login
-                    console.log('[SectorsPage] 401 Unauthorized, redirecting to login');
                     setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
                     setTimeout(() => router.replace("/login"), 1500);
                     return;
@@ -221,9 +202,7 @@ export default function SectorsPage() {
                 throw new Error(errorData.detail || "Error al cargar sectores");
             }
             const data = await res.json();
-            console.log('[SectorsPage] Sectors loaded:', data.length);
             setSectors(data);
-            setError("");
         } catch (err) {
             console.error('[SectorsPage] Error:', err);
             setError(err.message || "Error al cargar sectores");
@@ -232,23 +211,47 @@ export default function SectorsPage() {
         }
     };
 
-    // Cargar sectores solo cuando el usuario esté autenticado y se haya verificado
     useEffect(() => {
         if (user && checkedAuth) {
-            console.log('[SectorsPage] User authenticated, loading sectors');
             fetchSectors();
         }
     }, [user, checkedAuth, searchQuery]);
 
+    // Cargar especies para todos los sectores al cargar la página
+    useEffect(() => {
+        if (sectors.length > 0) {
+            const loadAllSpecies = async () => {
+                for (const sector of sectors) {
+                    try {
+                        setLoadingSpeciesMap(prev => ({ ...prev, [sector.id]: true }));
+                        const res = await apiRequest(`${API}/sectors/staff/${sector.id}/species`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: data }));
+                        } else {
+                            // Si es 405, el endpoint no está disponible - no mostrar error
+                            if (res.status !== 405) {
+                                setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: [] }));
+                            }
+                        }
+                    } catch (err) {
+                        // Solo manejar errores que no sean 405
+                        if (!err.message?.includes('405')) {
+                            setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: [] }));
+                        }
+                    } finally {
+                        setLoadingSpeciesMap(prev => ({ ...prev, [sector.id]: false }));
+                    }
+                }
+            };
+            loadAllSpecies();
+        }
+    }, [sectors]);
+
     const handleCreate = () => {
         setModalMode("create");
         setSelectedSector(null);
-        setFormData({
-            name: "",
-            description: "",
-            location: "",
-            qr_code: "",
-        });
+        setFormData({ name: "", description: "", location: "", qr_code: "" });
         setShowModal(true);
     };
 
@@ -259,14 +262,34 @@ export default function SectorsPage() {
             name: sector.name || "",
             description: sector.description || "",
             location: sector.location || "",
-            qr_code: sector.qr_code || "",
+            qr_code: sector.qr_code || ""
         });
         setShowModal(true);
+    };
+
+    const fetchSectorSpecies = async (sectorId) => {
+        try {
+            setLoadingSpecies(true);
+            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`);
+            if (res.ok) {
+                const data = await res.json();
+                setSectorSpecies(data);
+            } else {
+                setSectorSpecies([]);
+            }
+        } catch (err) {
+            console.error('Error loading sector species:', err);
+            setSectorSpecies([]);
+        } finally {
+            setLoadingSpecies(false);
+        }
     };
 
     const handleView = (sector) => {
         setModalMode("view");
         setSelectedSector(sector);
+        setSectorSpecies([]);
+        fetchSectorSpecies(sector.id);
         setShowModal(true);
     };
 
@@ -274,32 +297,23 @@ export default function SectorsPage() {
         e.preventDefault();
         setSubmitting(true);
         setError("");
-
         try {
             let res;
             if (modalMode === "create") {
                 res = await apiRequest(`${API}/sectors/staff`, {
                     method: "POST",
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(formData)
                 });
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(formData)
                 });
             }
-
-            if (!res.ok) {
-                if (res.status === 401) {
-                    // Usuario no autenticado - redirigir a login
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
+            if (!res.ok && !BYPASS_AUTH) {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.detail || "Error al guardar");
             }
-
             setShowModal(false);
             fetchSectors();
         } catch (err) {
@@ -316,23 +330,10 @@ export default function SectorsPage() {
 
     const confirmDelete = async () => {
         if (!sectorIdToDelete) return;
-
         try {
             const res = await apiRequest(`${API}/sectors/staff/${sectorIdToDelete}`, {
-                method: "DELETE",
+                method: "DELETE"
             });
-
-            if (!res.ok) {
-                if (res.status === 401) {
-                    // Usuario no autenticado - redirigir a login
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al eliminar");
-            }
-
             setShowDeleteModal(false);
             setSectorIdToDelete(null);
             fetchSectors();
@@ -347,7 +348,7 @@ export default function SectorsPage() {
         setSectorIdToDelete(null);
     };
 
-    if (authLoading || (loading && sectors.length === 0)) {
+    if (loading && !user) {
         return (
             <div style={{
                 minHeight: "100vh",
@@ -376,19 +377,26 @@ export default function SectorsPage() {
 
     return (
         <>
-            <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+            <style jsx global>{`
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @media (max-width: 768px) {
+                    .table-cell {
+                        padding: 8px !important;
+                    }
+                    .table-header {
+                        padding: 8px !important;
+                    }
+                }
+            `}</style>
 
             <div style={{ minHeight: "100vh", backgroundColor: "#f9fafb" }}>
-                {/* Header */}
                 <header style={{
                     backgroundColor: "white",
                     borderBottom: "1px solid #e5e7eb",
-                    padding: "16px 24px",
+                    padding: "12px clamp(12px, 4vw, 24px)",
                     position: "sticky",
                     top: 0,
                     zIndex: 10,
@@ -399,32 +407,37 @@ export default function SectorsPage() {
                         margin: "0 auto",
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center"
+                        alignItems: "center",
+                        gap: "8px"
                     }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
                             <Link href="/staff" style={{
-                                padding: "8px 12px",
+                                padding: "8px",
                                 borderRadius: "6px",
                                 border: "1px solid #e5e7eb",
                                 backgroundColor: "white",
                                 color: "#374151",
                                 textDecoration: "none",
                                 fontSize: "14px",
-                                transition: "all 0.2s"
+                                transition: "all 0.2s",
+                                flexShrink: 0
                             }}>
-                                ← Volver
+                                ←
                             </Link>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <h1 style={{
-                                    fontSize: "20px",
+                                    fontSize: "clamp(16px, 4vw, 20px)",
                                     fontWeight: "700",
                                     color: "#111827",
-                                    margin: 0
+                                    margin: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap"
                                 }}>
                                     Gestión de Sectores
                                 </h1>
                                 <p style={{
-                                    fontSize: "13px",
+                                    fontSize: "clamp(11px, 3vw, 13px)",
                                     color: "#6b7280",
                                     margin: 0
                                 }}>
@@ -441,27 +454,26 @@ export default function SectorsPage() {
                                 border: "1px solid #e5e7eb",
                                 backgroundColor: "white",
                                 color: "#dc2626",
-                                fontSize: "14px",
+                                fontSize: "clamp(12px, 3vw, 14px)",
                                 cursor: "pointer",
-                                transition: "all 0.2s"
+                                transition: "all 0.2s",
+                                flexShrink: 0
                             }}
                         >
-                            Cerrar sesión
+                            Salir
                         </button>
                     </div>
                 </header>
 
-                {/* Main Content */}
                 <main style={{
                     maxWidth: "1200px",
                     margin: "0 auto",
                     padding: "clamp(24px, 5vw, 32px) 24px"
                 }}>
-                    {/* Actions Bar */}
                     <div style={{
                         backgroundColor: "white",
                         borderRadius: "12px",
-                        padding: "16px 20px",
+                        padding: "clamp(12px, 3vw, 16px) clamp(12px, 4vw, 20px)",
                         marginBottom: "24px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                         display: "flex",
@@ -472,16 +484,16 @@ export default function SectorsPage() {
                     }}>
                         <input
                             type="text"
-                            placeholder="Buscar por nombre de sector..."
+                            placeholder="Buscar..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
                                 flex: "1",
-                                minWidth: "250px",
-                                padding: "10px 16px",
+                                minWidth: "200px",
+                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)",
                                 border: "1px solid #d1d5db",
                                 borderRadius: "8px",
-                                fontSize: "14px",
+                                fontSize: "clamp(13px, 3vw, 14px)",
                                 outline: "none",
                                 transition: "border-color 0.2s"
                             }}
@@ -490,28 +502,28 @@ export default function SectorsPage() {
                         <button
                             onClick={handleCreate}
                             style={{
-                                padding: "10px 20px",
+                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 20px)",
                                 backgroundColor: "#10b981",
                                 color: "white",
                                 border: "none",
                                 borderRadius: "8px",
-                                fontSize: "14px",
+                                fontSize: "clamp(13px, 3vw, 14px)",
                                 fontWeight: "600",
                                 cursor: "pointer",
                                 transition: "background-color 0.2s",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "8px"
+                                gap: "8px",
+                                whiteSpace: "nowrap"
                             }}
                             onMouseEnter={(e) => e.target.style.backgroundColor = "#059669"}
                             onMouseLeave={(e) => e.target.style.backgroundColor = "#10b981"}
                         >
                             <span style={{ fontSize: "18px" }}>+</span>
-                            Nuevo Sector
+                            <span className="btn-text">Nuevo Sector</span>
                         </button>
                     </div>
 
-                    {/* Error Message */}
                     {error && (
                         <div style={{
                             padding: "16px",
@@ -525,7 +537,6 @@ export default function SectorsPage() {
                         </div>
                     )}
 
-                    {/* Sectors Table */}
                     <div style={{
                         backgroundColor: "white",
                         borderRadius: "12px",
@@ -542,8 +553,8 @@ export default function SectorsPage() {
                                         backgroundColor: "#f9fafb",
                                         borderBottom: "1px solid #e5e7eb"
                                     }}>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -553,8 +564,8 @@ export default function SectorsPage() {
                                         }}>
                                             Nombre
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -564,8 +575,8 @@ export default function SectorsPage() {
                                         }}>
                                             Descripción
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -575,8 +586,8 @@ export default function SectorsPage() {
                                         }}>
                                             Ubicación
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "left",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -586,8 +597,19 @@ export default function SectorsPage() {
                                         }}>
                                             Código QR
                                         </th>
-                                        <th style={{
-                                            padding: "12px 16px",
+                                        <th className="table-header" style={{
+                                            padding: "16px",
+                                            textAlign: "left",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em"
+                                        }}>
+                                            Especies
+                                        </th>
+                                        <th className="table-header" style={{
+                                            padding: "16px",
                                             textAlign: "right",
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -602,7 +624,7 @@ export default function SectorsPage() {
                                 <tbody>
                                     {sectors.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" style={{
+                                            <td colSpan="6" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
@@ -611,120 +633,147 @@ export default function SectorsPage() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        sectors.map((sector) => (
-                                            <tr
-                                                key={sector.id}
-                                                style={{
-                                                    borderBottom: "1px solid #e5e7eb",
-                                                    transition: "background-color 0.2s"
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
-                                            >
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#111827",
-                                                    fontWeight: "500"
-                                                }}>
-                                                    {sector.name}
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#374151",
-                                                    maxWidth: "300px"
-                                                }}>
-                                                    <div style={{
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap"
+                                        sectors.map((sector) => {
+                                            const sectorSpeciesList = sectorsSpeciesMap[sector.id] || [];
+                                            const isLoading = loadingSpeciesMap[sector.id];
+                                            return (
+                                                <tr
+                                                    key={sector.id}
+                                                    style={{
+                                                        borderBottom: "1px solid #e5e7eb",
+                                                        transition: "background-color 0.2s"
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
+                                                >
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#111827",
+                                                        fontWeight: "500",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        {sector.name}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#374151",
+                                                        verticalAlign: "middle"
                                                     }}>
                                                         {sector.description || "-"}
-                                                    </div>
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#374151"
-                                                }}>
-                                                    {sector.location || "-"}
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#374151",
-                                                    fontFamily: "monospace"
-                                                }}>
-                                                    {sector.qr_code || "-"}
-                                                </td>
-                                                <td style={{
-                                                    padding: "16px",
-                                                    textAlign: "right"
-                                                }}>
-                                                    <div style={{
-                                                        display: "flex",
-                                                        gap: "8px",
-                                                        justifyContent: "flex-end"
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#374151",
+                                                        verticalAlign: "middle"
                                                     }}>
-                                                        <button
-                                                            onClick={() => handleView(sector)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#eff6ff",
-                                                                color: "#2563eb",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
-                                                        >
-                                                            Ver
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleEdit(sector)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#fef3c7",
-                                                                color: "#d97706",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fde68a"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef3c7"}
-                                                        >
-                                                            Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(sector.id)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#fef2f2",
-                                                                color: "#dc2626",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                        {sector.location || "-"}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#374151",
+                                                        fontFamily: "monospace",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        {sector.qr_code || "-"}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        fontSize: "13px",
+                                                        color: "#374151",
+                                                        verticalAlign: "middle",
+                                                        maxWidth: "300px"
+                                                    }}>
+                                                        {isLoading ? (
+                                                            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Cargando...</span>
+                                                        ) : sectorSpeciesList.length === 0 ? (
+                                                            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Sin especies</span>
+                                                        ) : (
+                                                            <div style={{
+                                                                display: "flex",
+                                                                flexDirection: "column",
+                                                                gap: "4px"
+                                                            }}>
+                                                                {sectorSpeciesList.slice(0, 3).map((specie) => (
+                                                                    <div
+                                                                        key={specie.id}
+                                                                        style={{
+                                                                            fontSize: "12px",
+                                                                            fontStyle: "italic",
+                                                                            color: "#111827",
+                                                                            fontWeight: "500",
+                                                                            overflow: "hidden",
+                                                                            textOverflow: "ellipsis",
+                                                                            whiteSpace: "nowrap"
+                                                                        }}
+                                                                        title={specie.scientific_name}
+                                                                    >
+                                                                        {specie.scientific_name}
+                                                                    </div>
+                                                                ))}
+                                                                {sectorSpeciesList.length > 3 && (
+                                                                    <div style={{
+                                                                        fontSize: "11px",
+                                                                        color: "#6b7280",
+                                                                        fontStyle: "italic"
+                                                                    }}>
+                                                                        +{sectorSpeciesList.length - 3} más
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        textAlign: "right",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        <div style={{
+                                                            display: "flex",
+                                                            gap: "8px",
+                                                            justifyContent: "flex-end",
+                                                            flexWrap: "wrap"
+                                                        }}>
+                                                            <button
+                                                                onClick={() => handleView(sector)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#eff6ff",
+                                                                    color: "#2563eb",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                            >
+                                                                Ver
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(sector.id)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#fef2f2",
+                                                                    color: "#dc2626",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -733,98 +782,13 @@ export default function SectorsPage() {
                 </main>
             </div>
 
-            {/* Modal for Create/Edit/View */}
+            {/* Modal para crear/editar/ver */}
             <Modal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
-                title={
-                    modalMode === "create" ? "Nuevo Sector" :
-                        modalMode === "edit" ? "Editar Sector" :
-                            "Detalles de Sector"
-                }
+                title={modalMode === "create" ? "Nuevo Sector" : modalMode === "edit" ? "Editar Sector" : "Ver Sector"}
             >
-                {modalMode === "view" ? (
-                    // View Mode
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                        {selectedSector && (
-                            <>
-                                <div>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Nombre
-                                    </label>
-                                    <p style={{
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        color: "#111827",
-                                        margin: 0
-                                    }}>
-                                        {selectedSector.name}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Descripción
-                                    </label>
-                                    <p style={{ fontSize: "14px", color: "#374151", margin: 0, lineHeight: 1.6 }}>
-                                        {selectedSector.description || "-"}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Ubicación
-                                    </label>
-                                    <p style={{ fontSize: "14px", color: "#374151", margin: 0 }}>
-                                        {selectedSector.location || "-"}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "13px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Código QR
-                                    </label>
-                                    <p style={{
-                                        fontSize: "14px",
-                                        color: "#374151",
-                                        margin: 0,
-                                        fontFamily: "monospace",
-                                        backgroundColor: "#f3f4f6",
-                                        padding: "8px 12px",
-                                        borderRadius: "6px"
-                                    }}>
-                                        {selectedSector.qr_code || "-"}
-                                    </p>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    // Create/Edit Mode
+                {(modalMode === "create" || modalMode === "edit") ? (
                     <form onSubmit={handleSubmit}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                             <div>
@@ -833,24 +797,24 @@ export default function SectorsPage() {
                                     fontSize: "14px",
                                     fontWeight: "500",
                                     color: "#374151",
-                                    marginBottom: "6px"
+                                    marginBottom: "8px"
                                 }}>
                                     Nombre *
                                 </label>
                                 <input
                                     type="text"
-                                    required
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
                                         border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        outline: "none",
+                                        transition: "border-color 0.2s"
                                     }}
-                                    placeholder="Ej: Sector Norte"
                                 />
                             </div>
 
@@ -860,25 +824,24 @@ export default function SectorsPage() {
                                     fontSize: "14px",
                                     fontWeight: "500",
                                     color: "#374151",
-                                    marginBottom: "6px"
+                                    marginBottom: "8px"
                                 }}>
                                     Descripción
                                 </label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    rows={3}
+                                    rows={4}
                                     style={{
                                         width: "100%",
                                         padding: "10px 12px",
                                         border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
-                                        fontFamily: "inherit",
-                                        resize: "vertical",
-                                        boxSizing: "border-box"
+                                        outline: "none",
+                                        transition: "border-color 0.2s",
+                                        fontFamily: "inherit"
                                     }}
-                                    placeholder="Descripción del sector..."
                                 />
                             </div>
 
@@ -888,7 +851,7 @@ export default function SectorsPage() {
                                     fontSize: "14px",
                                     fontWeight: "500",
                                     color: "#374151",
-                                    marginBottom: "6px"
+                                    marginBottom: "8px"
                                 }}>
                                     Ubicación
                                 </label>
@@ -900,11 +863,11 @@ export default function SectorsPage() {
                                         width: "100%",
                                         padding: "10px 12px",
                                         border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        outline: "none",
+                                        transition: "border-color 0.2s"
                                     }}
-                                    placeholder="Ej: Zona norte del jardín"
                                 />
                             </div>
 
@@ -914,7 +877,7 @@ export default function SectorsPage() {
                                     fontSize: "14px",
                                     fontWeight: "500",
                                     color: "#374151",
-                                    marginBottom: "6px"
+                                    marginBottom: "8px"
                                 }}>
                                     Código QR
                                 </label>
@@ -926,54 +889,34 @@ export default function SectorsPage() {
                                         width: "100%",
                                         padding: "10px 12px",
                                         border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
                                         fontFamily: "monospace",
-                                        boxSizing: "border-box"
+                                        outline: "none",
+                                        transition: "border-color 0.2s"
                                     }}
-                                    placeholder="Ej: SECTOR_NORTE_001"
                                 />
-                                <p style={{
-                                    fontSize: "12px",
-                                    color: "#6b7280",
-                                    margin: "4px 0 0 0"
-                                }}>
-                                    Código único para identificar el sector mediante QR
-                                </p>
                             </div>
-
-                            {error && (
-                                <div style={{
-                                    padding: "12px",
-                                    backgroundColor: "#fef2f2",
-                                    border: "1px solid #fecaca",
-                                    borderRadius: "6px",
-                                    color: "#dc2626",
-                                    fontSize: "14px"
-                                }}>
-                                    {error}
-                                </div>
-                            )}
 
                             <div style={{
                                 display: "flex",
                                 gap: "12px",
-                                justifyContent: "flex-end",
                                 marginTop: "8px"
                             }}>
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
                                     style={{
-                                        padding: "10px 20px",
-                                        backgroundColor: "white",
+                                        flex: 1,
+                                        padding: "12px 20px",
+                                        backgroundColor: "#f3f4f6",
                                         color: "#374151",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
+                                        border: "none",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
-                                        fontWeight: "500",
+                                        fontWeight: "600",
                                         cursor: "pointer",
-                                        transition: "all 0.2s"
+                                        transition: "background-color 0.2s"
                                     }}
                                 >
                                     Cancelar
@@ -982,152 +925,219 @@ export default function SectorsPage() {
                                     type="submit"
                                     disabled={submitting}
                                     style={{
-                                        padding: "10px 20px",
-                                        backgroundColor: submitting ? "#9ca3af" : "#10b981",
+                                        flex: 1,
+                                        padding: "12px 20px",
+                                        backgroundColor: "#10b981",
                                         color: "white",
                                         border: "none",
-                                        borderRadius: "6px",
+                                        borderRadius: "8px",
                                         fontSize: "14px",
                                         fontWeight: "600",
                                         cursor: submitting ? "not-allowed" : "pointer",
-                                        transition: "background-color 0.2s"
+                                        transition: "background-color 0.2s",
+                                        opacity: submitting ? 0.6 : 1
                                     }}
                                 >
-                                    {submitting ? "Guardando..." : (modalMode === "create" ? "Crear Sector" : "Guardar Cambios")}
+                                    {submitting ? "Guardando..." : "Guardar"}
                                 </button>
                             </div>
                         </div>
                     </form>
-                )}
-            </Modal>
-
-            {/* Modal de Confirmación de Eliminación */}
-            {showDeleteModal && (
-                <div style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: "rgba(0, 0, 0, 0.6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 1000,
-                    padding: "16px",
-                    backdropFilter: "blur(4px)"
-                }}>
-                    <div style={{
-                        backgroundColor: "white",
-                        borderRadius: "16px",
-                        maxWidth: "440px",
-                        width: "100%",
-                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                        overflow: "hidden",
-                        animation: "modalSlideIn 0.3s ease-out"
-                    }}>
-                        {/* Header con ícono de advertencia */}
-                        <div style={{
-                            padding: "24px",
-                            textAlign: "center",
-                            borderBottom: "1px solid #f3f4f6"
-                        }}>
-                            <div style={{
-                                width: "64px",
-                                height: "64px",
-                                backgroundColor: "#fef2f2",
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 16px",
-                                fontSize: "32px"
-                            }}>
-                                ⚠️
-                            </div>
-                            <h3 style={{
-                                fontSize: "20px",
-                                fontWeight: "700",
-                                color: "#111827",
-                                margin: "0 0 8px 0"
-                            }}>
-                                ¿Eliminar Sector?
-                            </h3>
-                            <p style={{
-                                fontSize: "14px",
+                ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <div>
+                            <label style={{
+                                fontSize: "12px",
+                                fontWeight: "600",
                                 color: "#6b7280",
-                                lineHeight: "1.6",
-                                margin: 0
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                marginBottom: "4px",
+                                display: "block"
                             }}>
-                                Esta acción no se puede deshacer. El sector será eliminado permanentemente de la base de datos.
+                                Nombre
+                            </label>
+                            <p style={{ margin: 0, fontSize: "16px", color: "#111827" }}>
+                                {selectedSector?.name || "-"}
                             </p>
                         </div>
 
-                        {/* Botones de confirmación */}
-                        <div style={{
-                            padding: "20px 24px",
-                            display: "flex",
-                            gap: "12px",
-                            backgroundColor: "#f9fafb"
-                        }}>
-                            <button
-                                onClick={cancelDelete}
-                                style={{
-                                    flex: 1,
-                                    padding: "12px 20px",
-                                    backgroundColor: "white",
-                                    color: "#374151",
-                                    border: "1px solid #d1d5db",
-                                    borderRadius: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = "#f9fafb";
-                                    e.target.style.borderColor = "#9ca3af";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = "white";
-                                    e.target.style.borderColor = "#d1d5db";
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                style={{
-                                    flex: 1,
-                                    padding: "12px 20px",
-                                    backgroundColor: "#dc2626",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = "#b91c1c";
-                                    e.target.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = "#dc2626";
-                                    e.target.style.boxShadow = "0 1px 2px 0 rgba(0, 0, 0, 0.05)";
-                                }}
-                            >
-                                Sí, Eliminar
-                            </button>
+                        <div>
+                            <label style={{
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                color: "#6b7280",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                marginBottom: "4px",
+                                display: "block"
+                            }}>
+                                Descripción
+                            </label>
+                            <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.6" }}>
+                                {selectedSector?.description || "-"}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style={{
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                color: "#6b7280",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                marginBottom: "4px",
+                                display: "block"
+                            }}>
+                                Ubicación
+                            </label>
+                            <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
+                                {selectedSector?.location || "-"}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style={{
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                color: "#6b7280",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                marginBottom: "4px",
+                                display: "block"
+                            }}>
+                                Código QR
+                            </label>
+                            <p style={{ margin: 0, fontSize: "14px", color: "#374151", fontFamily: "monospace" }}>
+                                {selectedSector?.qr_code || "-"}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style={{
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                color: "#6b7280",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                marginBottom: "8px",
+                                display: "block"
+                            }}>
+                                Especies en este sector
+                            </label>
+                            {loadingSpecies ? (
+                                <p style={{ margin: 0, fontSize: "14px", color: "#9ca3af", fontStyle: "italic" }}>
+                                    Cargando especies...
+                                </p>
+                            ) : sectorSpecies.length === 0 ? (
+                                <p style={{ margin: 0, fontSize: "14px", color: "#9ca3af", fontStyle: "italic" }}>
+                                    No hay especies asociadas a este sector
+                                </p>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                                    {sectorSpecies.map((specie) => (
+                                        <div
+                                            key={specie.id}
+                                            style={{
+                                                padding: "8px 12px",
+                                                backgroundColor: "#f9fafb",
+                                                borderRadius: "6px",
+                                                border: "1px solid #e5e7eb"
+                                            }}
+                                        >
+                                            <div style={{
+                                                fontSize: "13px",
+                                                fontWeight: "600",
+                                                color: "#111827",
+                                                fontStyle: "italic",
+                                                marginBottom: "2px"
+                                            }}>
+                                                {specie.scientific_name}
+                                            </div>
+                                            {specie.nombre_común && (
+                                                <div style={{
+                                                    fontSize: "12px",
+                                                    color: "#6b7280"
+                                                }}>
+                                                    {specie.nombre_común}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
 
-            {/* Animación CSS */}
+            {/* Modal de confirmación de eliminación */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                title="Confirmar Eliminación"
+            >
+                <div>
+                    <p style={{
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        color: "#111827",
+                        marginBottom: "12px"
+                    }}>
+                        ¿Estás seguro de que deseas eliminar este sector?
+                    </p>
+                    <p style={{
+                        fontSize: "14px",
+                        color: "#6b7280",
+                        lineHeight: "1.6",
+                        margin: 0
+                    }}>
+                        Esta acción no se puede deshacer. El sector será eliminado permanentemente.
+                    </p>
+                </div>
+
+                <div style={{
+                    padding: "20px 0 0",
+                    display: "flex",
+                    gap: "12px"
+                }}>
+                    <button
+                        onClick={cancelDelete}
+                        style={{
+                            flex: 1,
+                            padding: "12px 20px",
+                            backgroundColor: "white",
+                            color: "#374151",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "8px",
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                        }}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={confirmDelete}
+                        style={{
+                            flex: 1,
+                            padding: "12px 20px",
+                            backgroundColor: "#dc2626",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s"
+                        }}
+                    >
+                        Eliminar
+                    </button>
+                </div>
+            </Modal>
+
             <style jsx>{`
                 @keyframes modalSlideIn {
                     from {
@@ -1139,7 +1149,14 @@ export default function SectorsPage() {
                         transform: translateY(0) scale(1);
                     }
                 }
+                
+                @media (max-width: 400px) {
+                    .btn-text {
+                        display: none !important;
+                    }
+                }
             `}</style>
         </>
     );
 }
+

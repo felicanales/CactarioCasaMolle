@@ -78,7 +78,7 @@ CORS_ORIGINS=https://tu-dominio.railway.app
    - Ejecutar en el SQL Editor
    - Verificar que todas las tablas muestren "✅ SECURE"
 
-📖 **Guía completa**: Ver `fastapi/RLS_SECURITY_GUIDE.md`
+📖 **Guía completa**: Ver `fastapi/RLS_README.md`
 
 ✅ **Tu API FastAPI no necesita cambios** - usa service role que bypasa RLS
 

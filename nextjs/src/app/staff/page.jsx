@@ -101,7 +101,7 @@ export default function StaffPage() {
       disabled: true
     },
     {
-      title: "Editor de Contenido App",
+      title: "Editor de la información",
       description: "Edita información para la app de escaneo QR",
       icon: "📱",
       href: "/species-editor",

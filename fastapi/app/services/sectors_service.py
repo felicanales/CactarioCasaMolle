@@ -97,17 +97,71 @@ def get_staff(sector_id: int) -> Optional[Dict[str, Any]]:
     return res.data[0] if res.data else None
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
-    # Validar unicidad de qr_code si viene definido
+    """
+    Crea un nuevo sector en la base de datos.
+    """
     sb = get_public()
+    
+    # Validar que el campo 'name' esté presente (requerido)
+    if not payload.get("name") or payload.get("name", "").strip() == "":
+        raise ValueError("El campo 'name' es obligatorio")
+    
     # Convertir string vacío a None para qr_code
     if "qr_code" in payload and payload["qr_code"] == "":
         payload["qr_code"] = None
+    
+    # Validar unicidad de qr_code si viene definido
     if payload.get("qr_code"):
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).limit(1).execute()
         if exists.data:
             raise ValueError("qr_code ya existe")
-    res = sb.table("sectores").insert(payload).execute()
-    return res.data[0]
+    
+    # Limpiar payload: solo enviar campos válidos
+    valid_fields = ["name", "description", "location", "qr_code"]
+    clean_payload = {k: v for k, v in payload.items() if k in valid_fields}
+    
+    # Convertir strings vacíos a None para campos opcionales
+    for field in ["description", "location"]:
+        if field in clean_payload and clean_payload[field] == "":
+            clean_payload[field] = None
+    
+    try:
+        res = sb.table("sectores").insert(clean_payload).execute()
+        if not res.data:
+            raise ValueError("No se pudo crear el sector")
+        return res.data[0]
+    except Exception as e:
+        # Capturar errores de Supabase y proporcionar mensaje más claro
+        error_msg = str(e)
+        
+        # Intentar extraer el mensaje de error de Supabase si está disponible
+        if hasattr(e, 'message'):
+            error_msg = str(e.message)
+        elif hasattr(e, 'args') and len(e.args) > 0:
+            error_msg = str(e.args[0])
+        
+        # Si el error contiene información de Supabase, intentar extraerla
+        if hasattr(e, 'code') or hasattr(e, 'details') or hasattr(e, 'hint'):
+            details_parts = []
+            if hasattr(e, 'details') and e.details:
+                details_parts.append(f"Detalles: {e.details}")
+            if hasattr(e, 'hint') and e.hint:
+                details_parts.append(f"Hint: {e.hint}")
+            if hasattr(e, 'code') and e.code:
+                details_parts.append(f"Código: {e.code}")
+            if details_parts:
+                error_msg = f"{error_msg}. {' '.join(details_parts)}"
+        
+        # Verificar si es un error de validación o constraint
+        error_lower = error_msg.lower()
+        if "null value" in error_lower or "not null" in error_lower:
+            raise ValueError("Faltan campos obligatorios para crear el sector")
+        elif "duplicate" in error_lower or "unique" in error_lower:
+            raise ValueError("Ya existe un sector con estos datos")
+        elif "400" in error_msg or "bad request" in error_lower:
+            raise ValueError(f"Error de validación: {error_msg}")
+        else:
+            raise ValueError(f"Error al crear sector: {error_msg}")
 
 def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     sb = get_public()

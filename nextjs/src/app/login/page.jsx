@@ -170,7 +170,7 @@ function CodeInput({ code, setCode, length = 6 }) {
 }
 
 export default function LoginPage() {
-  const { requestOtp, verifyOtp, user } = useAuth();
+  const { requestOtp, verifyOtp } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -178,14 +178,15 @@ export default function LoginPage() {
 
   const [step, setStep] = useState("email"); // "email" | "code"
   const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [verificationComplete, setVerificationComplete] = useState(false);
 
   // Rate limiting simple (cliente)
   const [attempts, setAttempts] = useState(0);
   const [lastAttempt, setLastAttempt] = useState(null);
+
+  // Prevenir múltiples submits automáticos
+  const submittedRef = useRef(false);
 
   const checkRateLimit = () => {
     const now = Date.now();
@@ -243,16 +244,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    console.log('[LoginPage] handleVerifyOtp called - submitting:', submitting, 'loading:', loading);
-
-    // Prevenir doble submit - múltiples verificaciones
-    if (submitting || loading) {
-      console.log('[LoginPage] ❌ Ya se está procesando la verificación - BLOQUEADO');
-      return;
-    }
-
-    console.log('[LoginPage] ✅ Iniciando verificación OTP...');
-
     // Validar rate limiting
     if (!checkRateLimit()) return;
 
@@ -263,9 +254,7 @@ export default function LoginPage() {
       return;
     }
 
-    console.log('[LoginPage] Setting loading=true, submitting=true');
     setLoading(true);
-    setSubmitting(true);
     setAttempts(prev => prev + 1);
     setLastAttempt(Date.now());
 
@@ -273,62 +262,37 @@ export default function LoginPage() {
       await verifyOtp(email, codeValidation.sanitized);
       setSuccess("✅ Autenticación exitosa");
       setAttempts(0); // Resetear intentos en éxito
-      setVerificationComplete(true); // Deshabilitar botón después de verificación exitosa
-
-      console.log('[LoginPage] ✅ OTP verificado exitosamente, iniciando redirección...');
-
-      // Pequeño delay para asegurar que el estado se actualice
-      setTimeout(() => {
-        console.log('[LoginPage] 🚀 Redirigiendo a /staff...');
-        try {
-          router.push("/staff");
-        } catch (error) {
-          console.log('[LoginPage] ❌ Error con router.push, usando window.location:', error);
-          window.location.href = "/staff";
-        }
-      }, 500);
-
-      // Fallback adicional después de 2 segundos
-      setTimeout(() => {
-        console.log('[LoginPage] 🔄 Fallback: Forzando redirección con window.location...');
-        window.location.href = "/staff";
-      }, 2000);
+      router.push("/staff");
     } catch (err) {
       setError(err.message || "Código inválido");
       // Limpiar código en error
       setCode("");
     } finally {
-      console.log('[LoginPage] Resetting loading=false, submitting=false');
       setLoading(false);
-      setSubmitting(false);
     }
   };
 
-  // Monitorear cambios de estado para debug
+  // Auto-submit cuando se complete el código (solo una vez por código completo)
   useEffect(() => {
-    console.log('[LoginPage] State changed - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length, 'verificationComplete:', verificationComplete);
-  }, [loading, submitting, code.length, verificationComplete]);
-
-  // Redirección automática si el usuario está autenticado
-  useEffect(() => {
-    if (user && user.authenticated && verificationComplete) {
-      console.log('[LoginPage] 🔄 Usuario autenticado detectado, redirigiendo...');
-      try {
-        router.push("/staff");
-      } catch (error) {
-        console.log('[LoginPage] ❌ Error con router.push en useEffect, usando window.location:', error);
-        window.location.href = "/staff";
-      }
+    if (code.length === 6 && step === "code" && !loading && !submittedRef.current) {
+      submittedRef.current = true;
+      setTimeout(() => {
+        handleVerifyOtp(new Event('submit', { bubbles: true, cancelable: true }));
+      }, 100);
     }
-  }, [user, verificationComplete, router]);
 
-  // Auto-submit deshabilitado para prevenir doble submit
-  // El usuario debe hacer click en el botón para verificar
-  // useEffect(() => {
-  //   if (code.length === 6 && step === "code" && !loading && !submitting) {
-  //     handleVerifyOtp(new Event('submit'));
-  //   }
-  // }, [code, loading, submitting]);
+    // Reset al cambiar de paso
+    if (step !== "code") {
+      submittedRef.current = false;
+    }
+
+    // Reset al limpiar código completamente
+    if (code.length === 0) {
+      submittedRef.current = false;
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, step, loading]);
 
   // Sanitizar email en cada cambio
   const handleEmailChange = (e) => {
@@ -489,39 +453,6 @@ export default function LoginPage() {
               textAlign: "center"
             }}>
               Ingresa el código de 6 dígitos
-              {code.length === 6 && !loading && !submitting && !verificationComplete && (
-                <span style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#16a34a",
-                  marginTop: "4px",
-                  fontWeight: "600"
-                }}>
-                  ✓ Código completo - Haz clic en "Verificar"
-                </span>
-              )}
-              {(loading || submitting) && (
-                <span style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#6b7280",
-                  marginTop: "4px",
-                  fontWeight: "600"
-                }}>
-                  ⏳ Verificando código...
-                </span>
-              )}
-              {verificationComplete && (
-                <span style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#16a34a",
-                  marginTop: "4px",
-                  fontWeight: "600"
-                }}>
-                  ✅ Verificación exitosa - Redirigiendo...
-                </span>
-              )}
             </label>
 
             <div style={{ marginBottom: "16px" }}>
@@ -560,70 +491,29 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6 || submitting || verificationComplete}
-              onClick={(e) => {
-                console.log('[LoginPage] Button clicked - disabled:', loading || code.length !== 6 || submitting || verificationComplete);
-                console.log('[LoginPage] Button state - loading:', loading, 'submitting:', submitting, 'codeLength:', code.length, 'verificationComplete:', verificationComplete);
-              }}
+              disabled={loading || code.length !== 6}
               style={{
                 width: "100%",
                 padding: "12px",
                 fontSize: "16px",
                 fontWeight: "600",
                 color: "white",
-                backgroundColor: (loading || code.length !== 6 || submitting || verificationComplete) ? "#9ca3af" : "#3b82f6",
+                backgroundColor: (loading || code.length !== 6) ? "#9ca3af" : "#3b82f6",
                 border: "none",
                 borderRadius: "8px",
-                cursor: (loading || code.length !== 6 || submitting || verificationComplete) ? "not-allowed" : "pointer",
+                cursor: (loading || code.length !== 6) ? "not-allowed" : "pointer",
                 transition: "background-color 0.2s",
-                marginBottom: "12px",
-                opacity: (loading || submitting || verificationComplete) ? 0.7 : 1
+                marginBottom: "12px"
               }}
               onMouseEnter={(e) => {
-                if (!loading && !submitting && !verificationComplete && code.length === 6) e.target.style.backgroundColor = "#2563eb";
+                if (!loading && code.length === 6) e.target.style.backgroundColor = "#2563eb";
               }}
               onMouseLeave={(e) => {
-                if (!loading && !submitting && !verificationComplete && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
+                if (!loading && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
               }}
             >
-              {loading || submitting ? "Verificando..." : verificationComplete ? "Verificado ✓" : "Verificar código"}
+              {loading ? "Conectando..." : "Verificar código"}
             </button>
-
-            {verificationComplete && (
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('[LoginPage] 🔄 Redirección manual a /staff...');
-                  try {
-                    router.push("/staff");
-                  } catch (error) {
-                    console.log('[LoginPage] ❌ Error con router.push manual, usando window.location:', error);
-                    window.location.href = "/staff";
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  color: "white",
-                  backgroundColor: "#16a34a",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s",
-                  marginBottom: "12px"
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#15803d";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "#16a34a";
-                }}
-              >
-                🚀 Ir al Panel Staff
-              </button>
-            )}
 
             <button
               type="button"
@@ -633,7 +523,7 @@ export default function LoginPage() {
                 setError("");
                 setSuccess("");
                 setAttempts(0);
-                setVerificationComplete(false);
+                submittedRef.current = false; // Reset del ref
               }}
               style={{
                 width: "100%",
