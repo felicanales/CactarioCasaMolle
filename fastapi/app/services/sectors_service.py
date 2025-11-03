@@ -2,7 +2,7 @@
 from typing import List, Optional, Dict, Any, Set
 from app.core.supabase_auth import get_public
 
-PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "location", "qr_code"]
+PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "qr_code"]
 STAFF_SECTOR_FIELDS = PUBLIC_SECTOR_FIELDS + ["created_at", "updated_at"]
 
 def list_public(q: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -124,12 +124,12 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             logger.error(f"[create_staff] Error: qr_code '{payload['qr_code']}' ya existe")
             raise ValueError("qr_code ya existe")
     
-    # Limpiar payload: solo enviar campos válidos
-    valid_fields = ["name", "description", "location", "qr_code"]
+    # Limpiar payload: solo enviar campos válidos (location no existe en la tabla)
+    valid_fields = ["name", "description", "qr_code"]
     clean_payload = {k: v for k, v in payload.items() if k in valid_fields}
     
     # Convertir strings vacíos a None para campos opcionales
-    for field in ["description", "location"]:
+    for field in ["description"]:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     

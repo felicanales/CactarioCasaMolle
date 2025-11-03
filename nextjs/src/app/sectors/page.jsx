@@ -161,7 +161,6 @@ export default function SectorsPage() {
     const [formData, setFormData] = useState({
         name: "",
         description: "",
-        location: "",
         qr_code: ""
     });
     const [submitting, setSubmitting] = useState(false);
@@ -251,7 +250,7 @@ export default function SectorsPage() {
     const handleCreate = () => {
         setModalMode("create");
         setSelectedSector(null);
-        setFormData({ name: "", description: "", location: "", qr_code: "" });
+        setFormData({ name: "", description: "", qr_code: "" });
         setShowModal(true);
     };
 
@@ -261,7 +260,6 @@ export default function SectorsPage() {
         setFormData({
             name: sector.name || "",
             description: sector.description || "",
-            location: sector.location || "",
             qr_code: sector.qr_code || ""
         });
         setShowModal(true);
@@ -596,17 +594,6 @@ export default function SectorsPage() {
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
-                                            Ubicación
-                                        </th>
-                                        <th className="table-header" style={{
-                                            padding: "16px",
-                                            textAlign: "left",
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em"
-                                        }}>
                                             Código QR
                                         </th>
                                         <th className="table-header" style={{
@@ -636,7 +623,7 @@ export default function SectorsPage() {
                                 <tbody>
                                     {sectors.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" style={{
+                                            <td colSpan="5" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
@@ -674,14 +661,6 @@ export default function SectorsPage() {
                                                         verticalAlign: "middle"
                                                     }}>
                                                         {sector.description || "-"}
-                                                    </td>
-                                                    <td className="table-cell" style={{
-                                                        padding: "16px",
-                                                        fontSize: "14px",
-                                                        color: "#374151",
-                                                        verticalAlign: "middle"
-                                                    }}>
-                                                        {sector.location || "-"}
                                                     </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
@@ -865,32 +844,6 @@ export default function SectorsPage() {
                                     color: "#374151",
                                     marginBottom: "8px"
                                 }}>
-                                    Ubicación
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none",
-                                        transition: "border-color 0.2s"
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: "block",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    color: "#374151",
-                                    marginBottom: "8px"
-                                }}>
                                     Código QR
                                 </label>
                                 <input
@@ -988,23 +941,6 @@ export default function SectorsPage() {
                             </label>
                             <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.6" }}>
                                 {selectedSector?.description || "-"}
-                            </p>
-                        </div>
-
-                        <div>
-                            <label style={{
-                                fontSize: "12px",
-                                fontWeight: "600",
-                                color: "#6b7280",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                                marginBottom: "4px",
-                                display: "block"
-                            }}>
-                                Ubicación
-                            </label>
-                            <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
-                                {selectedSector?.location || "-"}
                             </p>
                         </div>
 
