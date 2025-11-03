@@ -184,8 +184,7 @@ export default function InventoryPage() {
         location: "",
         purchase_price: "",
         sale_price: "",
-        collection_date: "",
-        has_offshoots: false,
+        has_offshoots: 0, // Cantidad de retoños/hijos (número)
         cantidad: 1 // Cantidad de ejemplares a crear
     });
 
@@ -330,12 +329,22 @@ export default function InventoryPage() {
                 basePayload.age_months = parseInt(basePayload.age_months);
             }
             
-            // Convertir precios a números si existen
+            // Convertir precios a números si existen (precio unitario)
             if (basePayload.purchase_price) {
                 basePayload.purchase_price = parseFloat(basePayload.purchase_price);
             }
             if (basePayload.sale_price) {
                 basePayload.sale_price = parseFloat(basePayload.sale_price);
+            }
+            
+            // Convertir has_offshoots a número (cantidad de retoños)
+            if (basePayload.has_offshoots !== undefined && basePayload.has_offshoots !== null) {
+                basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
+            }
+            
+            // Remover tamaño si no existe en la BD (evitar error)
+            if (basePayload.tamaño === "" || basePayload.tamaño === null || basePayload.tamaño === undefined) {
+                delete basePayload.tamaño;
             }
             
             // Crear múltiples ejemplares
@@ -381,11 +390,10 @@ export default function InventoryPage() {
                         tamaño: "",
                         health_status: "",
                         location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        collection_date: "",
-                        has_offshoots: false,
-                        cantidad: 1
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
                     });
                 } else {
                     // Algunos fallaron
@@ -557,8 +565,7 @@ export default function InventoryPage() {
                                         location: "",
                                         purchase_price: "",
                                         sale_price: "",
-                                        collection_date: "",
-                                        has_offshoots: false,
+                                        has_offshoots: 0,
                                         cantidad: 1
                                     });
                                     setShowModal(true);
@@ -1100,11 +1107,10 @@ export default function InventoryPage() {
                             tamaño: "",
                             health_status: "",
                             location: "",
-                            purchase_price: "",
-                            sale_price: "",
-                            collection_date: "",
-                            has_offshoots: false,
-                            cantidad: 1
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
                         });
                     }
                 }}
@@ -1535,7 +1541,7 @@ export default function InventoryPage() {
                                     />
                                 </div>
                                 
-                                {/* Precio de Venta */}
+                                {/* Precio de Venta (Unitario) */}
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1546,7 +1552,7 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Precio de Venta
+                                        Precio de Venta (Unitario)
                                     </label>
                                     <input
                                         type="number"
@@ -1567,26 +1573,45 @@ export default function InventoryPage() {
                                 </div>
                             </div>
                             
-                            {/* Tiene Retoños */}
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            {/* Cantidad de Retoños/Hijos */}
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Cantidad de Retoños/Hijos (por ejemplar)
+                                </label>
                                 <input
-                                    type="checkbox"
-                                    id="has_offshoots"
-                                    checked={formData.has_offshoots}
-                                    onChange={(e) => setFormData({ ...formData, has_offshoots: e.target.checked })}
+                                    type="number"
+                                    min="0"
+                                    value={formData.has_offshoots}
+                                    onChange={(e) => {
+                                        const value = Math.max(0, parseInt(e.target.value) || 0);
+                                        setFormData({ ...formData, has_offshoots: value });
+                                    }}
+                                    placeholder="0"
                                     style={{
-                                        width: "18px",
-                                        height: "18px",
-                                        cursor: "pointer"
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                     }}
                                 />
-                                <label htmlFor="has_offshoots" style={{
-                                    fontSize: "14px",
-                                    color: "#374151",
-                                    cursor: "pointer"
+                                <p style={{
+                                    margin: "8px 0 0",
+                                    fontSize: "12px",
+                                    color: "#6b7280",
+                                    fontStyle: "italic"
                                 }}>
-                                    Tiene retoños
-                                </label>
+                                    El mismo número de retoños se aplicará a todos los ejemplares del registro masivo.
+                                </p>
                             </div>
                             
                             {/* Botones */}
@@ -1606,11 +1631,10 @@ export default function InventoryPage() {
                                             tamaño: "",
                                             health_status: "",
                                             location: "",
-                                            purchase_price: "",
-                                            sale_price: "",
-                                            collection_date: "",
-                                            has_offshoots: false,
-                                            cantidad: 1
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
                                         });
                                     }}
                                     style={{

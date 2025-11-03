@@ -259,9 +259,14 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # Convertir strings vacíos a None para ENUM de tamaño
-    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
-        clean_payload["tamaño"] = None
+    # Convertir strings vacíos a None para ENUM de tamaño (si el campo existe)
+    # Si la columna no existe en la BD, simplemente removerla del payload
+    if "tamaño" in clean_payload:
+        if clean_payload["tamaño"] == "":
+            clean_payload["tamaño"] = None
+        # Si es None, removerlo completamente para evitar errores si la columna no existe
+        if clean_payload["tamaño"] is None:
+            del clean_payload["tamaño"]
     
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
     
@@ -315,9 +320,14 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # Convertir strings vacíos a None para ENUM de tamaño
-    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
-        clean_payload["tamaño"] = None
+    # Convertir strings vacíos a None para ENUM de tamaño (si el campo existe)
+    # Si la columna no existe en la BD, simplemente removerla del payload
+    if "tamaño" in clean_payload:
+        if clean_payload["tamaño"] == "":
+            clean_payload["tamaño"] = None
+        # Si es None, removerlo completamente para evitar errores si la columna no existe
+        if clean_payload["tamaño"] is None:
+            del clean_payload["tamaño"]
     
     try:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
