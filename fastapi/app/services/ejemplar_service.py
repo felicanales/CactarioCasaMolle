@@ -2,6 +2,35 @@
 from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import get_public
 
+def _ensure_sector_species_relation(sector_id: int, species_id: int) -> None:
+    """
+    Asegura que existe una relación entre sector y especie en la tabla sectores_especies.
+    Si la relación no existe, la crea. Si ya existe, no hace nada.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    sb = get_public()
+    
+    try:
+        # Verificar si la relación ya existe
+        existing = sb.table("sectores_especies").select("sector_id, especie_id").eq("sector_id", sector_id).eq("especie_id", species_id).limit(1).execute()
+        
+        if not existing.data:
+            # La relación no existe, crearla
+            logger.info(f"[_ensure_sector_species_relation] Creando relación sector_id={sector_id}, especie_id={species_id}")
+            sb.table("sectores_especies").insert({
+                "sector_id": sector_id,
+                "especie_id": species_id
+            }).execute()
+            logger.info(f"[_ensure_sector_species_relation] Relación creada exitosamente")
+        else:
+            logger.debug(f"[_ensure_sector_species_relation] Relación ya existe (sector_id={sector_id}, especie_id={species_id})")
+    except Exception as e:
+        # Log el error pero no fallar la creación del ejemplar
+        logger.warning(f"[_ensure_sector_species_relation] Error al crear relación: {str(e)}")
+        # No lanzar excepción para no interrumpir la creación del ejemplar
+
 def list_staff(
     q: Optional[str] = None,
     species_id: Optional[int] = None,
@@ -245,6 +274,12 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         if not res.data:
             raise ValueError("No se pudo crear el ejemplar")
         logger.info(f"[create_staff] Ejemplar creado exitosamente: {res.data[0].get('id')}")
+        
+        # Asegurar que la relación especie-sector existe en sectores_especies
+        species_id = clean_payload["species_id"]
+        sector_id = clean_payload["sector_id"]
+        _ensure_sector_species_relation(sector_id, species_id)
+        
         return res.data[0]
     except Exception as e:
         logger.error(f"[create_staff] Error al crear ejemplar: {str(e)}")
