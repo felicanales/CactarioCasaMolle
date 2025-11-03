@@ -167,8 +167,26 @@ export default function InventoryPage() {
     
     // Modal
     const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState("view");
+    const [modalMode, setModalMode] = useState("view"); // "view" | "create"
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    
+    // Form data para crear nuevo ejemplar
+    const [formData, setFormData] = useState({
+        species_id: "",
+        sector_id: "",
+        purchase_date: "",
+        sale_date: "",
+        nursery: "",
+        age_months: "",
+        tamaño: "",
+        health_status: "",
+        location: "",
+        purchase_price: "",
+        sale_price: "",
+        collection_date: "",
+        has_offshoots: false
+    });
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -272,6 +290,75 @@ export default function InventoryPage() {
         setModalMode("view");
         setSelectedEjemplar(ej);
         setShowModal(true);
+    };
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        
+        // Validar campos obligatorios
+        if (!formData.species_id || !formData.sector_id) {
+            setError("La especie y el sector son obligatorios");
+            return;
+        }
+        
+        try {
+            setSubmitting(true);
+            setError("");
+            
+            // Preparar payload
+            const payload = { ...formData };
+            
+            // Convertir IDs a números
+            payload.species_id = parseInt(formData.species_id);
+            payload.sector_id = parseInt(formData.sector_id);
+            
+            // Convertir age_months a número si existe
+            if (payload.age_months) {
+                payload.age_months = parseInt(payload.age_months);
+            }
+            
+            // Convertir precios a números si existen
+            if (payload.purchase_price) {
+                payload.purchase_price = parseFloat(payload.purchase_price);
+            }
+            if (payload.sale_price) {
+                payload.sale_price = parseFloat(payload.sale_price);
+            }
+            
+            const res = await apiRequest(`${API}/ejemplar/staff`, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || "Error al crear el ejemplar");
+            }
+            
+            // Recargar lista y cerrar modal
+            await fetchEjemplares();
+            setShowModal(false);
+            setFormData({
+                species_id: "",
+                sector_id: "",
+                purchase_date: "",
+                sale_date: "",
+                nursery: "",
+                age_months: "",
+                tamaño: "",
+                health_status: "",
+                location: "",
+                purchase_price: "",
+                sale_price: "",
+                collection_date: "",
+                has_offshoots: false
+            });
+        } catch (err) {
+            console.error('[InventoryPage] Error creating ejemplar:', err);
+            setError(err.message || "Error al crear el ejemplar");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const formatDate = (dateString) => {
@@ -412,22 +499,61 @@ export default function InventoryPage() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={logout}
-                            style={{
-                                padding: "8px 12px",
-                                borderRadius: "6px",
-                                border: "1px solid #e5e7eb",
-                                backgroundColor: "white",
-                                color: "#dc2626",
-                                fontSize: "clamp(12px, 3vw, 14px)",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                flexShrink: 0
-                            }}
-                        >
-                            Salir
-                        </button>
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                            <button
+                                onClick={() => {
+                                    setModalMode("create");
+                                    setFormData({
+                                        species_id: "",
+                                        sector_id: "",
+                                        purchase_date: "",
+                                        sale_date: "",
+                                        nursery: "",
+                                        age_months: "",
+                                        tamaño: "",
+                                        health_status: "",
+                                        location: "",
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        collection_date: "",
+                                        has_offshoots: false
+                                    });
+                                    setShowModal(true);
+                                }}
+                                style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    backgroundColor: "#10b981",
+                                    color: "white",
+                                    fontSize: "clamp(12px, 3vw, 14px)",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px"
+                                }}
+                            >
+                                <span>+</span>
+                                <span>Nuevo Ejemplar</span>
+                            </button>
+                            <button
+                                onClick={logout}
+                                style={{
+                                    padding: "8px 12px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #e5e7eb",
+                                    backgroundColor: "white",
+                                    color: "#dc2626",
+                                    fontSize: "clamp(12px, 3vw, 14px)",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                Salir
+                            </button>
+                        </div>
                     </div>
                 </header>
 
