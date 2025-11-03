@@ -145,13 +145,32 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         return res.data[0]
     except Exception as e:
         # Capturar errores de Supabase y proporcionar mensaje más claro
+        logger.error(f"[create_staff] Excepción capturada: {type(e).__name__}: {str(e)}")
+        logger.error(f"[create_staff] Atributos de la excepción: {dir(e)}")
+        
         error_msg = str(e)
         
         # Intentar extraer el mensaje de error de Supabase si está disponible
+        # Supabase Python client puede lanzar diferentes tipos de excepciones
         if hasattr(e, 'message'):
             error_msg = str(e.message)
+            logger.error(f"[create_staff] Error message attribute: {error_msg}")
         elif hasattr(e, 'args') and len(e.args) > 0:
             error_msg = str(e.args[0])
+            logger.error(f"[create_staff] Error args: {error_msg}")
+        
+        # Intentar extraer información de respuesta HTTP si está disponible
+        if hasattr(e, 'response') and hasattr(e.response, 'text'):
+            try:
+                import json
+                error_data = json.loads(e.response.text)
+                if 'message' in error_data:
+                    error_msg = error_data['message']
+                    logger.error(f"[create_staff] Error de Supabase: {error_msg}")
+                if 'details' in error_data:
+                    error_msg += f" - {error_data['details']}"
+            except:
+                pass
         
         # Si el error contiene información de Supabase, intentar extraerla
         if hasattr(e, 'code') or hasattr(e, 'details') or hasattr(e, 'hint'):
@@ -168,12 +187,24 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         # Verificar si es un error de validación o constraint
         error_lower = error_msg.lower()
         if "null value" in error_lower or "not null" in error_lower:
+            logger.error("[create_staff] Error: campos obligatorios faltantes")
             raise ValueError("Faltan campos obligatorios para crear el sector")
-        elif "duplicate" in error_lower or "unique" in error_lower:
-            raise ValueError("Ya existe un sector con estos datos")
+        elif "duplicate" in error_lower or "unique" in error_lower or "already exists" in error_lower:
+            # Intentar determinar qué campo está duplicado
+            if "qr_code" in error_lower or "sectors_qr_code_key" in error_lower:
+                logger.error("[create_staff] Error: qr_code duplicado")
+                raise ValueError("Ya existe un sector con ese código QR")
+            elif "name" in error_lower or "sectors_name_key" in error_lower:
+                logger.error("[create_staff] Error: nombre duplicado")
+                raise ValueError("Ya existe un sector con ese nombre")
+            else:
+                logger.error(f"[create_staff] Error: constraint único violado - {error_msg}")
+                raise ValueError(f"Ya existe un sector con estos datos: {error_msg}")
         elif "400" in error_msg or "bad request" in error_lower:
+            logger.error(f"[create_staff] Error de validación: {error_msg}")
             raise ValueError(f"Error de validación: {error_msg}")
         else:
+            logger.error(f"[create_staff] Error inesperado: {error_msg}")
             raise ValueError(f"Error al crear sector: {error_msg}")
 
 def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
