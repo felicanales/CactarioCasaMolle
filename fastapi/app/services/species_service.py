@@ -78,15 +78,50 @@ def get_staff(species_id: int) -> Optional[Dict[str, Any]]:
     return res.data[0] if res.data else None
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
-    # Validar slug único
+    """
+    Crea una nueva especie en la base de datos.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Validar slug único
     if not payload.get("slug"):
         raise ValueError("slug es obligatorio")
+    
+    # Asegurar que no se esté enviando el ID (debe ser auto-generado)
+    if "id" in payload:
+        logger.warning(f"[create_staff] Se intentó enviar 'id' en el payload, removiéndolo: {payload.get('id')}")
+        del payload["id"]
+    
+    # Remover campos de timestamp que deben ser generados automáticamente
+    for auto_field in ["created_at", "updated_at"]:
+        if auto_field in payload:
+            logger.warning(f"[create_staff] Se intentó enviar '{auto_field}' en el payload, removiéndolo")
+            del payload[auto_field]
+    
+    # Remover image_url si existe (no existe en la tabla)
+    if "image_url" in payload:
+        logger.warning("[create_staff] Se intentó enviar 'image_url' en el payload, removiéndolo")
+        del payload["image_url"]
+    
+    # Validar slug único
     exists = sb.table("especies").select("id").eq("slug", payload["slug"]).limit(1).execute()
     if exists.data:
         raise ValueError("slug ya existe")
-    res = sb.table("especies").insert(payload).execute()
-    return res.data[0]
+    
+    logger.info(f"[create_staff] Payload limpio para insertar: {list(payload.keys())}")
+    
+    try:
+        res = sb.table("especies").insert(payload).execute()
+        if not res.data:
+            raise ValueError("No se pudo crear la especie")
+        logger.info(f"[create_staff] Especie creada exitosamente: {res.data[0].get('id')}")
+        return res.data[0]
+    except Exception as e:
+        logger.error(f"[create_staff] Error al crear especie: {str(e)}")
+        raise
 
 def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     sb = get_public()

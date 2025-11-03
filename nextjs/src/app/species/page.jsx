@@ -364,6 +364,20 @@ export default function SpeciesPage() {
                 slug,
             };
 
+            // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
+            if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
+                payload.categoría_de_conservación = payload.categoria_conservacion.trim();
+            } else {
+                payload.categoría_de_conservación = null;
+            }
+            delete payload.categoria_conservacion;
+
+            // Limpiar campos que no existen en la tabla o deben ser auto-generados
+            if (payload.id) delete payload.id;
+            if (payload.image_url) delete payload.image_url; // image_url no existe en la tabla
+            if (payload.created_at) delete payload.created_at;
+            if (payload.updated_at) delete payload.updated_at;
+
             let res;
             if (modalMode === "create") {
                 res = await apiRequest(`${API}/species/staff`, {
