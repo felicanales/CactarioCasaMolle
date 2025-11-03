@@ -319,12 +319,11 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
             clean_payload[field] = None
     
     # Convertir strings vacíos a None para ENUM de tamaño (si el campo existe)
-    # Si la columna no existe en la BD, simplemente removerla del payload
+    # IMPORTANTE: Si está vacío o es None, removerlo completamente (la columna puede no existir)
     if "tamaño" in clean_payload:
-        if clean_payload["tamaño"] == "":
-            clean_payload["tamaño"] = None
-        # Si es None, removerlo completamente para evitar errores si la columna no existe
-        if clean_payload["tamaño"] is None:
+        tamaño_value = clean_payload["tamaño"]
+        # Remover si está vacío, None, o es una cadena vacía/espacios
+        if tamaño_value is None or tamaño_value == "" or (isinstance(tamaño_value, str) and tamaño_value.strip() == ""):
             del clean_payload["tamaño"]
     
     try:

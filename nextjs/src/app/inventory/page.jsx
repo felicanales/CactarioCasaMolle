@@ -342,8 +342,8 @@ export default function InventoryPage() {
                 basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
             }
             
-            // Remover tamaño si no existe en la BD (evitar error)
-            if (basePayload.tamaño === "" || basePayload.tamaño === null || basePayload.tamaño === undefined) {
+            // Remover tamaño si está vacío o no tiene valor válido (evitar error cuando columna no existe)
+            if (!basePayload.tamaño || basePayload.tamaño === "" || basePayload.tamaño === null || basePayload.tamaño === undefined || String(basePayload.tamaño).trim() === "") {
                 delete basePayload.tamaño;
             }
             
