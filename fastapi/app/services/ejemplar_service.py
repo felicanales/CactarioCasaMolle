@@ -290,15 +290,24 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     
     sb = get_public()
     
+    # Obtener el ejemplar actual para verificar si cambió species_id o sector_id
+    current_ejemplar = sb.table("ejemplar").select("species_id, sector_id").eq("id", ejemplar_id).limit(1).execute()
+    old_species_id = current_ejemplar.data[0].get("species_id") if current_ejemplar.data else None
+    old_sector_id = current_ejemplar.data[0].get("sector_id") if current_ejemplar.data else None
+    
     # Limpiar payload
     clean_payload = {k: v for k, v in payload.items() 
                     if k not in ["id", "created_at", "updated_at", "especies", "sectores"]}
     
     # Convertir strings vacíos a None
-    optional_fields = ["nursery", "health_status", "location"]
+    optional_fields = ["nursery", "location"]
     for field in optional_fields:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
+    
+    # Convertir strings vacíos a None para ENUM de health_status
+    if "health_status" in clean_payload and clean_payload["health_status"] == "":
+        clean_payload["health_status"] = None
     
     # Convertir valores numéricos vacíos a None
     numeric_fields = ["age_months", "purchase_price", "sale_price"]
@@ -314,6 +323,16 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
         if not res.data:
             raise LookupError("Ejemplar no encontrado")
+        
+        # Si se actualizó species_id o sector_id, asegurar la relación en sectores_especies
+        new_species_id = clean_payload.get("species_id", old_species_id)
+        new_sector_id = clean_payload.get("sector_id", old_sector_id)
+        
+        if new_species_id and new_sector_id:
+            # Si cambió la especie o el sector, crear la nueva relación
+            if (new_species_id != old_species_id or new_sector_id != old_sector_id) or not old_species_id:
+                _ensure_sector_species_relation(new_sector_id, new_species_id)
+        
         return res.data[0]
     except Exception as e:
         logger.error(f"[update_staff] Error al actualizar ejemplar: {str(e)}")
