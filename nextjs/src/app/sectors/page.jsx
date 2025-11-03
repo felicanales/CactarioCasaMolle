@@ -300,24 +300,36 @@ export default function SectorsPage() {
         try {
             let res;
             if (modalMode === "create") {
+                console.log("[handleSubmit] Creando sector con datos:", formData);
                 res = await apiRequest(`${API}/sectors/staff`, {
                     method: "POST",
                     body: JSON.stringify(formData)
                 });
+                console.log("[handleSubmit] Respuesta del servidor:", res.status, res.ok);
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
                     body: JSON.stringify(formData)
                 });
             }
-            if (!res.ok && !BYPASS_AUTH) {
+            
+            // Verificar respuesta siempre, incluso con BYPASS_AUTH
+            if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al guardar");
+                const errorMessage = errorData.detail || errorData.message || `Error ${res.status}: ${res.statusText}`;
+                console.error("[handleSubmit] Error del servidor:", errorMessage);
+                throw new Error(errorMessage);
             }
+            
+            // Si la respuesta es exitosa, obtener los datos
+            const result = await res.json().catch(() => null);
+            console.log("[handleSubmit] Sector guardado exitosamente:", result);
+            
             setShowModal(false);
             fetchSectors();
         } catch (err) {
-            setError(err.message);
+            console.error("[handleSubmit] Error al guardar sector:", err);
+            setError(err.message || "Error al guardar el sector");
         } finally {
             setSubmitting(false);
         }

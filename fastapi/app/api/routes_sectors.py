@@ -52,14 +52,22 @@ def create_sector_staff(payload: Dict[str, Any]):
     """
     Crea un sector (requiere usuario autenticado).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[create_sector_staff] Recibido payload: {payload}")
+    
     try:
         created = svc.create_staff(payload)
+        logger.info(f"[create_sector_staff] Sector creado exitosamente: {created}")
         return created
     except ValueError as e:
+        logger.error(f"[create_sector_staff] Error de validación: {str(e)}")
         raise HTTPException(400, str(e))
     except Exception as e:
         # Capturar cualquier otro error y proporcionar un mensaje útil
         error_msg = str(e)
+        logger.error(f"[create_sector_staff] Error inesperado: {error_msg}", exc_info=True)
         raise HTTPException(500, f"Error inesperado al crear sector: {error_msg}")
 
 # IMPORTANTE: Las rutas más específicas ({sector_id}/species) deben ir ANTES que las generales ({sector_id})

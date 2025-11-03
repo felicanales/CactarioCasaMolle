@@ -100,10 +100,17 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     Crea un nuevo sector en la base de datos.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Log del payload recibido
+    logger.info(f"[create_staff] Payload recibido: {payload}")
     
     # Validar que el campo 'name' esté presente (requerido)
     if not payload.get("name") or payload.get("name", "").strip() == "":
+        logger.error("[create_staff] Error: campo 'name' faltante o vacío")
         raise ValueError("El campo 'name' es obligatorio")
     
     # Convertir string vacío a None para qr_code
@@ -114,6 +121,7 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     if payload.get("qr_code"):
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).limit(1).execute()
         if exists.data:
+            logger.error(f"[create_staff] Error: qr_code '{payload['qr_code']}' ya existe")
             raise ValueError("qr_code ya existe")
     
     # Limpiar payload: solo enviar campos válidos
@@ -125,10 +133,15 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
+    logger.info(f"[create_staff] Payload limpio para insertar: {clean_payload}")
+    
     try:
         res = sb.table("sectores").insert(clean_payload).execute()
+        logger.info(f"[create_staff] Respuesta de Supabase: {res}")
         if not res.data:
+            logger.error("[create_staff] Error: Supabase no devolvió datos")
             raise ValueError("No se pudo crear el sector")
+        logger.info(f"[create_staff] Sector creado exitosamente: {res.data[0]}")
         return res.data[0]
     except Exception as e:
         # Capturar errores de Supabase y proporcionar mensaje más claro
