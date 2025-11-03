@@ -157,8 +157,7 @@ export default function InventoryPage() {
     const [filterSpecies, setFilterSpecies] = useState("");
     const [filterMorfologia, setFilterMorfologia] = useState("");
     const [filterNombreComun, setFilterNombreComun] = useState("");
-    const [filterSizeMin, setFilterSizeMin] = useState("");
-    const [filterSizeMax, setFilterSizeMax] = useState("");
+    const [filterTamaño, setFilterTamaño] = useState("");
     const [sortBy, setSortBy] = useState("scientific_name");
     const [sortOrder, setSortOrder] = useState("asc");
     
@@ -227,8 +226,7 @@ export default function InventoryPage() {
             if (filterSpecies) params.append('species_id', filterSpecies);
             if (filterMorfologia) params.append('morfologia', filterMorfologia);
             if (filterNombreComun) params.append('nombre_comun', filterNombreComun);
-            if (filterSizeMin) params.append('size_min', filterSizeMin);
-            if (filterSizeMax) params.append('size_max', filterSizeMax);
+            if (filterTamaño) params.append('tamaño', filterTamaño);
             params.append('sort_by', sortBy);
             params.append('sort_order', sortOrder);
             
@@ -268,7 +266,7 @@ export default function InventoryPage() {
         if (user && checkedAuth) {
             fetchEjemplares();
         }
-    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterSizeMin, filterSizeMax, sortBy, sortOrder]);
+    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterTamaño, sortBy, sortOrder]);
 
     const handleView = (ej) => {
         setModalMode("view");
@@ -516,36 +514,25 @@ export default function InventoryPage() {
                                 }}
                             />
                             
-                            <div style={{ display: "flex", gap: "8px" }}>
-                                <input
-                                    type="number"
-                                    placeholder="Tamaño min (cm)"
-                                    value={filterSizeMin}
-                                    onChange={(e) => setFilterSizeMin(e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Tamaño max (cm)"
-                                    value={filterSizeMax}
-                                    onChange={(e) => setFilterSizeMax(e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                />
-                            </div>
+                            <select
+                                value={filterTamaño}
+                                onChange={(e) => setFilterTamaño(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            >
+                                <option value="">Todos los tamaños</option>
+                                <option value="XS">XS</option>
+                                <option value="S">S</option>
+                                <option value="M">M</option>
+                                <option value="L">L</option>
+                                <option value="XL">XL</option>
+                                <option value="XXL">XXL</option>
+                            </select>
                             
                             <div style={{ display: "flex", gap: "8px" }}>
                                 <select
@@ -589,15 +576,14 @@ export default function InventoryPage() {
                             </div>
                         </div>
                         
-                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterSizeMin || filterSizeMax) && (
+                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño) && (
                             <button
                                 onClick={() => {
                                     setSearchQuery("");
                                     setFilterSpecies("");
                                     setFilterMorfologia("");
                                     setFilterNombreComun("");
-                                    setFilterSizeMin("");
-                                    setFilterSizeMax("");
+                                    setFilterTamaño("");
                                 }}
                                 style={{
                                     padding: "8px 16px",
@@ -829,7 +815,19 @@ export default function InventoryPage() {
                                                         color: "#374151",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                        {ej.size_cm ? `${ej.size_cm} cm` : "-"}
+                                                        {ej.tamaño ? (
+                                                            <span style={{
+                                                                display: "inline-block",
+                                                                padding: "4px 12px",
+                                                                borderRadius: "12px",
+                                                                fontSize: "12px",
+                                                                fontWeight: "600",
+                                                                backgroundColor: "#e0f2fe",
+                                                                color: "#0284c7"
+                                                            }}>
+                                                                {ej.tamaño}
+                                                            </span>
+                                                        ) : "-"}
                                                     </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",

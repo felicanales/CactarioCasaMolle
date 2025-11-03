@@ -6,8 +6,7 @@ def list_staff(
     q: Optional[str] = None,
     species_id: Optional[int] = None,
     sector_id: Optional[int] = None,
-    size_min: Optional[int] = None,
-    size_max: Optional[int] = None,
+    tamaño: Optional[str] = None,
     morfologia: Optional[str] = None,
     nombre_comun: Optional[str] = None,
     sort_by: str = "scientific_name",
@@ -33,11 +32,8 @@ def list_staff(
         if sector_id:
             query = query.eq("sector_id", sector_id)
         
-        if size_min is not None:
-            query = query.gte("size_cm", size_min)
-        
-        if size_max is not None:
-            query = query.lte("size_cm", size_max)
+        if tamaño:
+            query = query.eq("tamaño", tamaño)
         
         # Ejecutar la consulta
         res = query.execute()
@@ -133,9 +129,11 @@ def list_staff(
             ).lower(),
             reverse=(sort_order == "desc")
         )
-    elif sort_by == "size_cm":
+    elif sort_by == "tamaño":
+        # Ordenar por tamaño: XS < S < M < L < XL < XXL
+        tamaño_order = {"XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5}
         filtered.sort(
-            key=lambda x: x.get("size_cm") or 0,
+            key=lambda x: tamaño_order.get(x.get("tamaño"), 99),
             reverse=(sort_order == "desc")
         )
     elif sort_by == "purchase_date":
@@ -223,10 +221,14 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             clean_payload[field] = None
     
     # Convertir valores numéricos vacíos a None
-    numeric_fields = ["age_months", "size_cm", "purchase_price", "sale_price"]
+    numeric_fields = ["age_months", "purchase_price", "sale_price"]
     for field in numeric_fields:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
+    
+    # Convertir strings vacíos a None para ENUM de tamaño
+    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
+        clean_payload["tamaño"] = None
     
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
     
@@ -260,10 +262,14 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
             clean_payload[field] = None
     
     # Convertir valores numéricos vacíos a None
-    numeric_fields = ["age_months", "size_cm", "purchase_price", "sale_price"]
+    numeric_fields = ["age_months", "purchase_price", "sale_price"]
     for field in numeric_fields:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
+    
+    # Convertir strings vacíos a None para ENUM de tamaño
+    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
+        clean_payload["tamaño"] = None
     
     try:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
