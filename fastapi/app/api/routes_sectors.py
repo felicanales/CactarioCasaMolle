@@ -47,16 +47,6 @@ def list_sectors_staff(q: Optional[str] = Query(None, description="Filtro por no
     """
     return svc.list_staff(q)
 
-@router.get("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
-def get_sector_staff(sector_id: int = Path(..., ge=1)):
-    """
-    Detalle privado de sector (requiere usuario autenticado).
-    """
-    row = svc.get_staff(sector_id)
-    if not row:
-        raise HTTPException(404, "Sector no encontrado")
-    return row
-
 @router.post("/staff", dependencies=[Depends(get_current_user)])
 def create_sector_staff(payload: Dict[str, Any]):
     """
@@ -67,6 +57,43 @@ def create_sector_staff(payload: Dict[str, Any]):
         return created
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+# IMPORTANTE: Las rutas más específicas ({sector_id}/species) deben ir ANTES que las generales ({sector_id})
+# para evitar conflictos de enrutamiento en FastAPI
+@router.get("/staff/{sector_id}/species", dependencies=[Depends(get_current_user)])
+def get_sector_species_staff(sector_id: int = Path(..., ge=1)):
+    """
+    Obtiene las especies asociadas a un sector desde sectores_especies.
+    """
+    return svc.get_sector_species_staff(sector_id)
+
+@router.put("/staff/{sector_id}/species", dependencies=[Depends(get_current_user)])
+def update_sector_species_staff(sector_id: int, payload: Dict[str, Any]):
+    """
+    Actualiza las especies asociadas a un sector.
+    Espera un payload con: {"especie_ids": [1, 2, 3, ...]}
+    """
+    if "especie_ids" not in payload:
+        raise HTTPException(400, "El payload debe contener 'especie_ids' como lista")
+    especie_ids = payload["especie_ids"]
+    if not isinstance(especie_ids, list):
+        raise HTTPException(400, "'especie_ids' debe ser una lista")
+    
+    try:
+        updated = svc.update_sector_species_staff(sector_id, especie_ids)
+        return updated
+    except Exception as e:
+        raise HTTPException(500, f"Error al actualizar especies del sector: {str(e)}")
+
+@router.get("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
+def get_sector_staff(sector_id: int = Path(..., ge=1)):
+    """
+    Detalle privado de sector (requiere usuario autenticado).
+    """
+    row = svc.get_staff(sector_id)
+    if not row:
+        raise HTTPException(404, "Sector no encontrado")
+    return row
 
 @router.put("/staff/{sector_id}", dependencies=[Depends(get_current_user)])
 def update_sector_staff(sector_id: int, payload: Dict[str, Any]):

@@ -85,7 +85,7 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
 
 def list_staff(q: Optional[str] = None) -> List[Dict[str, Any]]:
     sb = get_public()
-    query = sb.table("sectores").select(",".join(STAFF_SECTOR_FIELDS))
+    query = sb.table("sectores").select("*")
     if q:
         query = query.ilike("name", f"%{q}%")
     res = query.order("name").execute()
@@ -93,12 +93,15 @@ def list_staff(q: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def get_staff(sector_id: int) -> Optional[Dict[str, Any]]:
     sb = get_public()
-    res = sb.table("sectores").select(",".join(STAFF_SECTOR_FIELDS)).eq("id", sector_id).limit(1).execute()
+    res = sb.table("sectores").select("*").eq("id", sector_id).limit(1).execute()
     return res.data[0] if res.data else None
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     # Validar unicidad de qr_code si viene definido
     sb = get_public()
+    # Convertir string vacío a None para qr_code
+    if "qr_code" in payload and payload["qr_code"] == "":
+        payload["qr_code"] = None
     if payload.get("qr_code"):
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).limit(1).execute()
         if exists.data:
@@ -108,6 +111,10 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     sb = get_public()
+    # Convertir string vacío a None para qr_code
+    if "qr_code" in payload and payload["qr_code"] == "":
+        payload["qr_code"] = None
+    # Validar unicidad solo si qr_code tiene un valor
     if "qr_code" in payload and payload["qr_code"]:
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).neq("id", sector_id).limit(1).execute()
         if exists.data:
@@ -121,3 +128,68 @@ def delete_admin(sector_id: int) -> None:
     sb = get_public()
     # (Opcional: validar que no tenga ejemplares asociados)
     sb.table("sectores").delete().eq("id", sector_id).execute()
+
+def get_sector_species_staff(sector_id: int) -> List[Dict[str, Any]]:
+    """
+    Obtiene las especies asociadas a un sector desde la tabla sectores_especies.
+    """
+    sb = get_public()
+    # Obtener los IDs de especies desde sectores_especies
+    relations = sb.table("sectores_especies").select("especie_id").eq("sector_id", sector_id).execute()
+    if not relations.data:
+        return []
+    
+    especie_ids = [r["especie_id"] for r in relations.data]
+    
+    # Obtener información de las especies
+    especies = sb.table("especies").select("id, scientific_name, nombre_común, slug").in_("id", especie_ids).execute()
+    
+    # Ordenar por nombre científico
+    result = especies.data or []
+    result.sort(key=lambda x: x.get("scientific_name", "").lower())
+    return result
+
+def update_sector_species_staff(sector_id: int, especie_ids: List[int]) -> List[Dict[str, Any]]:
+    """
+    Actualiza las especies asociadas a un sector en la tabla sectores_especies.
+    Elimina las relaciones existentes y crea las nuevas.
+    
+    Args:
+        sector_id: ID del sector
+        especie_ids: Lista de IDs de especies a asociar
+    
+    Returns:
+        Lista de especies asociadas al sector
+    """
+    sb = get_public()
+    
+    # Validar que el sector exista
+    sector_check = sb.table("sectores").select("id").eq("id", sector_id).limit(1).execute()
+    if not sector_check.data:
+        raise ValueError(f"Sector con id {sector_id} no existe")
+    
+    # Validar que las especies existan (si hay IDs)
+    if especie_ids:
+        especies_check = sb.table("especies").select("id").in_("id", especie_ids).execute()
+        found_ids = {e["id"] for e in (especies_check.data or [])}
+        invalid_ids = set(especie_ids) - found_ids
+        if invalid_ids:
+            raise ValueError(f"Especies con IDs {invalid_ids} no existen")
+    
+    # Eliminar relaciones existentes para este sector
+    delete_result = sb.table("sectores_especies").delete().eq("sector_id", sector_id).execute()
+    
+    # Crear nuevas relaciones en la tabla sectores_especies
+    if especie_ids:
+        # Eliminar duplicados y asegurar que son enteros
+        unique_ids = list(set(int(eid) for eid in especie_ids if eid is not None))
+        new_relations = [{"sector_id": int(sector_id), "especie_id": int(eid)} for eid in unique_ids]
+        
+        # Insertar en la tabla sectores_especies
+        insert_result = sb.table("sectores_especies").insert(new_relations).execute()
+        
+        if not insert_result.data:
+            raise ValueError("Error al insertar relaciones en sectores_especies")
+    
+    # Retornar las especies actualizadas para confirmar
+    return get_sector_species_staff(sector_id)

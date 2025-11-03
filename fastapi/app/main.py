@@ -110,7 +110,7 @@ app.add_middleware(
     allow_origin_regex=ngrok_regex,  # Permitir dominios de ngrok con regex
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type"],
+    allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type", "ngrok-skip-browser-warning"],
     expose_headers=["*"],
 )
 logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok")
