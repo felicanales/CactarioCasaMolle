@@ -549,7 +549,7 @@ export default function InventoryPage() {
                                 >
                                     <option value="scientific_name">Nombre científico</option>
                                     <option value="nombre_comun">Nombre común</option>
-                                    <option value="size_cm">Tamaño</option>
+                                    <option value="tamaño">Tamaño</option>
                                     <option value="purchase_date">Fecha compra</option>
                                     <option value="sector_name">Sector</option>
                                 </select>
@@ -1026,7 +1026,19 @@ export default function InventoryPage() {
                                                 Tamaño
                                             </label>
                                             <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
-                                                {selectedEjemplar.size_cm ? `${selectedEjemplar.size_cm} cm` : "-"}
+                                                {selectedEjemplar.tamaño ? (
+                                                    <span style={{
+                                                        display: "inline-block",
+                                                        padding: "4px 12px",
+                                                        borderRadius: "12px",
+                                                        fontSize: "13px",
+                                                        fontWeight: "600",
+                                                        backgroundColor: "#e0f2fe",
+                                                        color: "#0284c7"
+                                                    }}>
+                                                        {selectedEjemplar.tamaño}
+                                                    </span>
+                                                ) : "-"}
                                             </p>
                                         </div>
 
