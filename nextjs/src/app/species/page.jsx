@@ -377,6 +377,19 @@ export default function SpeciesPage() {
             if (payload.image_url) delete payload.image_url; // image_url no existe en la tabla
             if (payload.created_at) delete payload.created_at;
             if (payload.updated_at) delete payload.updated_at;
+            
+            // Convertir strings vacíos a null para campos ENUM (no aceptan strings vacíos)
+            const enumFields = ["morfología_cactus", "tipo_morfología", "tipo_planta"];
+            enumFields.forEach(field => {
+                if (payload[field] === "") {
+                    payload[field] = null;
+                }
+            });
+            
+            // Mapear tipo_morfología a morfología_cactus si es necesario
+            if (payload.tipo_morfología && !payload.morfología_cactus) {
+                payload.morfología_cactus = payload.tipo_morfología;
+            }
 
             let res;
             if (modalMode === "create") {

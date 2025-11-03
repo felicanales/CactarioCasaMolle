@@ -106,6 +106,22 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[create_staff] Se intentó enviar 'image_url' en el payload, removiéndolo")
         del payload["image_url"]
     
+    # Convertir strings vacíos a None para campos ENUM y opcionales
+    # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
+    enum_fields = ["morfología_cactus", "tipo_morfología", "tipo_planta"]  # Agregar otros campos ENUM si existen
+    for field in enum_fields:
+        if field in payload and payload[field] == "":
+            logger.info(f"[create_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
+            payload[field] = None
+    
+    # Convertir strings vacíos a None para campos de texto opcionales
+    optional_text_fields = ["nombre_común", "nombres_comunes", "habitat", "distribución", 
+                           "estado_conservación", "categoría_de_conservación", "expectativa_vida",
+                           "floración", "cuidado", "usos", "historia_nombre", "historia_y_leyendas"]
+    for field in optional_text_fields:
+        if field in payload and payload[field] == "":
+            payload[field] = None
+    
     # Validar slug único
     exists = sb.table("especies").select("id").eq("slug", payload["slug"]).limit(1).execute()
     if exists.data:
