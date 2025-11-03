@@ -125,8 +125,20 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError("qr_code ya existe")
     
     # Limpiar payload: solo enviar campos válidos (location no existe en la tabla)
+    # IMPORTANTE: NO incluir 'id' - debe ser generado automáticamente por la base de datos
     valid_fields = ["name", "description", "qr_code"]
     clean_payload = {k: v for k, v in payload.items() if k in valid_fields}
+    
+    # Asegurar que no se esté enviando el ID (debe ser auto-generado)
+    if "id" in clean_payload:
+        logger.warning(f"[create_staff] Se intentó enviar 'id' en el payload, removiéndolo: {clean_payload.get('id')}")
+        del clean_payload["id"]
+    
+    # También remover campos de timestamp que deben ser generados automáticamente
+    for auto_field in ["created_at", "updated_at"]:
+        if auto_field in clean_payload:
+            logger.warning(f"[create_staff] Se intentó enviar '{auto_field}' en el payload, removiéndolo")
+            del clean_payload[auto_field]
     
     # Convertir strings vacíos a None para campos opcionales
     for field in ["description"]:
@@ -191,7 +203,11 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError("Faltan campos obligatorios para crear el sector")
         elif "duplicate" in error_lower or "unique" in error_lower or "already exists" in error_lower:
             # Intentar determinar qué campo está duplicado
-            if "qr_code" in error_lower or "sectors_qr_code_key" in error_lower:
+            if "pkey" in error_lower or "id" in error_lower:
+                # Error de primary key duplicado - la secuencia está desincronizada
+                logger.error(f"[create_staff] Error: ID duplicado - la secuencia de auto-incremento está desincronizada. {error_msg}")
+                raise ValueError("Error interno: la secuencia de IDs está desincronizada. Por favor, contacta al administrador.")
+            elif "qr_code" in error_lower or "sectors_qr_code_key" in error_lower:
                 logger.error("[create_staff] Error: qr_code duplicado")
                 raise ValueError("Ya existe un sector con ese código QR")
             elif "name" in error_lower or "sectors_name_key" in error_lower:
