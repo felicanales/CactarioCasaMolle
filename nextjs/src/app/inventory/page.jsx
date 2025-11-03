@@ -1035,13 +1035,509 @@ export default function InventoryPage() {
                 </main>
             </div>
 
-            {/* Modal de Visualización */}
+            {/* Modal de Visualización o Creación */}
             <Modal
                 isOpen={showModal}
-                onClose={() => setShowModal(false)}
-                title="Detalle del Ejemplar"
+                onClose={() => {
+                    setShowModal(false);
+                    setError("");
+                    if (modalMode === "create") {
+                        setFormData({
+                            species_id: "",
+                            sector_id: "",
+                            purchase_date: "",
+                            sale_date: "",
+                            nursery: "",
+                            age_months: "",
+                            tamaño: "",
+                            health_status: "",
+                            location: "",
+                            purchase_price: "",
+                            sale_price: "",
+                            collection_date: "",
+                            has_offshoots: false
+                        });
+                    }
+                }}
+                title={modalMode === "create" ? "Crear Nuevo Ejemplar" : "Detalle del Ejemplar"}
             >
-                {selectedEjemplar && (
+                {modalMode === "create" ? (
+                    <form onSubmit={handleCreate}>
+                        {error && (
+                            <div style={{
+                                padding: "12px",
+                                backgroundColor: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                borderRadius: "8px",
+                                color: "#dc2626",
+                                marginBottom: "20px",
+                                fontSize: "14px"
+                            }}>
+                                {error}
+                            </div>
+                        )}
+                        
+                        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            {/* Especie (obligatorio) */}
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Especie <span style={{ color: "#dc2626" }}>*</span>
+                                </label>
+                                <select
+                                    required
+                                    value={formData.species_id}
+                                    onChange={(e) => setFormData({ ...formData, species_id: e.target.value })}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                >
+                                    <option value="">Seleccionar especie...</option>
+                                    {speciesList.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.scientific_name} {s.nombre_común ? `(${s.nombre_común})` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            {/* Sector (obligatorio) */}
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Sector <span style={{ color: "#dc2626" }}>*</span>
+                                </label>
+                                <select
+                                    required
+                                    value={formData.sector_id}
+                                    onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                >
+                                    <option value="">Seleccionar sector...</option>
+                                    {sectorsList.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                                {/* Tamaño */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Tamaño
+                                    </label>
+                                    <select
+                                        value={formData.tamaño}
+                                        onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="XS">XS</option>
+                                        <option value="S">S</option>
+                                        <option value="M">M</option>
+                                        <option value="L">L</option>
+                                        <option value="XL">XL</option>
+                                        <option value="XXL">XXL</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Edad (meses) */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Edad (meses)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={formData.age_months}
+                                        onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                
+                                {/* Estado de Salud */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Estado de Salud
+                                    </label>
+                                    <select
+                                        value={formData.health_status}
+                                        onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Excelente">Excelente</option>
+                                        <option value="Bueno">Bueno</option>
+                                        <option value="Regular">Regular</option>
+                                        <option value="Mal">Mal</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                                {/* Fecha de Compra */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Fecha de Compra
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.purchase_date}
+                                        onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                
+                                {/* Fecha de Venta */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Fecha de Venta
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.sale_date}
+                                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                
+                                {/* Fecha de Colección */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Fecha de Colección
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.collection_date}
+                                        onChange={(e) => setFormData({ ...formData, collection_date: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Vivero */}
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Vivero
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.nursery}
+                                    onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
+                                    placeholder="Nombre del vivero o proveedor"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Ubicación Específica */}
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Ubicación Específica
+                                </label>
+                                <textarea
+                                    value={formData.location}
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    placeholder="Descripción detallada de la ubicación dentro del sector"
+                                    rows={3}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none",
+                                        resize: "vertical",
+                                        fontFamily: "inherit"
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                                {/* Precio de Compra */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Precio de Compra
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.purchase_price}
+                                        onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
+                                        placeholder="0.00"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                
+                                {/* Precio de Venta */}
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Precio de Venta
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.sale_price}
+                                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
+                                        placeholder="0.00"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Tiene Retoños */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <input
+                                    type="checkbox"
+                                    id="has_offshoots"
+                                    checked={formData.has_offshoots}
+                                    onChange={(e) => setFormData({ ...formData, has_offshoots: e.target.checked })}
+                                    style={{
+                                        width: "18px",
+                                        height: "18px",
+                                        cursor: "pointer"
+                                    }}
+                                />
+                                <label htmlFor="has_offshoots" style={{
+                                    fontSize: "14px",
+                                    color: "#374151",
+                                    cursor: "pointer"
+                                }}>
+                                    Tiene retoños
+                                </label>
+                            </div>
+                            
+                            {/* Botones */}
+                            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setError("");
+                                        setFormData({
+                                            species_id: "",
+                                            sector_id: "",
+                                            purchase_date: "",
+                                            sale_date: "",
+                                            nursery: "",
+                                            age_months: "",
+                                            tamaño: "",
+                                            health_status: "",
+                                            location: "",
+                                            purchase_price: "",
+                                            sale_price: "",
+                                            collection_date: "",
+                                            has_offshoots: false
+                                        });
+                                    }}
+                                    style={{
+                                        padding: "10px 20px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        backgroundColor: "white",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: "500",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                    disabled={submitting}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        padding: "10px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        backgroundColor: submitting ? "#9ca3af" : "#10b981",
+                                        color: "white",
+                                        fontSize: "14px",
+                                        fontWeight: "600",
+                                        cursor: submitting ? "not-allowed" : "pointer",
+                                        transition: "all 0.2s"
+                                    }}
+                                    disabled={submitting}
+                                >
+                                    {submitting ? "Creando..." : "Crear Ejemplar"}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                ) : selectedEjemplar && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         {(() => {
                             const especie = selectedEjemplar.especies || {};
