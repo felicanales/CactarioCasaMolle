@@ -1,0 +1,243 @@
+# app/services/ejemplar_service.py
+from typing import List, Optional, Dict, Any
+from app.core.supabase_auth import get_public
+
+def list_staff(
+    q: Optional[str] = None,
+    species_id: Optional[int] = None,
+    sector_id: Optional[int] = None,
+    size_min: Optional[int] = None,
+    size_max: Optional[int] = None,
+    morfologia: Optional[str] = None,
+    nombre_comun: Optional[str] = None,
+    sort_by: str = "scientific_name",
+    sort_order: str = "asc"
+) -> List[Dict[str, Any]]:
+    """
+    Lista ejemplares con información completa de especie y sector.
+    Soporta filtros por especie, sector, tamaño, morfología y nombre común.
+    """
+    sb = get_public()
+    
+    # Construir la consulta con joins
+    # En Supabase, los joins se hacen usando la sintaxis de foreign key
+    # especies:species_id significa la relación desde ejemplar.species_id hacia especies
+    query = sb.table("ejemplar").select(
+        """
+        *,
+        especies!ejemplar_species_id_fkey (
+            id,
+            scientific_name,
+            nombre_común,
+            nombres_comunes,
+            tipo_morfología,
+            morfología_cactus
+        ),
+        sectores!ejemplar_sector_id_fkey (
+            id,
+            name,
+            description
+        )
+        """
+    )
+    
+    # Aplicar filtros
+    if species_id:
+        query = query.eq("species_id", species_id)
+    
+    if sector_id:
+        query = query.eq("sector_id", sector_id)
+    
+    if size_min is not None:
+        query = query.gte("size_cm", size_min)
+    
+    if size_max is not None:
+        query = query.lte("size_cm", size_max)
+    
+    # Ejecutar la consulta
+    res = query.execute()
+    ejemplares = res.data or []
+    
+    # Filtros adicionales que requieren procesamiento en memoria
+    # (porque involucran campos de las tablas relacionadas)
+    filtered = []
+    for ej in ejemplares:
+        # Filtrar por morfología (en la tabla especies)
+        if morfologia:
+            especie = ej.get("especies") or {}
+            tipo_morf = especie.get("tipo_morfología") or especie.get("morfología_cactus") or ""
+            if morfologia.lower() not in tipo_morf.lower():
+                continue
+        
+        # Filtrar por nombre común (en la tabla especies)
+        if nombre_comun:
+            especie = ej.get("especies") or {}
+            nombre_comun_val = especie.get("nombre_común") or ""
+            nombres_comunes_val = especie.get("nombres_comunes") or ""
+            search_text = f"{nombre_comun_val} {nombres_comunes_val}".lower()
+            if nombre_comun.lower() not in search_text:
+                continue
+        
+        # Filtro de búsqueda general (en múltiples campos)
+        if q:
+            especie = ej.get("especies") or {}
+            sector = ej.get("sectores") or {}
+            search_text = (
+                f"{ej.get('id', '')} "
+                f"{especie.get('scientific_name', '')} "
+                f"{especie.get('nombre_común', '')} "
+                f"{sector.get('name', '')} "
+                f"{ej.get('nursery', '')} "
+                f"{ej.get('health_status', '')} "
+                f"{ej.get('location', '')}"
+            ).lower()
+            if q.lower() not in search_text:
+                continue
+        
+        filtered.append(ej)
+    
+    # Ordenamiento
+    if sort_by == "scientific_name":
+        filtered.sort(
+            key=lambda x: (
+                (x.get("especies") or {}).get("scientific_name") or ""
+            ).lower(),
+            reverse=(sort_order == "desc")
+        )
+    elif sort_by == "nombre_comun":
+        filtered.sort(
+            key=lambda x: (
+                (x.get("especies") or {}).get("nombre_común") or ""
+            ).lower(),
+            reverse=(sort_order == "desc")
+        )
+    elif sort_by == "size_cm":
+        filtered.sort(
+            key=lambda x: x.get("size_cm") or 0,
+            reverse=(sort_order == "desc")
+        )
+    elif sort_by == "purchase_date":
+        filtered.sort(
+            key=lambda x: x.get("purchase_date") or "",
+            reverse=(sort_order == "desc")
+        )
+    elif sort_by == "sector_name":
+        filtered.sort(
+            key=lambda x: (
+                (x.get("sectores") or {}).get("name") or ""
+            ).lower(),
+            reverse=(sort_order == "desc")
+        )
+    
+    return filtered
+
+def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene un ejemplar por su ID con información completa.
+    """
+    sb = get_public()
+    res = sb.table("ejemplar").select(
+        """
+        *,
+        especies!ejemplar_species_id_fkey (
+            id,
+            scientific_name,
+            nombre_común,
+            nombres_comunes,
+            tipo_morfología,
+            morfología_cactus
+        ),
+        sectores!ejemplar_sector_id_fkey (
+            id,
+            name,
+            description
+        )
+        """
+    ).eq("id", ejemplar_id).limit(1).execute()
+    
+    return res.data[0] if res.data else None
+
+def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Crea un nuevo ejemplar.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    sb = get_public()
+    
+    # Validar campos obligatorios
+    if not payload.get("species_id"):
+        raise ValueError("species_id es obligatorio")
+    if not payload.get("sector_id"):
+        raise ValueError("sector_id es obligatorio")
+    
+    # Limpiar payload: remover campos que no deben enviarse
+    clean_payload = {k: v for k, v in payload.items() 
+                    if k not in ["id", "created_at", "updated_at", "especies", "sectores"]}
+    
+    # Convertir strings vacíos a None para campos opcionales
+    optional_fields = ["nursery", "health_status", "location"]
+    for field in optional_fields:
+        if field in clean_payload and clean_payload[field] == "":
+            clean_payload[field] = None
+    
+    # Convertir valores numéricos vacíos a None
+    numeric_fields = ["age_months", "size_cm", "purchase_price", "sale_price"]
+    for field in numeric_fields:
+        if field in clean_payload and clean_payload[field] == "":
+            clean_payload[field] = None
+    
+    logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
+    
+    try:
+        res = sb.table("ejemplar").insert(clean_payload).execute()
+        if not res.data:
+            raise ValueError("No se pudo crear el ejemplar")
+        logger.info(f"[create_staff] Ejemplar creado exitosamente: {res.data[0].get('id')}")
+        return res.data[0]
+    except Exception as e:
+        logger.error(f"[create_staff] Error al crear ejemplar: {str(e)}")
+        raise
+
+def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Actualiza un ejemplar existente.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    sb = get_public()
+    
+    # Limpiar payload
+    clean_payload = {k: v for k, v in payload.items() 
+                    if k not in ["id", "created_at", "updated_at", "especies", "sectores"]}
+    
+    # Convertir strings vacíos a None
+    optional_fields = ["nursery", "health_status", "location"]
+    for field in optional_fields:
+        if field in clean_payload and clean_payload[field] == "":
+            clean_payload[field] = None
+    
+    # Convertir valores numéricos vacíos a None
+    numeric_fields = ["age_months", "size_cm", "purchase_price", "sale_price"]
+    for field in numeric_fields:
+        if field in clean_payload and clean_payload[field] == "":
+            clean_payload[field] = None
+    
+    try:
+        res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
+        if not res.data:
+            raise LookupError("Ejemplar no encontrado")
+        return res.data[0]
+    except Exception as e:
+        logger.error(f"[update_staff] Error al actualizar ejemplar: {str(e)}")
+        raise
+
+def delete_staff(ejemplar_id: int) -> None:
+    """
+    Elimina un ejemplar.
+    """
+    sb = get_public()
+    sb.table("ejemplar").delete().eq("id", ejemplar_id).execute()
+

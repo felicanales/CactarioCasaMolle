@@ -88,8 +88,7 @@ export default function StaffPage() {
       icon: "📦",
       href: "/inventory",
       color: "#f59e0b",
-      bgColor: "#fef3c7",
-      disabled: true
+      bgColor: "#fef3c7"
     },
     {
       title: "Reportes",

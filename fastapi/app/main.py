@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import routes_species, routes_sectors, routes_auth, routes_debug
+from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug
 from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -126,6 +126,8 @@ app.include_router(routes_species.router, prefix="/species", tags=["Species"])
 logger.info("   ✅ /species/* - Rutas de especies")
 app.include_router(routes_sectors.router, prefix="/sectors", tags=["Sectors"])
 logger.info("   ✅ /sectors/* - Rutas de sectores")
+app.include_router(routes_ejemplar.router, prefix="/ejemplar", tags=["Ejemplar"])
+logger.info("   ✅ /ejemplar/* - Rutas de ejemplares (inventario)")
 app.include_router(routes_debug.router, prefix="/debug", tags=["Debug"])
 logger.info("   ✅ /debug/* - Rutas de debug")
 
