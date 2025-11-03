@@ -573,10 +573,10 @@ export default function InventoryPage() {
                             </div>
                         </div>
 
-                        <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                        <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap" }}>
                             <button
                                 onClick={() => {
-                                    setModalMode("create");
+                                    setModalMode("compra");
                                     setFormData({
                                         species_id: "",
                                         sector_id: "",
@@ -606,11 +606,51 @@ export default function InventoryPage() {
                                     transition: "all 0.2s",
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: "6px"
+                                    gap: "6px",
+                                    whiteSpace: "nowrap"
                                 }}
                             >
                                 <span>+</span>
-                                <span>Nuevo Ejemplar</span>
+                                <span>Ingresar Compra</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setModalMode("venta");
+                                    setFormData({
+                                        species_id: "",
+                                        sector_id: "",
+                                        purchase_date: "",
+                                        sale_date: "",
+                                        nursery: "",
+                                        age_months: "",
+                                        tamaño: "",
+                                        health_status: "",
+                                        location: "",
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
+                                    });
+                                    setShowModal(true);
+                                }}
+                                style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    backgroundColor: "#f59e0b",
+                                    color: "white",
+                                    fontSize: "clamp(12px, 3vw, 14px)",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    whiteSpace: "nowrap"
+                                }}
+                            >
+                                <span>+</span>
+                                <span>Ingresar Venta</span>
                             </button>
                             <button
                                 onClick={logout}
