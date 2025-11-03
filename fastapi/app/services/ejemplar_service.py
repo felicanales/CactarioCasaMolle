@@ -260,12 +260,10 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             clean_payload[field] = None
     
     # Convertir strings vacíos a None para ENUM de tamaño (si el campo existe)
-    # Si la columna no existe en la BD, simplemente removerla del payload
+    # IMPORTANTE: Si la columna no existe en la BD, removerla completamente del payload
     if "tamaño" in clean_payload:
-        if clean_payload["tamaño"] == "":
-            clean_payload["tamaño"] = None
-        # Si es None, removerlo completamente para evitar errores si la columna no existe
-        if clean_payload["tamaño"] is None:
+        if clean_payload["tamaño"] == "" or clean_payload["tamaño"] is None:
+            # Remover completamente si está vacío o es None (la columna puede no existir)
             del clean_payload["tamaño"]
     
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
