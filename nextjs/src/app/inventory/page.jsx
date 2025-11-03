@@ -1033,16 +1033,21 @@ export default function InventoryPage() {
                                                             borderRadius: "12px",
                                                             fontSize: "12px",
                                                             fontWeight: "600",
-                                                            backgroundColor: ej.health_status === "Excelente" ? "#d1fae5" :
-                                                                ej.health_status === "Bueno" ? "#dbeafe" :
-                                                                ej.health_status === "Regular" ? "#fef3c7" :
-                                                                ej.health_status === "Mal" ? "#fee2e2" : "#f3f4f6",
-                                                            color: ej.health_status === "Excelente" ? "#065f46" :
-                                                                ej.health_status === "Bueno" ? "#1e40af" :
-                                                                ej.health_status === "Regular" ? "#92400e" :
-                                                                ej.health_status === "Mal" ? "#991b1b" : "#6b7280"
+                                                            backgroundColor: ej.health_status === "muy bien" ? "#d1fae5" :
+                                                                ej.health_status === "estable" ? "#dbeafe" :
+                                                                ej.health_status === "leve enfermo" ? "#fef3c7" :
+                                                                ej.health_status === "enfermo" ? "#fee2e2" :
+                                                                ej.health_status === "crítico" ? "#fee2e2" : "#f3f4f6",
+                                                            color: ej.health_status === "muy bien" ? "#065f46" :
+                                                                ej.health_status === "estable" ? "#1e40af" :
+                                                                ej.health_status === "leve enfermo" ? "#92400e" :
+                                                                ej.health_status === "enfermo" ? "#dc2626" :
+                                                                ej.health_status === "crítico" ? "#991b1b" : "#6b7280"
                                                         }}>
-                                                            {ej.health_status || "No especificado"}
+                                                            {ej.health_status === "muy bien" ? "Muy bien" :
+                                                             ej.health_status === "leve enfermo" ? "Leve enfermo" :
+                                                             ej.health_status ? ej.health_status.charAt(0).toUpperCase() + ej.health_status.slice(1) :
+                                                             "No especificado"}
                                                         </span>
                                                     </td>
                                                     <td className="table-cell" style={{
@@ -1343,10 +1348,11 @@ export default function InventoryPage() {
                                         }}
                                     >
                                         <option value="">Seleccionar...</option>
-                                        <option value="Excelente">Excelente</option>
-                                        <option value="Bueno">Bueno</option>
-                                        <option value="Regular">Regular</option>
-                                        <option value="Mal">Mal</option>
+                                        <option value="muy bien">Muy bien</option>
+                                        <option value="estable">Estable</option>
+                                        <option value="leve enfermo">Leve enfermo</option>
+                                        <option value="enfermo">Enfermo</option>
+                                        <option value="crítico">Crítico</option>
                                     </select>
                                 </div>
                             </div>

@@ -215,10 +215,18 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
                     if k not in ["id", "created_at", "updated_at", "especies", "sectores"]}
     
     # Convertir strings vacíos a None para campos opcionales
-    optional_fields = ["nursery", "health_status", "location"]
+    optional_fields = ["nursery", "location"]
     for field in optional_fields:
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
+    
+    # Convertir strings vacíos a None para ENUM de health_status
+    if "health_status" in clean_payload and clean_payload["health_status"] == "":
+        clean_payload["health_status"] = None
+    
+    # Convertir strings vacíos a None para ENUM de health_status
+    if "health_status" in clean_payload and clean_payload["health_status"] == "":
+        clean_payload["health_status"] = None
     
     # Convertir valores numéricos vacíos a None
     numeric_fields = ["age_months", "purchase_price", "sale_price"]
