@@ -167,7 +167,7 @@ export default function InventoryPage() {
     
     // Modal
     const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState("view"); // "view" | "create"
+    const [modalMode, setModalMode] = useState("view"); // "view" | "compra" | "venta"
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     
