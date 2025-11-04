@@ -292,6 +292,88 @@ export default function InventoryPage() {
         setShowModal(true);
     };
 
+    const handleEdit = (ej, mode) => {
+        // Prefill form with selected record
+        setSelectedEjemplar(ej);
+        setModalMode(mode === "venta" ? "venta" : "compra");
+        setFormData({
+            species_id: String(ej.species_id || ""),
+            sector_id: String(ej.sector_id || ""),
+            purchase_date: ej.purchase_date || "",
+            sale_date: ej.sale_date || "",
+            nursery: ej.nursery || "",
+            age_months: ej.age_months != null ? String(ej.age_months) : "",
+            tamaño: "",
+            health_status: ej.health_status || "",
+            location: ej.location || "",
+            purchase_price: ej.purchase_price != null ? String(ej.purchase_price) : "",
+            sale_price: ej.sale_price != null ? String(ej.sale_price) : "",
+            has_offshoots: ej.has_offshoots != null ? ej.has_offshoots : 0,
+            cantidad: 1
+        });
+        setShowModal(true);
+    };
+
+    const handleDelete = async (ej) => {
+        try {
+            const ok = typeof window !== "undefined" ? window.confirm("¿Eliminar este registro? Esta acción no se puede deshacer.") : true;
+            if (!ok) return;
+            const res = await apiRequest(`${API}/ejemplar/staff/${ej.id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || "No se pudo eliminar el ejemplar");
+            }
+            await fetchEjemplares();
+        } catch (err) {
+            setError(err.message || String(err));
+        }
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        if (!selectedEjemplar) return;
+        try {
+            setSubmitting(true);
+            setError("");
+            const payload = { ...formData };
+            delete payload.cantidad;
+
+            // Limpiar según modo
+            if (modalMode === "compra") {
+                payload.sale_date = null;
+                payload.sale_price = null;
+            } else if (modalMode === "venta") {
+                payload.purchase_date = null;
+                payload.purchase_price = null;
+                payload.nursery = null;
+            }
+
+            // Tipos
+            payload.species_id = parseInt(payload.species_id);
+            payload.sector_id = parseInt(payload.sector_id);
+            if (payload.age_months) payload.age_months = parseInt(payload.age_months);
+            if (payload.purchase_price) payload.purchase_price = parseFloat(payload.purchase_price);
+            if (payload.sale_price) payload.sale_price = parseFloat(payload.sale_price);
+            if (payload.has_offshoots !== undefined && payload.has_offshoots !== null) payload.has_offshoots = parseInt(payload.has_offshoots) || 0;
+            if ("tamaño" in payload) delete payload.tamaño;
+
+            const res = await apiRequest(`${API}/ejemplar/staff/${selectedEjemplar.id}`, {
+                method: "PUT",
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || "No se pudo actualizar el ejemplar");
+            }
+            await fetchEjemplares();
+            setShowModal(false);
+        } catch (err) {
+            setError(err.message || String(err));
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
         
@@ -503,6 +585,32 @@ export default function InventoryPage() {
             .filter(Boolean)
     )].sort();
 
+    // Totales
+    const totalCompras = Array.isArray(ejemplares)
+        ? ejemplares.reduce((sum, ej) => sum + (ej.purchase_date && ej.purchase_price ? Number(ej.purchase_price) : 0), 0)
+        : 0;
+    const totalVentas = Array.isArray(ejemplares)
+        ? ejemplares.reduce((sum, ej) => sum + (ej.sale_date && ej.sale_price ? Number(ej.sale_price) : 0), 0)
+        : 0;
+
+    // Conteos
+    const countCompras = Array.isArray(ejemplares)
+        ? ejemplares.reduce((c, ej) => c + (ej.purchase_date ? 1 : 0), 0)
+        : 0;
+    const countVentas = Array.isArray(ejemplares)
+        ? ejemplares.reduce((c, ej) => c + (ej.sale_date ? 1 : 0), 0)
+        : 0;
+
+    // Formato CLP sin símbolo: 12.000
+    const formatCLP = (value) => {
+        try {
+            const num = Number(value) || 0;
+            return new Intl.NumberFormat("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+        } catch {
+            return String(value ?? 0);
+        }
+    };
+
     return (
         <>
             <style jsx global>{`
@@ -569,7 +677,7 @@ export default function InventoryPage() {
                                     color: "#6b7280",
                                     margin: 0
                                 }}>
-                                    {ejemplares.length} ejemplares registrados
+                                    {ejemplares.length} ejemplares · Compras: {countCompras} (CLP {formatCLP(totalCompras)}) · Ventas: {countVentas} (CLP {formatCLP(totalVentas)})
                                 </p>
                             </div>
                         </div>
@@ -1111,7 +1219,6 @@ export default function InventoryPage() {
                                                                 ej.health_status === "enfermo" ? "#fee2e2" :
                                                                 ej.health_status === "crítico" ? "#fee2e2" : "#f3f4f6",
                                                             color: ej.health_status === "muy bien" ? "#065f46" :
-                                                                ej.health_status === "estable" ? "#1e40af" :
                                                                 ej.health_status === "leve enfermo" ? "#92400e" :
                                                                 ej.health_status === "enfermo" ? "#dc2626" :
                                                                 ej.health_status === "crítico" ? "#991b1b" : "#6b7280"
@@ -1123,26 +1230,42 @@ export default function InventoryPage() {
                                                         </span>
                                                     </td>
                                                     <td className="table-cell" style={{
-                                                        padding: "16px",
+                                                        padding: "12px 16px",
                                                         textAlign: "right",
-                                                        verticalAlign: "middle"
+                                                        verticalAlign: "middle",
                                                     }}>
-                                                        <button
-                                                            onClick={() => handleView(ej)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#eff6ff",
-                                                                color: "#2563eb",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                        >
-                                                            Ver
-                                                        </button>
+                                                        <div style={{ display: "inline-flex", gap: 8 }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEdit(ej, ej.sale_date ? "venta" : "compra")}
+                                                                style={{
+                                                                    padding: "6px 10px",
+                                                                    borderRadius: 6,
+                                                                    border: "1px solid #e5e7eb",
+                                                                    background: "white",
+                                                                    color: "#374151",
+                                                                    cursor: "pointer"
+                                                                }}
+                                                                title="Editar"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(ej)}
+                                                                style={{
+                                                                    padding: "6px 10px",
+                                                                    borderRadius: 6,
+                                                                    border: "1px solid #ef4444",
+                                                                    background: "white",
+                                                                    color: "#ef4444",
+                                                                    cursor: "pointer"
+                                                                }}
+                                                                title="Eliminar"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -1186,7 +1309,7 @@ export default function InventoryPage() {
                 }
             >
                 {modalMode === "compra" || modalMode === "venta" ? (
-                    <form onSubmit={handleCreate}>
+                    <form onSubmit={selectedEjemplar ? handleUpdate : handleCreate}>
                         {error && (
                             <div style={{
                                 padding: "12px",
