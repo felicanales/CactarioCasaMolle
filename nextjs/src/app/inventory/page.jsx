@@ -746,6 +746,31 @@ export default function InventoryPage() {
                         </div>
 
                         <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap" }}>
+                            {selectedIds.size > 0 && (
+                                <button
+                                    onClick={handleDeleteMultiple}
+                                    disabled={submitting}
+                                    style={{
+                                        padding: "8px 16px",
+                                        borderRadius: "6px",
+                                        border: "none",
+                                        backgroundColor: "#ef4444",
+                                        color: "white",
+                                        fontSize: "clamp(12px, 3vw, 14px)",
+                                        fontWeight: "600",
+                                        cursor: submitting ? "not-allowed" : "pointer",
+                                        transition: "all 0.2s",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px",
+                                        whiteSpace: "nowrap",
+                                        opacity: submitting ? 0.6 : 1
+                                    }}
+                                >
+                                    <span>🗑️</span>
+                                    <span>Eliminar {selectedIds.size}</span>
+                                </button>
+                            )}
                             <button
                                 onClick={() => {
                                     setModalMode("compra");
@@ -1153,6 +1178,28 @@ export default function InventoryPage() {
                                             fontWeight: "600",
                                             color: "#6b7280",
                                             textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            width: "40px"
+                                        }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={ejemplares.length > 0 && selectedIds.size === ejemplares.length}
+                                                onChange={toggleSelectAll}
+                                                style={{
+                                                    width: "18px",
+                                                    height: "18px",
+                                                    cursor: "pointer"
+                                                }}
+                                                title="Seleccionar todos"
+                                            />
+                                        </th>
+                                        <th className="table-header" style={{
+                                            padding: "16px",
+                                            textAlign: "left",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
                                             letterSpacing: "0.05em"
                                         }}>
                                             Especie
@@ -1239,7 +1286,7 @@ export default function InventoryPage() {
                                 <tbody>
                                     {ejemplares.length === 0 ? (
                                         <tr>
-                                            <td colSpan="8" style={{
+                                            <td colSpan="9" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
@@ -1256,11 +1303,27 @@ export default function InventoryPage() {
                                                     key={ej.id}
                                                     style={{
                                                         borderBottom: "1px solid #e5e7eb",
-                                                        transition: "background-color 0.2s"
+                                                        transition: "background-color 0.2s",
+                                                        backgroundColor: selectedIds.has(ej.id) ? "#fef3c7" : "white"
                                                     }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
-                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
+                                                    onMouseEnter={(e) => !selectedIds.has(ej.id) && (e.currentTarget.style.backgroundColor = "#f9fafb")}
+                                                    onMouseLeave={(e) => !selectedIds.has(ej.id) && (e.currentTarget.style.backgroundColor = "white")}
                                                 >
+                                                    <td className="table-cell" style={{
+                                                        padding: "16px",
+                                                        verticalAlign: "middle"
+                                                    }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.has(ej.id)}
+                                                            onChange={() => toggleSelect(ej.id)}
+                                                            style={{
+                                                                width: "18px",
+                                                                height: "18px",
+                                                                cursor: "pointer"
+                                                            }}
+                                                        />
+                                                    </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
                                                         verticalAlign: "middle"
