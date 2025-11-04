@@ -8,7 +8,20 @@ const getApiUrl = () => {
     }
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
-        if (hostname.includes('railway.app') || hostname.includes('ngrok')) {
+        const protocol = window.location.protocol;
+        
+        // Si estamos en un dominio ngrok o railway, usar backend de producción
+        if (hostname.includes('railway.app') ||
+            hostname.includes('ngrok.io') ||
+            hostname.includes('ngrok-free.app') ||
+            hostname.includes('ngrok-free.dev') ||
+            hostname.includes('ngrokapp.com') ||
+            hostname.includes('ngrok')) {
+            return "https://cactariocasamolle-production.up.railway.app";
+        }
+        
+        // Si estamos en HTTPS, usar producción
+        if (protocol === 'https:') {
             return "https://cactariocasamolle-production.up.railway.app";
         }
     }
