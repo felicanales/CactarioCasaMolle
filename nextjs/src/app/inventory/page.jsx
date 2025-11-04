@@ -672,13 +672,6 @@ export default function InventoryPage() {
                                 }}>
                                     Stock e Inventario
                                 </h1>
-                                <p style={{
-                                    fontSize: "clamp(11px, 3vw, 13px)",
-                                    color: "#6b7280",
-                                    margin: 0
-                                }}>
-                                    {ejemplares.length} ejemplares · Compras: {countCompras} (CLP {formatCLP(totalCompras)}) · Ventas: {countVentas} (CLP {formatCLP(totalVentas)})
-                                </p>
                             </div>
                         </div>
 
@@ -779,6 +772,109 @@ export default function InventoryPage() {
                         </div>
                     </div>
                 </header>
+
+                {/* Resumen de Compras y Ventas */}
+                <section style={{
+                    maxWidth: "1400px",
+                    margin: "12px auto 0",
+                    padding: "0 clamp(12px, 4vw, 24px) 12px",
+                }}>
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: "12px"
+                    }}>
+                        <div style={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px"
+                        }}>
+                            <div>
+                                <div style={{
+                                    fontSize: "12px",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.06em",
+                                    color: "#6b7280",
+                                    fontWeight: 700
+                                }}>
+                                    Compras
+                                </div>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "6px" }}>
+                                    <div style={{ fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 800, color: "#111827" }}>
+                                        CLP {formatCLP(totalCompras)}
+                                    </div>
+                                    <div style={{ fontSize: "clamp(12px, 2.5vw, 14px)", color: "#059669", fontWeight: 700 }}>
+                                        {countCompras} {countCompras === 1 ? "compra" : "compras"}
+                                    </div>
+                                </div>
+                            </div>
+                            <div aria-hidden style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 9999,
+                                background: "linear-gradient(135deg, #d1fae5, #a7f3d0)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#065f46",
+                                fontWeight: 800
+                            }}>
+                                C
+                            </div>
+                        </div>
+
+                        <div style={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px"
+                        }}>
+                            <div>
+                                <div style={{
+                                    fontSize: "12px",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.06em",
+                                    color: "#6b7280",
+                                    fontWeight: 700
+                                }}>
+                                    Ventas
+                                </div>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "6px" }}>
+                                    <div style={{ fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 800, color: "#111827" }}>
+                                        CLP {formatCLP(totalVentas)}
+                                    </div>
+                                    <div style={{ fontSize: "clamp(12px, 2.5vw, 14px)", color: "#dc2626", fontWeight: 700 }}>
+                                        {countVentas} {countVentas === 1 ? "venta" : "ventas"}
+                                    </div>
+                                </div>
+                            </div>
+                            <div aria-hidden style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 9999,
+                                background: "linear-gradient(135deg, #fee2e2, #fecaca)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#991b1b",
+                                fontWeight: 800
+                            }}>
+                                V
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <main style={{
                     maxWidth: "1400px",
