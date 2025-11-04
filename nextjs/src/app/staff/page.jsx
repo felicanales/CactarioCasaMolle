@@ -364,7 +364,8 @@ export default function StaffPage() {
                     fontSize: "14px",
                     color: "#6b7280",
                     margin: "0 0 16px 0",
-                    lineHeight: "1.5"
+                    lineHeight: "1.5",
+                    flex: 1
                   }}>
                     {module.description}
                   </p>
@@ -375,7 +376,8 @@ export default function StaffPage() {
                     backgroundColor: "#fef3c7",
                     color: "#92400e",
                     fontSize: "12px",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    marginTop: "auto"
                   }}>
                     Próximamente
                   </div>
