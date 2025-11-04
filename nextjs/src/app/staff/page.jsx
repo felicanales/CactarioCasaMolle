@@ -327,55 +327,80 @@ export default function StaffPage() {
                   className="card"
                   style={{
                     backgroundColor: "white",
-                    borderRadius: "12px",
-                    padding: "24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    border: "1px solid #e5e7eb",
-                    opacity: 0.6,
+                    borderRadius: "16px",
+                    padding: "28px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    border: "2px solid #e5e7eb",
+                    opacity: 0.7,
                     cursor: "not-allowed",
                     position: "relative",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%"
+                    height: "100%",
+                    overflow: "hidden"
                   }}
                 >
                   <div style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "12px",
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: "120px",
+                    height: "120px",
+                    background: "linear-gradient(135deg, #f3f4f615, #f3f4f605)",
+                    borderRadius: "0 16px 0 100%",
+                    zIndex: 0
+                  }}></div>
+                  <div style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "16px",
                     backgroundColor: module.bgColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "28px",
-                    marginBottom: "16px"
+                    fontSize: "32px",
+                    marginBottom: "20px",
+                    position: "relative",
+                    zIndex: 1,
+                    opacity: 0.6
                   }}>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "18px",
-                    fontWeight: "600",
+                    fontSize: "20px",
+                    fontWeight: "700",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 10px 0",
+                    position: "relative",
+                    zIndex: 1,
+                    letterSpacing: "-0.02em"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
                     fontSize: "14px",
                     color: "#6b7280",
-                    margin: "0 0 16px 0",
-                    lineHeight: "1.5"
+                    margin: "0 0 20px 0",
+                    lineHeight: "1.6",
+                    position: "relative",
+                    zIndex: 1,
+                    flex: 1
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "inline-block",
-                    padding: "4px 12px",
-                    borderRadius: "6px",
+                    padding: "6px 14px",
+                    borderRadius: "8px",
                     backgroundColor: "#fef3c7",
                     color: "#92400e",
                     fontSize: "12px",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    position: "relative",
+                    zIndex: 1,
+                    borderTop: "1px solid #e5e7eb",
+                    paddingTop: "12px",
+                    marginTop: "auto"
                   }}>
                     Próximamente
                   </div>
@@ -387,68 +412,105 @@ export default function StaffPage() {
                   className="card"
                   style={{
                     backgroundColor: "white",
-                    borderRadius: "12px",
-                    padding: "24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    border: "1px solid #e5e7eb",
+                    borderRadius: "16px",
+                    padding: "28px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    border: `2px solid ${module.color}20`,
                     textDecoration: "none",
-                    transition: "all 0.3s ease",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%"
+                    height: "100%",
+                    position: "relative",
+                    overflow: "hidden"
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                    e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.15)";
+                    e.currentTarget.style.transform = "translateY(-6px) scale(1.02)";
+                    e.currentTarget.style.boxShadow = `0 12px 32px -8px ${module.color}40`;
                     e.currentTarget.style.borderColor = module.color;
+                    const iconDiv = e.currentTarget.querySelector('[data-icon]');
+                    if (iconDiv) {
+                      iconDiv.style.transform = "scale(1.1) rotate(5deg)";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.transform = "translateY(0) scale(1)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+                    e.currentTarget.style.borderColor = `${module.color}20`;
+                    const iconDiv = e.currentTarget.querySelector('[data-icon]');
+                    if (iconDiv) {
+                      iconDiv.style.transform = "scale(1) rotate(0deg)";
+                    }
                   }}
                 >
                   <div style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "12px",
-                    backgroundColor: module.bgColor,
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: "120px",
+                    height: "120px",
+                    background: `linear-gradient(135deg, ${module.color}15, ${module.color}05)`,
+                    borderRadius: "0 16px 0 100%",
+                    zIndex: 0
+                  }}></div>
+                  <div style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "16px",
+                    background: `linear-gradient(135deg, ${module.color}, ${module.color}dd)`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "28px",
-                    marginBottom: "16px",
-                    transition: "transform 0.3s ease"
-                  }}>
+                    fontSize: "32px",
+                    marginBottom: "20px",
+                    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    position: "relative",
+                    zIndex: 1,
+                    boxShadow: `0 4px 12px ${module.color}30`
+                  }} data-icon>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "18px",
-                    fontWeight: "600",
+                    fontSize: "20px",
+                    fontWeight: "700",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 10px 0",
+                    position: "relative",
+                    zIndex: 1,
+                    letterSpacing: "-0.02em"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
                     fontSize: "14px",
                     color: "#6b7280",
-                    margin: "0 0 16px 0",
-                    lineHeight: "1.5"
+                    margin: "0 0 20px 0",
+                    lineHeight: "1.6",
+                    position: "relative",
+                    zIndex: 1,
+                    flex: 1
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
-                    fontSize: "14px",
+                    gap: "10px",
+                    fontSize: "15px",
                     fontWeight: "600",
-                    color: module.color
+                    color: module.color,
+                    position: "relative",
+                    zIndex: 1,
+                    paddingTop: "12px",
+                    borderTop: `1px solid ${module.color}20`
                   }}>
-                    Acceder
-                    <span style={{ fontSize: "12px" }}>→</span>
+                    <span>Acceder</span>
+                    <span style={{ 
+                      fontSize: "16px",
+                      transition: "transform 0.3s ease",
+                      display: "inline-block"
+                    }}>→</span>
                   </div>
                 </Link>
               )
