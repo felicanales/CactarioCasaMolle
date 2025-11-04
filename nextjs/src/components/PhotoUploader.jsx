@@ -9,7 +9,7 @@ const getApiUrl = () => {
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         const protocol = window.location.protocol;
-        
+
         // Si estamos en un dominio ngrok o railway, usar backend de producción
         if (hostname.includes('railway.app') ||
             hostname.includes('ngrok.io') ||
@@ -19,7 +19,7 @@ const getApiUrl = () => {
             hostname.includes('ngrok')) {
             return "https://cactariocasamolle-production.up.railway.app";
         }
-        
+
         // Si estamos en HTTPS, usar producción
         if (protocol === 'https:') {
             return "https://cactariocasamolle-production.up.railway.app";
@@ -121,8 +121,9 @@ export default function PhotoUploader({
 
             if (response.ok) {
                 setSuccess(`${data.count || data.photos?.length || files.length} fotos subidas exitosamente`);
+                // Revocar URLs de previews antes de limpiar
+                previews.forEach(p => URL.revokeObjectURL(p.preview));
                 setFiles([]);
-                setPreviews.forEach(p => URL.revokeObjectURL(p.preview));
                 setPreviews([]);
 
                 // Callback opcional
