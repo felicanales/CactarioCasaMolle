@@ -171,6 +171,9 @@ export default function InventoryPage() {
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     
+    // Selección masiva para eliminación
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    
     // Form data para crear nuevo ejemplar
     const [formData, setFormData] = useState({
         species_id: "",
@@ -324,8 +327,75 @@ export default function InventoryPage() {
                 throw new Error(data.detail || "No se pudo eliminar el ejemplar");
             }
             await fetchEjemplares();
+            setSelectedIds(new Set());
         } catch (err) {
             setError(err.message || String(err));
+        }
+    };
+
+    const handleDeleteMultiple = async () => {
+        if (selectedIds.size === 0) return;
+        
+        const ok = typeof window !== "undefined" 
+            ? window.confirm(`¿Eliminar ${selectedIds.size} registro(s) seleccionado(s)? Esta acción no se puede deshacer.`)
+            : true;
+        if (!ok) return;
+
+        try {
+            setSubmitting(true);
+            setError("");
+            
+            const idsArray = Array.from(selectedIds);
+            let deleted = 0;
+            let failed = 0;
+            const errors = [];
+
+            for (const id of idsArray) {
+                try {
+                    const res = await apiRequest(`${API}/ejemplar/staff/${id}`, { method: "DELETE" });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.detail || "Error al eliminar");
+                    }
+                    deleted++;
+                } catch (err) {
+                    failed++;
+                    errors.push(`ID ${id}: ${err.message}`);
+                }
+            }
+
+            if (deleted > 0) {
+                await fetchEjemplares();
+                setSelectedIds(new Set());
+                
+                if (failed > 0) {
+                    setError(`Se eliminaron ${deleted} registro(s). ${failed} fallaron: ${errors.join(", ")}`);
+                }
+            } else {
+                setError(`No se pudo eliminar ningún registro. Errores: ${errors.join(", ")}`);
+            }
+        } catch (err) {
+            setError(err.message || String(err));
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const toggleSelect = (id) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === ejemplares.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(ejemplares.map(ej => ej.id)));
         }
     };
 
