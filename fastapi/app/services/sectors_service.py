@@ -1,6 +1,7 @@
 # app/services/sectors_service.py
 from typing import List, Optional, Dict, Any, Set
 from app.core.supabase_auth import get_public
+from app.services import photos_service
 
 PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "qr_code"]
 STAFF_SECTOR_FIELDS = PUBLIC_SECTOR_FIELDS + ["created_at", "updated_at"]
@@ -45,27 +46,11 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
     sp = sb.table("especies").select("id, slug, scientific_name, nombre_común").in_("id", list(species_ids)).execute()
     species = sp.data or []
 
-    # 3) Traer foto de portada por especie (is_cover true o menor order_index)
+    # 3) Traer foto de portada por especie usando el servicio genérico
     cover_map: Dict[int, Optional[str]] = {}
     if species:
         ids = [s["id"] for s in species]
-        photos = sb.table("fotos_especies").select("especie_id, storage_path, is_cover, order_index").in_("especie_id", ids).execute()
-        # Elegir portada: primero is_cover=True; si no hay, la de menor order_index
-        by_species: Dict[int, List[Dict[str, Any]]] = {}
-        for p in (photos.data or []):
-            by_species.setdefault(p["especie_id"], []).append(p)
-        for sid, plist in by_species.items():
-            chosen = None
-            # 1) portada explícita
-            for p in plist:
-                if p.get("is_cover"):
-                    chosen = p["storage_path"]; break
-            # 2) si no, menor orden
-            if chosen is None:
-                plist_sorted = sorted(plist, key=lambda x: (x.get("order_index") or 0))
-                if plist_sorted:
-                    chosen = plist_sorted[0]["storage_path"]
-            cover_map[sid] = chosen
+        cover_map = photos_service.get_cover_photos_map("especie", ids)
 
     # 4) Adjuntar cover_photo
     out = []

@@ -1,0 +1,332 @@
+# app/services/photos_service.py
+from typing import List, Optional, Dict, Any
+from fastapi import UploadFile
+from pathlib import Path
+from io import BytesIO
+from PIL import Image
+import uuid
+import logging
+from app.core.supabase_auth import get_public, get_service
+
+logger = logging.getLogger(__name__)
+
+# Configuración
+BUCKET_NAME = "photos"
+MAX_IMAGE_SIZE = 2048
+
+# Mapeo de tipos de entidad a columnas y tablas
+ENTITY_CONFIG = {
+    'especie': {
+        'column': 'especie_id',
+        'table': 'especies',
+        'path_prefix': 'especies'
+    },
+    'sector': {
+        'column': 'sector_id',
+        'table': 'sectores',
+        'path_prefix': 'sectores'
+    },
+    'ejemplar': {
+        'column': 'ejemplar_id',
+        'table': 'ejemplar',
+        'path_prefix': 'ejemplares'
+    }
+}
+
+
+async def upload_photos(
+    entity_type: str,
+    entity_id: int,
+    files: List[UploadFile],
+    is_cover_photo_id: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """
+    Sube múltiples fotos para cualquier entidad.
+    
+    Args:
+        entity_type: 'especie', 'sector', 'ejemplar', etc.
+        entity_id: ID de la entidad
+        files: Lista de archivos a subir
+        is_cover_photo_id: ID de foto específica que será portada (opcional)
+    """
+    if entity_type not in ENTITY_CONFIG:
+        raise ValueError(f"Tipo de entidad no válido: {entity_type}. Opciones: {list(ENTITY_CONFIG.keys())}")
+    
+    config = ENTITY_CONFIG[entity_type]
+    sb = get_service()
+    
+    # Verificar que la entidad existe usando foreign key
+    entity = sb.table(config['table']).select("id").eq("id", entity_id).limit(1).execute()
+    if not entity.data:
+        raise ValueError(f"{entity_type} con id {entity_id} no encontrada")
+    
+    uploaded_photos = []
+    
+    for idx, file in enumerate(files):
+        try:
+            if not file.content_type or not file.content_type.startswith('image/'):
+                logger.warning(f"Archivo {file.filename} no es una imagen, saltando...")
+                continue
+            
+            file_content = await file.read()
+            file_extension = Path(file.filename).suffix if file.filename else '.jpg'
+            unique_filename = f"{config['path_prefix']}/{entity_id}/{uuid.uuid4()}{file_extension}"
+            
+            # Redimensionar si es necesario
+            image = Image.open(BytesIO(file_content))
+            if image.width > MAX_IMAGE_SIZE or image.height > MAX_IMAGE_SIZE:
+                image.thumbnail((MAX_IMAGE_SIZE, MAX_IMAGE_SIZE), Image.Resampling.LANCZOS)
+                output = BytesIO()
+                if image.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', image.size, (255, 255, 255))
+                    if image.mode == 'P':
+                        image = image.convert('RGBA')
+                    background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                    image = background
+                image.save(output, format='JPEG', quality=85)
+                file_content = output.getvalue()
+                file.content_type = 'image/jpeg'
+            
+            # Subir a Supabase Storage
+            sb.storage.from_(BUCKET_NAME).upload(
+                unique_filename,
+                file_content,
+                file_options={"content-type": file.content_type}
+            )
+            
+            # Obtener máximo order_index actual
+            existing_photos = list_photos(entity_type, entity_id)
+            max_order = max([p.get("order_index", 0) for p in existing_photos], default=0)
+            
+            # Determinar si es portada
+            is_cover = False
+            if is_cover_photo_id is None and idx == 0 and not any(p.get("is_cover") for p in existing_photos):
+                is_cover = True
+            elif is_cover_photo_id is not None:
+                if idx == 0:
+                    # Desmarcar otras portadas de la misma entidad
+                    sb.table("fotos").update({"is_cover": False})\
+                      .eq(config['column'], entity_id)\
+                      .execute()
+            
+            # Insertar en BD con foreign key correcta
+            photo_data = {
+                config['column']: entity_id,
+                "storage_path": unique_filename,
+                "is_cover": is_cover,
+                "order_index": max_order + idx + 1
+            }
+            
+            result = sb.table("fotos").insert(photo_data).execute()
+            
+            if result.data:
+                public_url = sb.storage.from_(BUCKET_NAME).get_public_url(unique_filename)
+                uploaded_photos.append({
+                    "id": result.data[0]["id"],
+                    "storage_path": unique_filename,
+                    "public_url": public_url,
+                    "is_cover": is_cover,
+                    "order_index": photo_data["order_index"]
+                })
+        
+        except Exception as e:
+            logger.error(f"Error al subir foto {file.filename}: {str(e)}")
+            continue
+    
+    return uploaded_photos
+
+
+def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
+    """
+    Lista todas las fotos de una entidad usando foreign key.
+    """
+    if entity_type not in ENTITY_CONFIG:
+        raise ValueError(f"Tipo de entidad no válido: {entity_type}")
+    
+    config = ENTITY_CONFIG[entity_type]
+    sb = get_public()
+    
+    photos = sb.table("fotos")\
+        .select("id, storage_path, is_cover, order_index, caption")\
+        .eq(config['column'], entity_id)\
+        .order("order_index")\
+        .execute()
+    
+    result = []
+    for photo in (photos.data or []):
+        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+        result.append({
+            **photo,
+            "public_url": public_url
+        })
+    
+    return result
+
+
+def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene la foto de portada usando foreign key.
+    """
+    if entity_type not in ENTITY_CONFIG:
+        return None
+    
+    config = ENTITY_CONFIG[entity_type]
+    sb = get_public()
+    
+    # Buscar foto marcada como portada
+    cover = sb.table("fotos")\
+        .select("id, storage_path, is_cover, order_index")\
+        .eq(config['column'], entity_id)\
+        .eq("is_cover", True)\
+        .limit(1)\
+        .execute()
+    
+    if cover.data:
+        photo = cover.data[0]
+        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+        return {**photo, "public_url": public_url}
+    
+    # Si no hay portada, buscar la primera por order_index
+    first = sb.table("fotos")\
+        .select("id, storage_path, is_cover, order_index")\
+        .eq(config['column'], entity_id)\
+        .order("order_index")\
+        .limit(1)\
+        .execute()
+    
+    if first.data:
+        photo = first.data[0]
+        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+        return {**photo, "public_url": public_url}
+    
+    return None
+
+
+def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, Optional[str]]:
+    """
+    Obtiene las fotos de portada para múltiples entidades (útil para listados).
+    Retorna un diccionario {entity_id: public_url}
+    """
+    if not entity_ids or entity_type not in ENTITY_CONFIG:
+        return {}
+    
+    config = ENTITY_CONFIG[entity_type]
+    sb = get_public()
+    
+    # Obtener portadas explícitas
+    covers = sb.table("fotos")\
+        .select(f"{config['column']}, storage_path, is_cover, order_index")\
+        .in_(config['column'], entity_ids)\
+        .eq("is_cover", True)\
+        .execute()
+    
+    cover_map = {}
+    covered_ids = set()
+    
+    for photo in (covers.data or []):
+        eid = photo[config['column']]
+        if eid not in cover_map and photo.get("storage_path"):
+            public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+            cover_map[eid] = public_url
+            covered_ids.add(eid)
+    
+    # Para las que no tienen portada, buscar la primera foto
+    missing_ids = [eid for eid in entity_ids if eid not in covered_ids]
+    if missing_ids:
+        all_photos = sb.table("fotos")\
+            .select(f"{config['column']}, storage_path, order_index")\
+            .in_(config['column'], missing_ids)\
+            .order(f"{config['column']}, order_index")\
+            .execute()
+        
+        by_entity = {}
+        for photo in (all_photos.data or []):
+            eid = photo[config['column']]
+            if eid not in by_entity and photo.get("storage_path"):
+                by_entity[eid] = photo["storage_path"]
+        
+        for eid, storage_path in by_entity.items():
+            if storage_path:
+                public_url = sb.storage.from_(BUCKET_NAME).get_public_url(storage_path)
+                cover_map[eid] = public_url
+    
+    return cover_map
+
+
+def update_photo(
+    photo_id: int,
+    is_cover: Optional[bool] = None,
+    order_index: Optional[int] = None,
+    caption: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Actualiza una foto.
+    """
+    sb = get_public()
+    
+    # Obtener la foto para saber qué entidad es
+    photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
+    if not photo.data:
+        raise LookupError("Foto no encontrada")
+    
+    photo_data = photo.data[0]
+    update_data = {}
+    
+    # Determinar qué columna usar según qué foreign key tiene valor
+    entity_column = None
+    entity_id = None
+    for entity_type, config in ENTITY_CONFIG.items():
+        col = config['column']
+        if photo_data.get(col):
+            entity_column = col
+            entity_id = photo_data[col]
+            break
+    
+    if not entity_column:
+        raise ValueError("Foto sin entidad asociada")
+    
+    # Si se marca como portada, desmarcar las demás
+    if is_cover is True:
+        sb.table("fotos")\
+            .update({"is_cover": False})\
+            .eq(entity_column, entity_id)\
+            .neq("id", photo_id)\
+            .execute()
+        update_data["is_cover"] = True
+    elif is_cover is False:
+        update_data["is_cover"] = False
+    
+    if order_index is not None:
+        update_data["order_index"] = order_index
+    
+    if caption is not None:
+        update_data["caption"] = caption
+    
+    if update_data:
+        result = sb.table("fotos").update(update_data).eq("id", photo_id).execute()
+        if not result.data:
+            raise LookupError("No se pudo actualizar la foto")
+        return result.data[0]
+    
+    return photo_data
+
+
+def delete_photo(photo_id: int) -> None:
+    """
+    Elimina una foto (del storage y de la BD).
+    """
+    sb = get_service()
+    
+    photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
+    if not photo.data:
+        raise LookupError("Foto no encontrada")
+    
+    storage_path = photo.data[0]["storage_path"]
+    
+    try:
+        sb.storage.from_(BUCKET_NAME).remove([storage_path])
+    except Exception as e:
+        logger.warning(f"No se pudo eliminar del storage: {str(e)}")
+    
+    sb.table("fotos").delete().eq("id", photo_id).execute()
+

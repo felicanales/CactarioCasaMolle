@@ -47,7 +47,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/docs",
             "/openapi.json",
             "/health",
-            "/debug"
+            "/debug",
+            "/photos"  # Rutas de fotos sin autenticación
         ]
         
         # Skip OPTIONS requests (CORS preflight)

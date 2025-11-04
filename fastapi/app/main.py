@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug
+from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos
 from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -128,6 +128,13 @@ app.include_router(routes_sectors.router, prefix="/sectors", tags=["Sectors"])
 logger.info("   ✅ /sectors/* - Rutas de sectores")
 app.include_router(routes_ejemplar.router, prefix="/ejemplar", tags=["Ejemplar"])
 logger.info("   ✅ /ejemplar/* - Rutas de ejemplares (inventario)")
+try:
+    app.include_router(routes_photos.router, prefix="/photos", tags=["Photos"])
+    logger.info("   ✅ /photos/* - Rutas de fotos (genérico)")
+except Exception as e:
+    logger.error(f"   ❌ Error al registrar rutas de fotos: {e}")
+    import traceback
+    logger.error(traceback.format_exc())
 app.include_router(routes_debug.router, prefix="/debug", tags=["Debug"])
 logger.info("   ✅ /debug/* - Rutas de debug")
 

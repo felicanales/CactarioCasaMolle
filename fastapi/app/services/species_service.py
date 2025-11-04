@@ -1,6 +1,7 @@
 # app/services/species_service.py
 from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import get_public
+from app.services import photos_service
 
 PUBLIC_SPECIES_FIELDS = [
     "id", "slug", "nombre_común", "scientific_name",
@@ -12,27 +13,13 @@ STAFF_EXTRA_FIELDS = [
 ]
 
 def _cover_photo_map(species_ids: List[int]) -> Dict[int, Optional[str]]:
+    """
+    Obtiene las fotos de portada para múltiples especies.
+    Ahora usa el servicio genérico de fotos.
+    """
     if not species_ids:
         return {}
-    sb = get_public()
-    photos = sb.table("fotos_especies") \
-        .select("especie_id, storage_path, is_cover, order_index") \
-        .in_("especie_id", species_ids).execute()
-    by_sid: Dict[int, List[Dict[str, Any]]] = {}
-    for p in (photos.data or []):
-        by_sid.setdefault(p["especie_id"], []).append(p)
-    out: Dict[int, Optional[str]] = {}
-    for sid, plist in by_sid.items():
-        chosen = None
-        for p in plist:
-            if p.get("is_cover"):
-                chosen = p["storage_path"]; break
-        if chosen is None:
-            plist_sorted = sorted(plist, key=lambda x: (x.get("order_index") or 0))
-            if plist_sorted:
-                chosen = plist_sorted[0]["storage_path"]
-        out[sid] = chosen
-    return out
+    return photos_service.get_cover_photos_map("especie", species_ids)
 
 # ----------------- PÚBLICO -----------------
 
@@ -56,9 +43,8 @@ def get_public_by_slug(slug: str) -> Optional[Dict[str, Any]]:
     if not res.data:
         return None
     species = res.data[0]
-    # Todas las fotos
-    photos = sb.table("fotos_especies").select("id, storage_path, is_cover, order_index").eq("especie_id", species["id"]).order("order_index").execute()
-    species["photos"] = photos.data or []
+    # Todas las fotos usando el servicio genérico
+    species["photos"] = photos_service.list_photos("especie", species["id"])
     return species
 
 # ----------------- STAFF (privado) -----------------
@@ -70,12 +56,25 @@ def list_staff(q: Optional[str] = None, limit: int = 100, offset: int = 0) -> Li
     if q:
         query = query.or_(f"nombre_común.ilike.%{q}%,scientific_name.ilike.%{q}%")
     res = query.order("updated_at", desc=True).range(offset, offset + limit - 1).execute()
-    return res.data or []
+    rows = res.data or []
+    # Agregar fotos de portada
+    cover = _cover_photo_map([r["id"] for r in rows])
+    out = []
+    for r in rows:
+        out.append({**r, "cover_photo": cover.get(r["id"])})
+    return out
 
 def get_staff(species_id: int) -> Optional[Dict[str, Any]]:
     sb = get_public()
     res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
-    return res.data[0] if res.data else None
+    if not res.data:
+        return None
+    species = res.data[0]
+    # Agregar foto de portada y todas las fotos
+    cover = photos_service.get_cover_photo("especie", species_id)
+    species["cover_photo"] = cover["public_url"] if cover else None
+    species["photos"] = photos_service.list_photos("especie", species_id)
+    return species
 
 def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     """

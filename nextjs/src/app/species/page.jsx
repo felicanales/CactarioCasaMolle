@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PhotoUploader from "../../components/PhotoUploader";
+import PhotoGallery from "../../components/PhotoGallery";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está ACTIVADO en desarrollo local (no requiere .env)
@@ -191,9 +193,13 @@ export default function SpeciesPage() {
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);
+    const [filteredSpecies, setFilteredSpecies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [filterMorfologia, setFilterMorfologia] = useState("");
+    const [filterCategoria, setFilterCategoria] = useState("");
+    const [sortOrder, setSortOrder] = useState("asc"); // "asc" o "desc"
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create"); // "create" | "edit" | "view"
     const [selectedSpecies, setSelectedSpecies] = useState(null);
@@ -247,9 +253,8 @@ export default function SpeciesPage() {
             setLoading(true);
             setError("");
 
-            const url = searchQuery
-                ? `${API}/species/staff?q=${encodeURIComponent(searchQuery)}`
-                : `${API}/species/staff`;
+            // Cargar todas las especies sin filtros del backend
+            const url = `${API}/species/staff`;
 
             console.log('[SpeciesPage] Fetching species from:', url);
             const res = await apiRequest(url);
@@ -274,6 +279,8 @@ export default function SpeciesPage() {
                 console.log('[SpeciesPage] All keys:', Object.keys(data[0]));
             }
             setSpecies(data);
+            // Inicializar filteredSpecies con todas las especies
+            setFilteredSpecies(data);
             setError("");
         } catch (err) {
             console.error('[SpeciesPage] Error:', err);
@@ -289,7 +296,57 @@ export default function SpeciesPage() {
             console.log('[SpeciesPage] User authenticated, loading species');
             fetchSpecies();
         }
-    }, [user, checkedAuth, searchQuery]);
+    }, [user, checkedAuth]);
+
+    // Efecto para aplicar filtros y ordenamiento cuando cambian
+    useEffect(() => {
+        let filtered = [...species];
+
+        // Filtro por búsqueda general (nombre científico, nombre común o nombres comunes)
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(s => {
+                // Buscar en nombre científico
+                if (s.scientific_name?.toLowerCase().includes(query)) return true;
+                // Buscar en nombre común
+                if (s.nombre_común?.toLowerCase().includes(query)) return true;
+                // Buscar en nombres comunes (separados por coma)
+                if (s.nombres_comunes) {
+                    const nombresComunes = s.nombres_comunes.split(',').map(n => n.trim().toLowerCase());
+                    if (nombresComunes.some(n => n.includes(query))) return true;
+                }
+                return false;
+            });
+        }
+
+        // Filtro por morfología
+        if (filterMorfologia) {
+            filtered = filtered.filter(s =>
+                s.tipo_morfología?.toLowerCase().includes(filterMorfologia.toLowerCase())
+            );
+        }
+
+        // Filtro por categoría de conservación
+        if (filterCategoria) {
+            filtered = filtered.filter(s => {
+                const categoria = s.categoría_de_conservación || s.categoria_conservacion || "";
+                return categoria.toLowerCase().includes(filterCategoria.toLowerCase());
+            });
+        }
+
+        // Ordenamiento alfabético por nombre científico
+        filtered.sort((a, b) => {
+            const nameA = (a.scientific_name || "").toLowerCase();
+            const nameB = (b.scientific_name || "").toLowerCase();
+            if (sortOrder === "asc") {
+                return nameA.localeCompare(nameB);
+            } else {
+                return nameB.localeCompare(nameA);
+            }
+        });
+
+        setFilteredSpecies(filtered);
+    }, [species, searchQuery, filterMorfologia, filterCategoria, sortOrder]);
 
     const handleCreate = () => {
         setModalMode("create");
@@ -598,7 +655,13 @@ export default function SpeciesPage() {
                                     color: "#6b7280",
                                     margin: 0
                                 }}>
-                                    {species.length} especies
+                                    {loading ? (
+                                        "Cargando..."
+                                    ) : filteredSpecies.length !== species.length ? (
+                                        `${filteredSpecies.length} de ${species.length} especies`
+                                    ) : (
+                                        `${species.length} especies`
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -643,7 +706,7 @@ export default function SpeciesPage() {
                     }}>
                         <input
                             type="text"
-                            placeholder="Buscar..."
+                            placeholder="Buscar por nombre científico o nombre común..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
@@ -681,6 +744,120 @@ export default function SpeciesPage() {
                             <span style={{ fontSize: "18px" }}>+</span>
                             <span className="btn-text">Nueva Especie</span>
                         </button>
+                    </div>
+
+                    {/* Controles de filtros y ordenamiento */}
+                    <div style={{
+                        backgroundColor: "white",
+                        borderRadius: "12px",
+                        padding: "clamp(12px, 3vw, 16px) clamp(12px, 4vw, 20px)",
+                        marginBottom: "24px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px"
+                    }}>
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                            {/* Ordenamiento */}
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: "1", minWidth: "150px" }}>
+                                <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", minWidth: "60px" }}>
+                                    Ordenar:
+                                </label>
+                                <button
+                                    onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                                    style={{
+                                        padding: "6px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        backgroundColor: sortOrder === "asc" ? "#ecfdf5" : "#fef3c7",
+                                        color: sortOrder === "asc" ? "#065f46" : "#92400e",
+                                        fontSize: "12px",
+                                        fontWeight: "500",
+                                        cursor: "pointer",
+                                        flex: 1
+                                    }}
+                                >
+                                    {sortOrder === "asc" ? "A-Z ↑" : "Z-A ↓"}
+                                </button>
+                            </div>
+
+                            {/* Filtro por morfología */}
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: "1", minWidth: "200px" }}>
+                                <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", minWidth: "80px" }}>
+                                    Morfología:
+                                </label>
+                                <select
+                                    value={filterMorfologia}
+                                    onChange={(e) => setFilterMorfologia(e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        padding: "8px 10px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "13px",
+                                        outline: "none",
+                                        backgroundColor: "white"
+                                    }}
+                                >
+                                    <option value="">Todas las morfologías</option>
+                                    <option value="Columnar">Columnar</option>
+                                    <option value="Redondo">Redondo</option>
+                                    <option value="Agave">Agave</option>
+                                    <option value="Tallo plano">Tallo plano</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+
+                            {/* Filtro por categoría de conservación */}
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: "1", minWidth: "200px" }}>
+                                <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", minWidth: "80px" }}>
+                                    Conservación:
+                                </label>
+                                <select
+                                    value={filterCategoria}
+                                    onChange={(e) => setFilterCategoria(e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        padding: "8px 10px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "6px",
+                                        fontSize: "13px",
+                                        outline: "none",
+                                        backgroundColor: "white"
+                                    }}
+                                >
+                                    <option value="">Todas las categorías</option>
+                                    <option value="No amenazado">No amenazado</option>
+                                    <option value="Preocupación menor">Preocupación menor</option>
+                                    <option value="Protegido">Protegido</option>
+                                    <option value="En peligro de extinción">En peligro de extinción</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Botón para limpiar filtros */}
+                        {(searchQuery || filterMorfologia || filterCategoria) && (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery("");
+                                    setFilterMorfologia("");
+                                    setFilterCategoria("");
+                                }}
+                                style={{
+                                    padding: "8px 12px",
+                                    border: "1px solid #e5e7eb",
+                                    borderRadius: "6px",
+                                    backgroundColor: "#f3f4f6",
+                                    color: "#374151",
+                                    fontSize: "12px",
+                                    fontWeight: "500",
+                                    cursor: "pointer",
+                                    alignSelf: "flex-start"
+                                }}
+                            >
+                                Limpiar filtros
+                            </button>
+                        )}
                     </div>
 
                     {/* Error Message */}
@@ -807,18 +984,30 @@ export default function SpeciesPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {species.length === 0 ? (
+                                    {loading ? (
                                         <tr>
                                             <td colSpan="8" style={{
                                                 padding: "48px 16px",
                                                 textAlign: "center",
                                                 color: "#9ca3af"
                                             }}>
-                                                No hay especies registradas. ¡Crea la primera!
+                                                Cargando especies...
+                                            </td>
+                                        </tr>
+                                    ) : filteredSpecies.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="8" style={{
+                                                padding: "48px 16px",
+                                                textAlign: "center",
+                                                color: "#9ca3af"
+                                            }}>
+                                                {species.length === 0 
+                                                    ? "No hay especies registradas. ¡Crea la primera!"
+                                                    : "No hay especies que coincidan con los filtros"}
                                             </td>
                                         </tr>
                                     ) : (
-                                        species.map((sp) => {
+                                        filteredSpecies.map((sp) => {
                                             const isEndangered = sp.categoria_conservacion === "En peligro de extinción";
                                             return (
                                             <tr
@@ -842,10 +1031,10 @@ export default function SpeciesPage() {
                                                         padding: "16px 16px",
                                                         verticalAlign: "middle"
                                                     }}>
-                                                        {sp.image_url ? (
+                                                        {(sp.cover_photo || sp.image_url) ? (
                                                             <img
                                                                 className="species-image"
-                                                                src={sp.image_url}
+                                                                src={sp.cover_photo || sp.image_url}
                                                                 alt={sp.nombre_común || sp.scientific_name}
                                                                 style={{
                                                                     width: "120px",
@@ -862,7 +1051,7 @@ export default function SpeciesPage() {
                                                                 }}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setSelectedImage({ url: sp.image_url, name: sp.nombre_común || sp.scientific_name });
+                                                                    setSelectedImage({ url: sp.cover_photo || sp.image_url, name: sp.nombre_común || sp.scientific_name });
                                                                     setShowImageModal(true);
                                                                 }}
                                                                 onMouseEnter={(e) => {
@@ -1100,9 +1289,9 @@ export default function SpeciesPage() {
                                     borderRadius: "8px",
                                     textAlign: "center"
                                 }}>
-                                    {selectedSpecies.image_url ? (
+                                    {(selectedSpecies.cover_photo || selectedSpecies.image_url) ? (
                                         <img
-                                            src={selectedSpecies.image_url}
+                                            src={selectedSpecies.cover_photo || selectedSpecies.image_url}
                                             alt={selectedSpecies.scientific_name}
                                             style={{
                                                 maxWidth: "100%",
@@ -1209,6 +1398,48 @@ export default function SpeciesPage() {
                                         </p>
                                     </div>
                                 )}
+
+                                {/* Sección de Fotos */}
+                                <div style={{
+                                    marginTop: "24px",
+                                    paddingTop: "24px",
+                                    borderTop: "2px solid #e5e7eb"
+                                }}>
+                                    <h3 style={{
+                                        fontSize: "16px",
+                                        fontWeight: "600",
+                                        color: "#111827",
+                                        marginBottom: "16px"
+                                    }}>
+                                        📸 Fotos de la Especie
+                                    </h3>
+                                    
+                                    {/* Galería de fotos existentes */}
+                                    <PhotoGallery 
+                                        entityType="especie" 
+                                        entityId={selectedSpecies.id}
+                                        showManageButtons={true}
+                                        onRefresh={() => {
+                                            // Refrescar datos de la especie
+                                            if (selectedSpecies) {
+                                                handleView(selectedSpecies);
+                                            }
+                                        }}
+                                    />
+                                    
+                                    {/* Componente para subir nuevas fotos */}
+                                    <PhotoUploader 
+                                        entityType="especie" 
+                                        entityId={selectedSpecies.id}
+                                        onUploadComplete={() => {
+                                            // Refrescar la galería después de subir
+                                            if (selectedSpecies) {
+                                                handleView(selectedSpecies);
+                                            }
+                                        }}
+                                        maxPhotos={10}
+                                    />
+                                </div>
                             </>
                         )}
                     </div>
