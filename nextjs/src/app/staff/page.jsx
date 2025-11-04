@@ -96,8 +96,7 @@ export default function StaffPage() {
       icon: "📊",
       href: "/reports",
       color: "#8b5cf6",
-      bgColor: "#ede9fe",
-      disabled: true
+      bgColor: "#ede9fe"
     },
     {
       title: "Editor de la información",
