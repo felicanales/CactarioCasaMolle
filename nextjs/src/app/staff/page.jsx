@@ -315,10 +315,10 @@ export default function StaffPage() {
           {/* Modules Grid */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "24px",
-            gridAutoRows: "1fr",
-            alignItems: "stretch"
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "20px",
+            gridAutoRows: "min-content",
+            alignItems: "start"
           }}>
             {modules.map((module, index) => (
               module.disabled ? (
@@ -328,7 +328,7 @@ export default function StaffPage() {
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "24px",
+                    padding: "20px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     opacity: 0.6,
@@ -336,46 +336,53 @@ export default function StaffPage() {
                     position: "relative",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%"
+                    minHeight: "200px",
+                    maxHeight: "220px"
                   }}
                 >
                   <div style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "12px",
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "10px",
                     backgroundColor: module.bgColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "28px",
-                    marginBottom: "16px"
+                    fontSize: "24px",
+                    marginBottom: "12px",
+                    flexShrink: 0
                   }}>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "18px",
+                    fontSize: "16px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 6px 0",
+                    lineHeight: "1.3"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
-                    fontSize: "14px",
+                    fontSize: "13px",
                     color: "#6b7280",
-                    margin: "0 0 16px 0",
-                    lineHeight: "1.5",
-                    flex: 1
+                    margin: "0 0 12px 0",
+                    lineHeight: "1.4",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical"
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "inline-block",
-                    padding: "4px 12px",
+                    padding: "4px 10px",
                     borderRadius: "6px",
                     backgroundColor: "#fef3c7",
                     color: "#92400e",
-                    fontSize: "12px",
+                    fontSize: "11px",
                     fontWeight: "600",
                     marginTop: "auto"
                   }}>
@@ -390,7 +397,7 @@ export default function StaffPage() {
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "24px",
+                    padding: "20px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     textDecoration: "none",
@@ -398,7 +405,8 @@ export default function StaffPage() {
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100%"
+                    minHeight: "200px",
+                    maxHeight: "220px"
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
@@ -412,47 +420,53 @@ export default function StaffPage() {
                   }}
                 >
                   <div style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "12px",
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "10px",
                     backgroundColor: module.bgColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "28px",
-                    marginBottom: "16px",
-                    transition: "transform 0.3s ease"
+                    fontSize: "24px",
+                    marginBottom: "12px",
+                    transition: "transform 0.3s ease",
+                    flexShrink: 0
                   }}>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "18px",
+                    fontSize: "16px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 6px 0",
+                    lineHeight: "1.3"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
-                    fontSize: "14px",
+                    fontSize: "13px",
                     color: "#6b7280",
-                    margin: "0 0 16px 0",
-                    lineHeight: "1.5",
-                    flex: 1
+                    margin: "0 0 12px 0",
+                    lineHeight: "1.4",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical"
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
-                    fontSize: "14px",
+                    gap: "6px",
+                    fontSize: "13px",
                     fontWeight: "600",
                     color: module.color,
                     marginTop: "auto"
                   }}>
                     Acceder
-                    <span style={{ fontSize: "12px" }}>→</span>
+                    <span style={{ fontSize: "11px" }}>→</span>
                   </div>
                 </Link>
               )
