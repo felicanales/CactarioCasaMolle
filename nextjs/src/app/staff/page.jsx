@@ -316,7 +316,8 @@ export default function StaffPage() {
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "24px"
+            gap: "20px",
+            gridAutoRows: "1fr"
           }}>
             {modules.map((module, index) => (
               module.disabled ? (
@@ -331,7 +332,10 @@ export default function StaffPage() {
                     border: "1px solid #e5e7eb",
                     opacity: 0.6,
                     cursor: "not-allowed",
-                    position: "relative"
+                    position: "relative",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%"
                   }}
                 >
                   <div style={{
@@ -389,7 +393,9 @@ export default function StaffPage() {
                     textDecoration: "none",
                     transition: "all 0.3s ease",
                     cursor: "pointer",
-                    display: "block"
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%"
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
