@@ -7,7 +7,7 @@ export default function Header() {
     <header className="header">
       <div className="header-logo-container">
         <div className="header-logo">
-          <Image src="/logo.svg" alt="Cactuario CasaMolle" width={48} height={48} priority />
+          <Image src="/logo.png" alt="Cactuario CasaMolle" width={48} height={48} priority />
         </div>
         <div className="header-title">Cactuario CasaMolle</div>
       </div>
