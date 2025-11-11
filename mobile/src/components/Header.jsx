@@ -1,12 +1,13 @@
 'use client';
 
+import Image from 'next/image';
+
 export default function Header() {
   return (
     <header className="header">
       <div className="header-logo-container">
         <div className="header-logo">
-          M
-          <span className="header-logo-star">★</span>
+          <Image src="/logo.svg" alt="Cactuario CasaMolle" width={48} height={48} priority />
         </div>
         <div className="header-title">Cactuario CasaMolle</div>
       </div>
@@ -14,4 +15,3 @@ export default function Header() {
     </header>
   );
 }
-
