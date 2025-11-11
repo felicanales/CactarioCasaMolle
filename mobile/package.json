@@ -1,0 +1,23 @@
+{
+  "name": "cactario-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "15.5.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "axios": "^1.12.2",
+    "html5-qrcode": "^2.3.8"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "15.5.5"
+  }
+}
+

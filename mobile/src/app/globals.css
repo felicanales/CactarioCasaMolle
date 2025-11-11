@@ -1,0 +1,355 @@
+/* ========== globals.css ==========
+   Estilos globales para la app móvil Cactuario CasaMolle
+   ================================================ */
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: #FFFFFF;
+  color: #111827;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#__next {
+  height: 100%;
+  width: 100%;
+}
+
+/* Colores del tema */
+:root {
+  --color-brown-dark: #6B5A4F;
+  --color-white: #FFFFFF;
+  --color-beige: #F5F5F0;
+  --color-gray-light: #E5E7EB;
+  --color-gray-placeholder: #D1D5DB;
+  --color-black: #111827;
+  --color-green-cactus: #22C55E;
+}
+
+/* Header */
+.header {
+  background-color: var(--color-brown-dark);
+  color: var(--color-white);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-logo {
+  position: relative;
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--color-white);
+}
+
+.header-logo-star {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 12px;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-white);
+}
+
+.header-cactus {
+  font-size: 24px;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  background-color: var(--color-brown-dark);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-button {
+  background-color: var(--color-gray-light);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-black);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 80px;
+  text-align: center;
+}
+
+.nav-button:hover {
+  background-color: #D1D5DB;
+}
+
+.nav-button.active {
+  background-color: var(--color-white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Main Content */
+.main-content {
+  background-color: var(--color-white);
+  min-height: calc(100vh - 120px);
+  padding: 16px;
+  padding-bottom: 80px;
+  overflow-y: auto;
+}
+
+/* Back Button */
+.back-button {
+  background: none;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--color-black);
+  margin-bottom: 8px;
+}
+
+.back-button:hover {
+  background-color: var(--color-gray-light);
+}
+
+/* Image Carousel */
+.image-carousel {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background-color: var(--color-gray-placeholder);
+  border-radius: 8px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--color-white);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.carousel-arrow-left {
+  left: 8px;
+}
+
+.carousel-arrow-right {
+  right: 8px;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.carousel-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-gray-placeholder);
+  border: none;
+  cursor: pointer;
+}
+
+.carousel-indicator.active {
+  background-color: var(--color-black);
+}
+
+/* Grid Layout */
+.grid-2-col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.grid-item {
+  background-color: var(--color-gray-light);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grid-item-image {
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: var(--color-white);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gray-placeholder);
+  font-size: 12px;
+}
+
+.grid-item-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-black);
+  text-align: center;
+}
+
+/* QR Scanner */
+.qr-scanner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 20px;
+}
+
+.qr-scanner-frame {
+  width: 250px;
+  height: 250px;
+  border: 2px solid var(--color-black);
+  position: relative;
+  margin: 20px 0;
+}
+
+.qr-scanner-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--color-black);
+}
+
+.qr-scanner-corner.top-left {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.qr-scanner-corner.top-right {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+}
+
+.qr-scanner-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+}
+
+.qr-scanner-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}
+
+/* Typography */
+h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-black);
+  margin-bottom: 16px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-black);
+  margin-bottom: 12px;
+}
+
+p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-black);
+  margin-bottom: 12px;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--color-gray-placeholder);
+}
+
+/* Error State */
+.error {
+  padding: 16px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  color: #991B1B;
+  margin: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .header-title {
+    font-size: 14px;
+  }
+  
+  .nav-button {
+    font-size: 12px;
+    padding: 8px 12px;
+    min-width: 70px;
+  }
+}
+
