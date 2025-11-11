@@ -41,7 +41,7 @@ export default function ReportsPage() {
     const apiRequest = async (url, options = {}) => {
         const API = getApiUrl();
         const fullUrl = url.startsWith("http") ? url : `${API}${url}`;
-        
+
         const headers = {
             "Content-Type": "application/json",
             ...options.headers

@@ -1093,7 +1093,12 @@ export default function SpeciesPage() {
                                                         fontStyle: "italic",
                                                         verticalAlign: "middle"
                                                 }}>
-                                                    {sp.scientific_name}
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                        <span>{sp.scientific_name}</span>
+                                                        <span style={{ fontSize: "12px", color: "#9ca3af", fontFamily: "monospace", marginTop: "2px" }}>
+                                                            ID: {sp.id}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                     <td className="table-cell" style={{
                                                     padding: "16px",
@@ -1278,6 +1283,14 @@ export default function SpeciesPage() {
                                         margin: 0
                                     }}>
                                         {selectedSpecies.scientific_name}
+                                    </p>
+                                    <p style={{
+                                        fontSize: "13px",
+                                        color: "#9ca3af",
+                                        fontFamily: "monospace",
+                                        margin: "4px 0 0 0"
+                                    }}>
+                                        ID: {selectedSpecies.id}
                                     </p>
                                 </div>
 

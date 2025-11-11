@@ -315,10 +315,8 @@ export default function StaffPage() {
           {/* Modules Grid */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "20px",
-            gridAutoRows: "min-content",
-            alignItems: "start"
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "24px"
           }}>
             {modules.map((module, index) => (
               module.disabled ? (
@@ -328,63 +326,51 @@ export default function StaffPage() {
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "20px",
+                    padding: "24px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     opacity: 0.6,
                     cursor: "not-allowed",
-                    position: "relative",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "200px",
-                    maxHeight: "220px"
+                    position: "relative"
                   }}
                 >
                   <div style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "10px",
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "12px",
                     backgroundColor: module.bgColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "24px",
-                    marginBottom: "12px",
-                    flexShrink: 0
+                    fontSize: "28px",
+                    marginBottom: "16px"
                   }}>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "16px",
+                    fontSize: "18px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 6px 0",
-                    lineHeight: "1.3"
+                    margin: "0 0 8px 0"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
-                    fontSize: "13px",
+                    fontSize: "14px",
                     color: "#6b7280",
-                    margin: "0 0 12px 0",
-                    lineHeight: "1.4",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical"
+                    margin: "0 0 16px 0",
+                    lineHeight: "1.5"
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "inline-block",
-                    padding: "4px 10px",
+                    padding: "4px 12px",
                     borderRadius: "6px",
                     backgroundColor: "#fef3c7",
                     color: "#92400e",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    marginTop: "auto"
+                    fontSize: "12px",
+                    fontWeight: "600"
                   }}>
                     Próximamente
                   </div>
@@ -397,16 +383,13 @@ export default function StaffPage() {
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "20px",
+                    padding: "24px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     textDecoration: "none",
                     transition: "all 0.3s ease",
                     cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "200px",
-                    maxHeight: "220px"
+                    display: "block"
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
@@ -420,53 +403,45 @@ export default function StaffPage() {
                   }}
                 >
                   <div style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "10px",
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "12px",
                     backgroundColor: module.bgColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "24px",
-                    marginBottom: "12px",
-                    transition: "transform 0.3s ease",
-                    flexShrink: 0
+                    fontSize: "28px",
+                    marginBottom: "16px",
+                    transition: "transform 0.3s ease"
                   }}>
                     {module.icon}
                   </div>
                   <h3 style={{
-                    fontSize: "16px",
+                    fontSize: "18px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 6px 0",
-                    lineHeight: "1.3"
+                    margin: "0 0 8px 0"
                   }}>
                     {module.title}
                   </h3>
                   <p style={{
-                    fontSize: "13px",
+                    fontSize: "14px",
                     color: "#6b7280",
-                    margin: "0 0 12px 0",
-                    lineHeight: "1.4",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical"
+                    margin: "0 0 16px 0",
+                    lineHeight: "1.5"
                   }}>
                     {module.description}
                   </p>
                   <div style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
-                    fontSize: "13px",
+                    gap: "8px",
+                    fontSize: "14px",
                     fontWeight: "600",
-                    color: module.color,
-                    marginTop: "auto"
+                    color: module.color
                   }}>
                     Acceder
-                    <span style={{ fontSize: "11px" }}>→</span>
+                    <span style={{ fontSize: "12px" }}>→</span>
                   </div>
                 </Link>
               )

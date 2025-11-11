@@ -1138,36 +1138,73 @@ export default function SpeciesEditorPage() {
                                                 }
                                             }}
                                         >
-                                            <div style={{
-                                                fontSize: "14px", fontWeight: "600",
-                                                color: "#111827", marginBottom: "4px",
-                                                fontStyle: "italic"
-                                            }}>
-                                                {sp.scientific_name}
-                                            </div>
-                                            <div style={{
-                                                fontSize: "12px",
-                                                color: "#6b7280",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "2px"
-                                            }}>
-                                                {sp.nombre_común ? (
-                                                    <span>{sp.nombre_común}</span>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                                {(sp.cover_photo || sp.image_url) ? (
+                                                    <img
+                                                        src={sp.cover_photo || sp.image_url}
+                                                        alt={sp.scientific_name}
+                                                        style={{
+                                                            width: "44px",
+                                                            height: "44px",
+                                                            minWidth: "44px",
+                                                            minHeight: "44px",
+                                                            objectFit: "cover",
+                                                            borderRadius: "8px",
+                                                            border: "1px solid #e5e7eb",
+                                                            boxShadow: "0 1px 2px rgba(0,0,0,0.06)"
+                                                        }}
+                                                    />
                                                 ) : (
-                                                    <span style={{ fontStyle: "italic", color: "#9ca3af" }}>
-                                                        Sin nombre común
-                                                    </span>
-                                                )}
-                                                {sp.nombres_comunes && sp.nombres_comunes !== sp.nombre_común && (
-                                                    <span style={{
-                                                        fontSize: "11px",
+                                                    <div style={{
+                                                        width: "44px",
+                                                        height: "44px",
+                                                        minWidth: "44px",
+                                                        minHeight: "44px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        borderRadius: "8px",
+                                                        backgroundColor: "#f3f4f6",
+                                                        border: "1px dashed #d1d5db",
                                                         color: "#9ca3af",
+                                                        fontSize: "18px"
+                                                    }}>
+                                                        🌵
+                                                    </div>
+                                                )}
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <div style={{
+                                                        fontSize: "14px", fontWeight: "600",
+                                                        color: "#111827", marginBottom: "2px",
                                                         fontStyle: "italic"
                                                     }}>
-                                                        ({sp.nombres_comunes})
-                                                    </span>
-                                                )}
+                                                        {sp.scientific_name}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: "12px",
+                                                        color: "#6b7280",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        gap: "2px"
+                                                    }}>
+                                                        {sp.nombre_común ? (
+                                                            <span>{sp.nombre_común}</span>
+                                                        ) : (
+                                                            <span style={{ fontStyle: "italic", color: "#9ca3af" }}>
+                                                                Sin nombre común
+                                                            </span>
+                                                        )}
+                                                        {sp.nombres_comunes && sp.nombres_comunes !== sp.nombre_común && (
+                                                            <span style={{
+                                                                fontSize: "11px",
+                                                                color: "#9ca3af",
+                                                                fontStyle: "italic"
+                                                            }}>
+                                                                ({sp.nombres_comunes})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </button>
                                     ))
@@ -1391,19 +1428,34 @@ export default function SpeciesEditorPage() {
                                                 }}>
                                                     Imagen de Portada
                                                 </label>
-                                                <input
-                                                    type="url"
-                                                    value={formData.image_url}
-                                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                                    placeholder="URL de imagen"
-                                                    style={{
-                                                        width: "100%",
-                                                        padding: "6px 10px",
-                                                        border: "1px solid #d1d5db",
-                                                        borderRadius: "6px",
+                                                {(selectedSpecies?.cover_photo || selectedSpecies?.image_url) ? (
+                                                    <img
+                                                        src={selectedSpecies.cover_photo || selectedSpecies.image_url}
+                                                        alt={selectedSpecies.scientific_name || "Portada"}
+                                                        style={{
+                                                            maxWidth: "100%",
+                                                            maxHeight: "240px",
+                                                            borderRadius: "8px",
+                                                            objectFit: "cover",
+                                                            border: "1px solid #e5e7eb",
+                                                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        height: "160px",
+                                                        backgroundColor: "#f3f4f6",
+                                                        border: "1px dashed #d1d5db",
+                                                        borderRadius: "8px",
+                                                        color: "#9ca3af",
                                                         fontSize: "13px"
-                                                    }}
-                                                />
+                                                    }}>
+                                                        Sin portada disponible
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Información Básica */}

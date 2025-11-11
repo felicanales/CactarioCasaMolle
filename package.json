@@ -6,14 +6,20 @@
     "scripts": {
         "build": "npm run build:nextjs",
         "build:nextjs": "cd nextjs && npm install && npm run build",
+        "build:mobile": "cd mobile && npm install && npm run build",
         "dev": "npm run dev:nextjs",
         "dev:nextjs": "cd nextjs && npm run dev -- -p 3001",
+        "dev:mobile": "cd mobile && npm run dev",
         "start": "npm run start:all",
         "start:all": "concurrently \"npm run start:fastapi\" \"npm run start:nextjs\"",
+        "start:all:mobile": "concurrently \"npm run start:fastapi\" \"npm run start:nextjs\" \"npm run start:mobile\"",
         "start:nextjs": "cd nextjs && npm run start:dev -- -p 3001",
+        "start:mobile": "cd mobile && npm run start",
         "start:fastapi": "cd fastapi && uvicorn app.main:app --host 0.0.0.0 --port 8000",
         "install:nextjs": "cd nextjs && npm install",
-        "install:fastapi": "cd fastapi && pip install -r requirements.txt"
+        "install:mobile": "cd mobile && npm install",
+        "install:fastapi": "cd fastapi && pip install -r requirements.txt",
+        "install:all": "npm run install:nextjs && npm run install:mobile && npm run install:fastapi"
     },
     "workspaces": [
         "nextjs"
