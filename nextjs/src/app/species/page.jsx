@@ -75,12 +75,30 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para obtener CSRF token
+// Helper para obtener CSRF token (cross-domain compatible)
 const getCsrfToken = () => {
-    if (typeof document !== 'undefined') {
-        const match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-        return match ? match[2] : null;
+    if (typeof document === 'undefined') return null;
+
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
+        if (match && match[2]) {
+            return match[2];
+        }
+
+        // Método 2: Buscar en todas las cookies (para cross-domain)
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrf-token' && value) {
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[SpeciesPage] Error reading CSRF token from cookies:', error);
     }
+
     return null;
 };
 
@@ -97,9 +115,14 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
     };
 
     // Agregar CSRF token para operaciones que modifican datos
-    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-        console.log('[SpeciesPage] Adding CSRF token to:', options.method, url);
+    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+            console.log('[SpeciesPage] ✅ Adding CSRF token to:', options.method, url);
+        } else {
+            console.error('[SpeciesPage] ❌ No CSRF token available for:', options.method, url);
+            console.error('[SpeciesPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
+        }
     }
 
     // Agregar Authorization header si hay token disponible

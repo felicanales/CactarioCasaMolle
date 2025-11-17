@@ -18,12 +18,30 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   console.log('[AuthContext] Using API URL:', API);
 }
 
-// Helper para obtener CSRF token
+// Helper para obtener CSRF token (cross-domain compatible)
 const getCsrfToken = () => {
-  if (typeof document !== 'undefined') {
-    const match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-    return match ? match[2] : null;
+  if (typeof document === 'undefined') return null;
+  
+  // Intentar leer cookies de diferentes formas para cross-domain
+  try {
+    // Método 1: Regex estándar
+    let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
+    if (match && match[2]) {
+      return match[2];
+    }
+    
+    // Método 2: Buscar en todas las cookies (para cross-domain)
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'csrf-token' && value) {
+        return value;
+      }
+    }
+  } catch (error) {
+    console.warn('[AuthContext] Error reading CSRF token from cookies:', error);
   }
+  
   return null;
 };
 
@@ -63,11 +81,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+  const [csrfToken, setCsrfToken] = useState(null);
 
   // Crear apiRequest que siempre use el token actual del estado
-  // Usar useCallback para que se actualice cuando accessToken cambie
+  // Usar useCallback para que se actualice cuando accessToken o csrfToken cambien
   const apiRequest = useCallback((url, options = {}) => {
-    const csrfToken = getCsrfToken();
+    // Prioridad 1: CSRF token del estado (más reciente)
+    // Prioridad 2: CSRF token de cookies
+    const currentCsrfToken = csrfToken || getCsrfToken();
     // Prioridad 1: Token del estado (más reciente)
     // Prioridad 2: Token de cookies
     let token = accessToken || getAccessToken();
@@ -78,8 +99,11 @@ export function AuthProvider({ children }) {
     };
 
     // Add CSRF token for state-changing operations
-    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
+    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && currentCsrfToken) {
+      headers['X-CSRF-Token'] = currentCsrfToken;
+      console.log('[AuthContext] Adding CSRF token to:', options.method, url);
+    } else if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
+      console.warn('[AuthContext] ⚠️ No CSRF token available for:', options.method, url);
     }
 
     // Add Authorization header if token is available
@@ -95,7 +119,7 @@ export function AuthProvider({ children }) {
       headers,
       credentials: 'include', // Always include cookies
     });
-  }, [accessToken]);
+  }, [accessToken, csrfToken]);
 
   // Función para verificar si el token está expirando pronto
   const isTokenExpiringSoon = () => {
@@ -128,12 +152,22 @@ export function AuthProvider({ children }) {
       const data = await res.json();
 
       // Update user state after refresh
+      // Actualizar CSRF token si viene en la respuesta
+      if (data.csrf_token) {
+        setCsrfToken(data.csrf_token);
+      } else {
+        const csrfFromCookie = getCsrfToken();
+        if (csrfFromCookie) {
+          setCsrfToken(csrfFromCookie);
+        }
+      }
       // No llamar fetchMe aquí porque puede causar un ciclo
       return data;
     } catch (error) {
       // If refresh fails, clear state and force re-login
       setUser(null);
       setAccessToken(null);
+      setCsrfToken(null);
       throw error;
     }
   };
@@ -158,6 +192,7 @@ export function AuthProvider({ children }) {
       if (data.authenticated === false) {
         setUser(null);
         setAccessToken(null);
+        setCsrfToken(null);
         return false;
       } else {
         setUser(data);
@@ -166,12 +201,19 @@ export function AuthProvider({ children }) {
           setAccessToken(data.access_token);
           console.log('[AuthContext] User authenticated, token available via cookies');
         }
+        // Actualizar CSRF token desde cookies
+        const csrfFromCookie = getCsrfToken();
+        if (csrfFromCookie) {
+          setCsrfToken(csrfFromCookie);
+          console.log('[AuthContext] CSRF token updated from cookies');
+        }
         return true;
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
       setAccessToken(null);
+      setCsrfToken(null);
       return false;
     }
   }, [apiRequest]);
@@ -181,6 +223,7 @@ export function AuthProvider({ children }) {
     if (BYPASS_AUTH) {
       setUser({ id: "dev-user-123", email: "dev@cactario.local" });
       setAccessToken("bypassed");
+      setCsrfToken("bypassed-csrf");
       setLoading(false);
       return;
     }
@@ -232,6 +275,18 @@ export function AuthProvider({ children }) {
       setAccessToken(data.access_token);
       console.log('[AuthContext] Token available via cookies from backend');
     }
+    // CSRF token también viene en la respuesta y se guarda en cookies
+    if (data.csrf_token) {
+      setCsrfToken(data.csrf_token);
+      console.log('[AuthContext] CSRF token set from verify response');
+    } else {
+      // Si no viene en la respuesta, intentar leerlo de cookies
+      const csrfFromCookie = getCsrfToken();
+      if (csrfFromCookie) {
+        setCsrfToken(csrfFromCookie);
+        console.log('[AuthContext] CSRF token read from cookies');
+      }
+    }
     if (data.user) {
       setUser(data.user);
       console.log('[AuthContext] User set from verify response:', data.user);
@@ -272,12 +327,13 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null);
       setAccessToken(null);
+      setCsrfToken(null);
       console.log('[AuthContext] User logged out, cookies cleared by backend');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, accessToken, requestOtp, verifyOtp, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
+    <AuthContext.Provider value={{ user, loading, accessToken, csrfToken, requestOtp, verifyOtp, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
       {children}
     </AuthContext.Provider>
   );

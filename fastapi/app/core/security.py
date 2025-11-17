@@ -148,10 +148,22 @@ def validate_csrf_token(request: Request) -> bool:
     csrf_token_header = request.headers.get("X-CSRF-Token")
     csrf_token_cookie = request.cookies.get("csrf-token")
     
+    # Logging para debugging (solo si DEBUG está activado o si falla)
+    import os
+    if os.getenv("DEBUG", "").lower() == "true" or not csrf_token_header or not csrf_token_cookie:
+        logger.info(f"[CSRF] Header: {bool(csrf_token_header)}, Cookie: {bool(csrf_token_cookie)}")
+        if csrf_token_header and csrf_token_cookie:
+            logger.info(f"[CSRF] Tokens match: {csrf_token_header == csrf_token_cookie}")
+    
     if not csrf_token_header or not csrf_token_cookie:
+        logger.warning(f"[CSRF] Missing token - Header: {bool(csrf_token_header)}, Cookie: {bool(csrf_token_cookie)}")
         return False
     
-    return csrf_token_header == csrf_token_cookie
+    tokens_match = csrf_token_header == csrf_token_cookie
+    if not tokens_match:
+        logger.warning(f"[CSRF] Tokens do not match - Header: {csrf_token_header[:10]}..., Cookie: {csrf_token_cookie[:10]}...")
+    
+    return tokens_match
 
 def generate_csrf_token() -> str:
     """
