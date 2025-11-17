@@ -11,6 +11,9 @@ Este documento contiene las instrucciones paso a paso para desplegar el frontend
 5. ✅ Convertido `copy-assets.sh` a `copy-assets.js` (Node.js)
 6. ✅ Reducido healthcheck timeout a 60 segundos
 7. ✅ Actualizado `railway.json` del frontend para usar script Node.js
+8. ✅ Mejorado `start.py` con mejor manejo de errores y logging detallado
+9. ✅ Simplificado endpoint `/health` para respuesta inmediata
+10. ✅ Agregada verificación de importación de la app antes de iniciar uvicorn
 
 ---
 
@@ -190,9 +193,13 @@ NODE_ENV=production
 
 **Solución:**
 1. Verifica que todas las variables de entorno están configuradas
-2. Revisa los logs en Railway Dashboard
+2. Revisa los logs en Railway Dashboard - ahora incluyen mensajes detallados:
+   - Busca "🚀 Starting Uvicorn server" para confirmar que el servidor inicia
+   - Busca "✅ Aplicación importada correctamente" para verificar imports
+   - Busca "❌ Error al importar la aplicación" si hay problemas de importación
 3. Verifica que `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` son correctos
 4. Verifica que el puerto se configura dinámicamente (debe usar `PORT` de Railway)
+5. El script `start.py` ahora tiene mejor manejo de errores - revisa los logs para ver errores específicos
 
 ### Frontend no encuentra el servidor
 

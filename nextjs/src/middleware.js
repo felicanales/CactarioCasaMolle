@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 
+// Configuración del matcher - DEBE ser completamente estático
+// Next.js no permite expresiones condicionales, referencias a variables,
+// ni ninguna evaluación en tiempo de ejecución en config.matcher
+export const config = {
+    matcher: [
+        "/staff/:path*",
+        "/species/:path*",
+        "/sectors/:path*"
+    ],
+};
+
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está ACTIVADO en desarrollo local (no requiere .env)
 // Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
@@ -42,9 +53,3 @@ export function middleware(req) {
 
     return NextResponse.next();
 }
-
-// Configuración del matcher - debe ser estático (sin expresiones condicionales)
-// El bypass se maneja dentro de la función middleware
-export const config = {
-    matcher: ["/staff/:path*", "/species/:path*", "/sectors/:path*"],
-};
