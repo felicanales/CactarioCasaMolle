@@ -100,6 +100,14 @@ if cors_origins_env:
     additional_origins = [origin.strip() for origin in cors_origins_env.split(",")]
     origins.extend(additional_origins)
 
+# Agregar dominio del frontend de Railway si está disponible
+# Railway proporciona el dominio del servicio actual, pero necesitamos el del frontend
+# Si el frontend está en un servicio separado, debe configurarse en FRONTEND_DOMAIN o CORS_ORIGINS
+frontend_railway = os.getenv("FRONTEND_RAILWAY_DOMAIN")
+if frontend_railway:
+    domain = frontend_railway.replace("https://", "").replace("http://", "")
+    origins.append(f"https://{domain}")
+
 # Filtrar strings vacíos de la lista
 origins = [origin for origin in origins if origin and origin.strip()]
 
@@ -115,20 +123,24 @@ for origin in origins:
 # IMPORTANTE: CORS debe ir ANTES del middleware de autenticación
 logger.info("🔧 Configurando middlewares...")
 
-# Permitir ngrok y desarrollo: usar allow_origin_regex con un solo patrón que cubre todos los dominios de ngrok
-# Permite CUALQUIER dominio de ngrok incluyendo .ngrok-free.dev, .ngrok.io, etc.
+# Permitir ngrok y Railway: usar allow_origin_regex para dominios dinámicos
+# Permite CUALQUIER dominio de ngrok y Railway
 ngrok_regex = r"https://.*\.ngrok.*"
+railway_regex = r"https://.*\.railway\.app"  # Permitir todos los dominios de Railway
+
+# Combinar regex en una sola expresión
+combined_regex = f"({ngrok_regex}|{railway_regex})"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=ngrok_regex,  # Permitir dominios de ngrok con regex
+    allow_origin_regex=combined_regex,  # Permitir dominios de ngrok y Railway con regex
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type", "ngrok-skip-browser-warning"],
     expose_headers=["*"],
 )
-logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok")
+logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok y Railway")
 
 # Add authentication middleware AFTER CORS
 app.add_middleware(AuthMiddleware)
