@@ -31,20 +31,23 @@ def set_supabase_session_cookies(response: Response, session) -> None:
     Set Supabase session cookies with secure settings
     In development (localhost), secure=False to allow HTTP
     In production (Railway), secure=True to require HTTPS
+    For cross-domain cookies (frontend and backend on different domains), use samesite="none"
     """
     at = session.access_token
     rt = session.refresh_token
     
-    # En desarrollo, NO especificar dominio para que funcione entre puertos
-    # En producción, el dominio se maneja automáticamente
+    # En desarrollo, usar lax para que funcione entre puertos en localhost
+    # En producción, usar none para permitir cookies cross-domain (frontend y backend en dominios diferentes)
+    samesite_value = "lax" if not IS_PRODUCTION else "none"
+    
     common = dict(
         httponly=True, 
-        secure=IS_PRODUCTION,  # Only secure in production
-        samesite="lax",  # SIEMPRE lax para permitir cookies entre puertos en localhost
+        secure=IS_PRODUCTION,  # Only secure in production (required for samesite=none)
+        samesite=samesite_value,  # lax en dev, none en prod para cross-domain
         path="/"
     )
     
-    logger.info(f"[Security] Configurando cookies con: secure={IS_PRODUCTION}, samesite=lax, httponly=True")
+    logger.info(f"[Security] Configurando cookies con: secure={IS_PRODUCTION}, samesite={samesite_value}, httponly=True")
     
     # Access token: 1 hour
     response.set_cookie(
@@ -68,7 +71,8 @@ def clear_supabase_session_cookies(response: Response) -> None:
     """
     Clear Supabase session cookies
     """
-    samesite_value = "lax" if not IS_PRODUCTION else "strict"
+    # En producción, usar samesite="none" para cookies cross-domain
+    samesite_value = "lax" if not IS_PRODUCTION else "none"
     response.delete_cookie(SB_ACCESS_TOKEN, path="/", samesite=samesite_value, secure=IS_PRODUCTION)
     response.delete_cookie(SB_REFRESH_TOKEN, path="/", samesite=samesite_value, secure=IS_PRODUCTION)
 

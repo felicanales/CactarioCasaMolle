@@ -256,12 +256,14 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
 
     # 6) Generar CSRF token
     csrf_token = generate_csrf_token()
+    # En producción, usar samesite="none" para cookies cross-domain
+    samesite_value = "lax" if not IS_PRODUCTION else "none"
     response.set_cookie(
         "csrf-token",
         csrf_token,
         httponly=False,  # Necesario para que JS lo lea
-        secure=IS_PRODUCTION,  # Only secure in production
-        samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
+        secure=IS_PRODUCTION,  # Only secure in production (required for samesite=none)
+        samesite=samesite_value,  # lax in dev, none in prod para cross-domain
         path="/",
         max_age=3600
     )
@@ -297,12 +299,14 @@ def refresh_token(response: Response, request: Request):
         
         # Generate new CSRF token
         csrf_token = generate_csrf_token()
+        # En producción, usar samesite="none" para cookies cross-domain
+        samesite_value = "lax" if not IS_PRODUCTION else "none"
         response.set_cookie(
             "csrf-token",
             csrf_token,
             httponly=False,
-            secure=IS_PRODUCTION,  # Only secure in production
-            samesite="lax" if not IS_PRODUCTION else "strict",  # lax in dev, strict in prod
+            secure=IS_PRODUCTION,  # Only secure in production (required for samesite=none)
+            samesite=samesite_value,  # lax in dev, none in prod para cross-domain
             path="/",
             max_age=3600
         )
@@ -326,7 +330,8 @@ def logout(response: Response, request: Request):
     clear_supabase_session_cookies(response)
     
     # Clear CSRF token
-    samesite_value = "lax" if not IS_PRODUCTION else "strict"
+    # En producción, usar samesite="none" para cookies cross-domain
+    samesite_value = "lax" if not IS_PRODUCTION else "none"
     response.delete_cookie("csrf-token", path="/", samesite=samesite_value, secure=IS_PRODUCTION)
     
     # Optional: Sign out from Supabase
