@@ -25,20 +25,26 @@ const formatCommonNames = (nombre_común, nombres_comunes) => {
     return nombre_común || nombres_comunes || '';
 };
 
-// Helper para obtener el access token de localStorage o cookies
-const getAccessToken = () => {
-    if (typeof window === 'undefined') return null;
-
-    // Prioridad 1: localStorage (para compatibilidad)
-    const localStorageToken = localStorage.getItem('access_token');
-    if (localStorageToken) {
-        return localStorageToken;
+// Helper para obtener el access token
+// Prioridad: token del AuthContext > cookies > localStorage
+const getAccessTokenFromContext = (accessTokenFromContext) => {
+    // Prioridad 1: Token del estado de AuthContext (más confiable)
+    if (accessTokenFromContext) {
+        return accessTokenFromContext;
     }
+
+    if (typeof window === 'undefined') return null;
 
     // Prioridad 2: cookies
     const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
     if (match) {
         return match[2];
+    }
+
+    // Prioridad 3: localStorage (para compatibilidad)
+    const localStorageToken = localStorage.getItem('access_token');
+    if (localStorageToken) {
+        return localStorageToken;
     }
 
     return null;
@@ -54,8 +60,10 @@ const getCsrfToken = () => {
 };
 
 // Helper para requests autenticadas
-const apiRequest = async (url, options = {}) => {
-    const accessToken = getAccessToken();
+// Recibe accessToken del AuthContext como parámetro
+const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+    // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+    const accessToken = getAccessTokenFromContext(accessTokenFromContext);
     const csrfToken = getCsrfToken();
 
     const headers = {
@@ -169,7 +177,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SpeciesPage() {
-    const { user, loading: authLoading, logout, fetchMe } = useAuth();
+    const { user, loading: authLoading, logout, fetchMe, accessToken } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);
@@ -237,7 +245,7 @@ export default function SpeciesPage() {
             const url = `${API}/species/staff`;
 
             console.log('[SpeciesPage] Fetching species from:', url);
-            const res = await apiRequest(url);
+            const res = await apiRequest(url, {}, accessToken);
 
             if (!res.ok) {
                 console.error('[SpeciesPage] Fetch failed:', res.status);
@@ -433,12 +441,12 @@ export default function SpeciesPage() {
                 res = await apiRequest(`${API}/species/staff`, {
                     method: "POST",
                     body: JSON.stringify(payload),
-                });
+                }, accessToken);
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
                     method: "PUT",
                     body: JSON.stringify(payload),
-                });
+                }, accessToken);
             }
 
             if (!res.ok) {
@@ -472,7 +480,7 @@ export default function SpeciesPage() {
         try {
             const res = await apiRequest(`${API}/species/staff/${speciesIdToDelete}`, {
                 method: "DELETE",
-            });
+            }, accessToken);
 
             if (!res.ok) {
                 if (res.status === 401) {
