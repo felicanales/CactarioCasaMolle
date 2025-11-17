@@ -18,37 +18,34 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Middleware simplificado - la validación real se hace en el cliente
 // Este middleware solo proporciona una capa básica de protección
+// NOTA: En producción con frontend y backend en dominios diferentes,
+// las cookies del backend no están disponibles en el middleware de Next.js.
+// Por lo tanto, confiamos en la validación del cliente (AuthContext y componentes).
 export function middleware(req) {
     // BYPASS: Permitir todo en desarrollo
     if (BYPASS_AUTH) {
         return NextResponse.next();
     }
 
-    const { nextUrl, cookies } = req;
+    const { nextUrl } = req;
     const pathname = nextUrl.pathname;
 
-    // Para rutas protegidas, verificar si hay alguna señal de sesión
-    const accessToken = cookies.get("sb-access-token");
-    const refreshToken = cookies.get("sb-refresh-token");
-
-    // Si hay al menos uno de los tokens, permitir el acceso
-    // La validación real se hará en el componente y el backend
-    const hasAnyToken = Boolean(
-        (accessToken && accessToken.value) ||
-        (refreshToken && refreshToken.value)
-    );
-
+    // En producción con cross-domain, las cookies del backend no están disponibles
+    // en el middleware de Next.js. La validación real se hace en:
+    // 1. AuthContext (verifica usuario al cargar)
+    // 2. Componentes individuales (redirigen a /login si no hay usuario)
+    // 3. Backend (valida tokens en cada request)
+    
+    // Por lo tanto, permitimos el acceso y confiamos en la validación del cliente
+    // Esto evita redirecciones innecesarias cuando el usuario está autenticado
+    // pero las cookies no están disponibles en el middleware
+    
     const isProtected = ["/staff", "/species", "/sectors"].some((p) => pathname.startsWith(p));
-
-    // Solo bloquear si definitivamente no hay ninguna sesión
-    if (isProtected && !hasAnyToken) {
-        console.log(`[Middleware] No tokens found, redirecting to login from: ${pathname}`);
-        return NextResponse.redirect(new URL("/login", nextUrl));
-    }
-
-    // Si hay tokens, dejar pasar - la validación se hará en el componente
-    if (isProtected && hasAnyToken) {
-        console.log(`[Middleware] Tokens found, allowing access to: ${pathname}`);
+    
+    if (isProtected) {
+        // Log para debugging, pero no bloquear
+        // La validación real se hará en el componente
+        console.log(`[Middleware] Protected route accessed: ${pathname} - validation will happen in component`);
     }
 
     return NextResponse.next();
