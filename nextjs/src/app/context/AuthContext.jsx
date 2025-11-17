@@ -42,39 +42,45 @@ const getAccessToken = () => {
 };
 
 // Helper para hacer requests con CSRF y Authorization
-const apiRequest = async (url, options = {}) => {
-  const csrfToken = getCsrfToken();
-  const accessToken = getAccessToken();
-
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  // Add CSRF token for state-changing operations
-  if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-
-  // Add Authorization header if token is available
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-    console.log('[AuthContext] Adding Authorization header to request:', url);
-  } else {
-    console.log('[AuthContext] No access token available for request:', url);
-  }
-
-  return fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include', // Always include cookies
-  });
-};
+// Se define dentro del componente para tener acceso al estado accessToken
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+
+  // Crear apiRequest que siempre use el token actual del estado
+  // Usar useCallback para que se actualice cuando accessToken cambie
+  const apiRequest = useCallback((url, options = {}) => {
+    const csrfToken = getCsrfToken();
+    // Prioridad 1: Token del estado (más reciente)
+    // Prioridad 2: Token de cookies
+    let token = accessToken || getAccessToken();
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add CSRF token for state-changing operations
+    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    // Add Authorization header if token is available
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('[AuthContext] Adding Authorization header to request:', url);
+    } else {
+      console.log('[AuthContext] No access token available for request:', url);
+    }
+
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // Always include cookies
+    });
+  }, [accessToken]);
 
   // Función para verificar si el token está expirando pronto
   const isTokenExpiringSoon = () => {
@@ -153,7 +159,7 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       return false;
     }
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     // BYPASS: No hacer fetch inicial en desarrollo
