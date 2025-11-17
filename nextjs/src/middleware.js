@@ -43,6 +43,8 @@ export function middleware(req) {
     return NextResponse.next();
 }
 
+// Configuración del matcher - debe ser estático (sin expresiones condicionales)
+// El bypass se maneja dentro de la función middleware
 export const config = {
-    matcher: (process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false") ? [] : ["/staff/:path*", "/species/:path*", "/sectors/:path*"],
+    matcher: ["/staff/:path*", "/species/:path*", "/sectors/:path*"],
 };

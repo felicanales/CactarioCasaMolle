@@ -160,14 +160,13 @@ def root():
     return {"message": "API Cactario Casa Molle funcionando correctamente"}
 
 @app.get("/health")
-def health_check():
+async def health_check():
     """Health check endpoint for Railway - must return 200 immediately"""
-    import time
-    logger.debug("Healthcheck ejecutado")
+    # Endpoint simple que no depende de servicios externos
+    # Railway usa este endpoint para verificar que el servicio está funcionando
     return {
         "status": "ok", 
         "message": "Service is healthy", 
-        "timestamp": time.time(),
         "service": "Cactario Casa Molle API",
         "version": "1.0.0"
     }
