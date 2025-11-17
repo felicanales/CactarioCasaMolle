@@ -1,0 +1,41 @@
+warning: in the working copy of 'nextjs/src/components/PhotoUploader.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/nextjs/src/components/PhotoUploader.jsx b/nextjs/src/components/PhotoUploader.jsx[m
+[1mindex 64d0562..47f0562 100644[m
+[1m--- a/nextjs/src/components/PhotoUploader.jsx[m
+[1m+++ b/nextjs/src/components/PhotoUploader.jsx[m
+[36m@@ -24,7 +24,7 @@[m [mconst getAccessTokenFromContext = (accessTokenFromContext) => {[m
+             console.log('[PhotoUploader] Using token from cookies (method 1)');[m
+             return match[2];[m
+         }[m
+[31m-        [m
+[32m+[m
+         // Método 2: Buscar en todas las cookies (para cross-domain)[m
+         const cookies = document.cookie.split(';');[m
+         for (const cookie of cookies) {[m
+[36m@@ -129,7 +129,7 @@[m [mexport default function PhotoUploader({[m
+             const token = getAccessTokenFromContext(accessTokenFromContext);[m
+             console.log('[PhotoUploader] Attempting upload, token available:', !!token);[m
+             console.log('[PhotoUploader] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');[m
+[31m-            [m
+[32m+[m
+             if (!token) {[m
+                 console.error('[PhotoUploader] No token available for upload');[m
+                 setError("No estás autenticado. Por favor, inicia sesión.");[m
+[36m@@ -144,7 +144,7 @@[m [mexport default function PhotoUploader({[m
+ [m
+             const API = getApiUrl();[m
+             const url = `${API}/photos/${entityType}/${entityId}`;[m
+[31m-            [m
+[32m+[m
+             console.log('[PhotoUploader] Uploading to:', url);[m
+             console.log('[PhotoUploader] Files count:', files.length);[m
+             console.log('[PhotoUploader] Authorization header will be included');[m
+[36m@@ -158,7 +158,7 @@[m [mexport default function PhotoUploader({[m
+                 body: formData,[m
+                 credentials: 'include'[m
+             });[m
+[31m-            [m
+[32m+[m
+             console.log('[PhotoUploader] Response status:', response.status);[m
+ [m
+             let data;[m

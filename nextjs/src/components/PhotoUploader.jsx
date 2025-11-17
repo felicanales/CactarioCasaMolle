@@ -24,7 +24,7 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
             console.log('[PhotoUploader] Using token from cookies (method 1)');
             return match[2];
         }
-        
+
         // Método 2: Buscar en todas las cookies (para cross-domain)
         const cookies = document.cookie.split(';');
         for (const cookie of cookies) {
@@ -129,7 +129,7 @@ export default function PhotoUploader({
             const token = getAccessTokenFromContext(accessTokenFromContext);
             console.log('[PhotoUploader] Attempting upload, token available:', !!token);
             console.log('[PhotoUploader] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
-            
+
             if (!token) {
                 console.error('[PhotoUploader] No token available for upload');
                 setError("No estás autenticado. Por favor, inicia sesión.");
@@ -144,7 +144,7 @@ export default function PhotoUploader({
 
             const API = getApiUrl();
             const url = `${API}/photos/${entityType}/${entityId}`;
-            
+
             console.log('[PhotoUploader] Uploading to:', url);
             console.log('[PhotoUploader] Files count:', files.length);
             console.log('[PhotoUploader] Authorization header will be included');
@@ -158,7 +158,7 @@ export default function PhotoUploader({
                 body: formData,
                 credentials: 'include'
             });
-            
+
             console.log('[PhotoUploader] Response status:', response.status);
 
             let data;
