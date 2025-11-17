@@ -75,65 +75,27 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para obtener CSRF token (cross-domain compatible)
-const getCsrfToken = () => {
-    if (typeof document === 'undefined') return null;
-
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-
-        // Método 2: Buscar en todas las cookies (para cross-domain)
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrf-token' && value) {
-                return value;
-            }
-        }
-    } catch (error) {
-        console.warn('[SpeciesPage] Error reading CSRF token from cookies:', error);
-    }
-
-    return null;
-};
-
 // Helper para requests autenticadas
-// Recibe accessToken del AuthContext como parámetro
+// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
 const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-    // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+    // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+    if (authApiRequest) {
+        return authApiRequest(url, options);
+    }
+    
+    // Fallback: implementación local (para compatibilidad)
     const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-    const csrfToken = getCsrfToken();
-
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
 
-    // Agregar CSRF token para operaciones que modifican datos
-    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-        if (csrfToken) {
-            headers['X-CSRF-Token'] = csrfToken;
-            console.log('[SpeciesPage] ✅ Adding CSRF token to:', options.method, url);
-        } else {
-            console.error('[SpeciesPage] ❌ No CSRF token available for:', options.method, url);
-            console.error('[SpeciesPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
-        }
-    }
-
     // Agregar Authorization header si hay token disponible
     if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
         console.log('[SpeciesPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
-        console.log('[SpeciesPage] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
     } else {
         console.error('[SpeciesPage] ❌ No access token available for:', options.method || 'GET', url);
-        console.error('[SpeciesPage] accessTokenFromContext:', accessTokenFromContext);
-        console.error('[SpeciesPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
     }
 
     return fetch(url, {
@@ -228,7 +190,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SpeciesPage() {
-    const { user, loading: authLoading, logout, fetchMe, accessToken } = useAuth();
+    const { user, loading: authLoading, logout, fetchMe, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);

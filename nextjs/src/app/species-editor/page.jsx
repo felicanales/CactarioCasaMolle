@@ -74,35 +74,9 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para obtener CSRF token (cross-domain compatible)
-const getCsrfToken = () => {
-    if (typeof document === 'undefined') return null;
-
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-
-        // Método 2: Buscar en todas las cookies (para cross-domain)
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrf-token' && value) {
-                return value;
-            }
-        }
-    } catch (error) {
-        console.warn('[SpeciesEditor] Error reading CSRF token from cookies:', error);
-    }
-
-    return null;
-};
-
 // Helper para requests autenticadas
-// Recibe accessToken del AuthContext como parámetro
+// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
+// Mantiene la lógica especial para ngrok y endpoints de especies
 const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
     try {
         // Validar y corregir URL si es localhost desde dispositivo remoto
@@ -119,9 +93,48 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
             }
         }
 
-        // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+        // Detectar si es un endpoint de especies del sector
+        const isSpeciesEndpoint = finalUrl.includes('/sectors/staff/') && finalUrl.includes('/species');
+
+        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        if (authApiRequest) {
+            // Agregar header de ngrok si es necesario
+            const ngrokHeaders = {};
+            if (typeof window !== 'undefined' &&
+                (window.location.hostname.includes('ngrok.io') ||
+                    window.location.hostname.includes('ngrok-free.dev') ||
+                    window.location.hostname.includes('ngrok-free.app') ||
+                    window.location.hostname.includes('ngrokapp.com') ||
+                    window.location.hostname.includes('ngrok'))) {
+                ngrokHeaders['ngrok-skip-browser-warning'] = 'true';
+            }
+
+            const response = await authApiRequest(finalUrl, {
+                ...options,
+                headers: {
+                    ...ngrokHeaders,
+                    ...options.headers,
+                },
+                signal: options.signal
+            });
+
+            // Manejar error 405 para endpoints de especies
+            if (!response.ok && response.status === 405 && isSpeciesEndpoint) {
+                return {
+                    ok: false,
+                    status: 405,
+                    json: async () => ({}),
+                    text: async () => '',
+                    headers: response.headers,
+                    statusText: 'Method Not Allowed'
+                };
+            }
+
+            return response;
+        }
+
+        // Fallback: implementación local (para compatibilidad)
         const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-        const csrfToken = getCsrfToken();
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers,
@@ -137,27 +150,12 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
             headers['ngrok-skip-browser-warning'] = 'true';
         }
 
-        if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-            if (csrfToken) {
-                headers['X-CSRF-Token'] = csrfToken;
-                console.log('[SpeciesEditor] ✅ Adding CSRF token to:', options.method, finalUrl);
-            } else {
-                console.error('[SpeciesEditor] ❌ No CSRF token available for:', options.method, finalUrl);
-                console.error('[SpeciesEditor] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
-            }
-        }
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
             console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
-            console.log('[SpeciesEditor] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
         } else {
             console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
-            console.error('[SpeciesEditor] accessTokenFromContext:', accessTokenFromContext);
-            console.error('[SpeciesEditor] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
         }
-
-        // Detectar si es un endpoint de especies del sector
-        const isSpeciesEndpoint = finalUrl.includes('/sectors/staff/') && finalUrl.includes('/species');
 
         try {
             const response = await fetch(finalUrl, {
@@ -169,10 +167,7 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
 
             if (!response.ok) {
                 // Suprimir completamente el error 405 para endpoints de especies
-                // El backend aún no tiene estos endpoints desplegados en Railway
                 if (response.status === 405 && isSpeciesEndpoint) {
-                    // Retornar una respuesta mock silenciosa
-                    // Esto evita que el código falle y marca el endpoint como no disponible
                     return {
                         ok: false,
                         status: 405,
@@ -183,7 +178,6 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
                     };
                 }
 
-                // Para otros errores (no 405 o no en endpoints de especies), comportarse normalmente
                 const errorText = await response.text().catch(() => '');
                 const errorMessage = errorText || response.statusText;
                 throw new Error(`HTTP ${response.status}: ${errorMessage}`);
@@ -191,7 +185,6 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
 
             return response;
         } catch (fetchError) {
-            // Si es un error de red, lanzarlo normalmente
             throw fetchError;
         }
     } catch (error) {
@@ -204,7 +197,7 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
 };
 
 export default function SpeciesEditorPage() {
-    const { user, loading: authLoading, logout, accessToken } = useAuth();
+    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);

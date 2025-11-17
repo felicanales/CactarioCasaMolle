@@ -63,65 +63,27 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para obtener CSRF token (cross-domain compatible)
-const getCsrfToken = () => {
-    if (typeof document === 'undefined') return null;
-    
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-        
-        // Método 2: Buscar en todas las cookies (para cross-domain)
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrf-token' && value) {
-                return value;
-            }
-        }
-    } catch (error) {
-        console.warn('[InventoryPage] Error reading CSRF token from cookies:', error);
+// Helper para requests autenticadas
+// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
+const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+    // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+    if (authApiRequest) {
+        return authApiRequest(url, options);
     }
     
-    return null;
-};
-
-// Helper para requests autenticadas
-// Recibe accessToken del AuthContext como parámetro
-const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-    // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+    // Fallback: implementación local (para compatibilidad)
     const token = getAccessTokenFromContext(accessTokenFromContext);
-    const csrfToken = getCsrfToken();
-
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
 
-    // Agregar CSRF token para operaciones que modifican datos
-    if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-        if (csrfToken) {
-            headers['X-CSRF-Token'] = csrfToken;
-            console.log('[InventoryPage] ✅ Adding CSRF token to:', options.method, url);
-        } else {
-            console.error('[InventoryPage] ❌ No CSRF token available for:', options.method, url);
-            console.error('[InventoryPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
-        }
-    }
-
     // Agregar Authorization header si hay token disponible
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
         console.log('[InventoryPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
-        console.log('[InventoryPage] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
     } else {
         console.error('[InventoryPage] ❌ No access token available for:', options.method || 'GET', url);
-        console.error('[InventoryPage] accessTokenFromContext:', accessTokenFromContext);
-        console.error('[InventoryPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
     }
 
     return fetch(url, {
@@ -214,7 +176,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function InventoryPage() {
-    const { user, loading: authLoading, logout, accessToken } = useAuth();
+    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
 
     const [ejemplares, setEjemplares] = useState([]);

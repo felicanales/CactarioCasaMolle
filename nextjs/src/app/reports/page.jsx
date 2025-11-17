@@ -12,7 +12,7 @@ import { getApiUrl } from "../../utils/api-config";
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 export default function ReportsPage() {
-    const { user, loading, logout, accessToken } = useAuth();
+    const { user, loading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
     const [ejemplares, setEjemplares] = useState([]);
     const [species, setSpecies] = useState([]);
@@ -87,6 +87,12 @@ export default function ReportsPage() {
         const API = getApiUrl();
         const fullUrl = url.startsWith("http") ? url : `${API}${url}`;
 
+        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        if (authApiRequest) {
+            return authApiRequest(fullUrl, options);
+        }
+
+        // Fallback: implementación local (para compatibilidad)
         const token = getAccessTokenFromContext(accessToken);
         const headers = {
             "Content-Type": "application/json",
@@ -96,11 +102,8 @@ export default function ReportsPage() {
         if (token) {
             headers.Authorization = `Bearer ${token}`;
             console.log('[ReportsPage] ✅ Adding Authorization header to:', options.method || 'GET', fullUrl);
-            console.log('[ReportsPage] Token source:', accessToken ? 'AuthContext' : 'cookies/localStorage');
         } else {
             console.error('[ReportsPage] ❌ No access token available for:', options.method || 'GET', fullUrl);
-            console.error('[ReportsPage] accessToken from context:', accessToken);
-            console.error('[ReportsPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
         }
 
         try {
