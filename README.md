@@ -88,6 +88,43 @@ NODE_ENV=production
    - Railway detectará automáticamente Node.js y Python
    - Deploy automático en cada push
 
+### 👥 Administración de Usuarios
+
+El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. Para que un correo pueda iniciar sesión, debe estar registrado en esta tabla con `active=true`.
+
+#### Agregar Nuevo Usuario
+
+1. **Abrir Supabase SQL Editor**:
+   - Ve a tu proyecto en Supabase
+   - Navega a SQL Editor
+
+2. **Ejecutar el script de agregar usuario**:
+   - Abre el archivo `agregar_usuario.sql` en la raíz del proyecto
+   - Reemplaza los valores marcados con ⚠️:
+     - `'nuevo_correo@ejemplo.com'` → El correo del nuevo usuario
+     - `'nombre_usuario'` → Un nombre de usuario único
+     - `'Nombre Completo'` → Nombre completo (opcional)
+   - Ejecuta el script
+
+3. **Verificar**:
+   - El script incluye una consulta de verificación al final
+   - Asegúrate de que `active = true` en el resultado
+
+#### ⚠️ Importante
+
+- El correo debe estar en **minúsculas** y coincidir exactamente con el que agregaste en Supabase Auth
+- El campo `supabase_uid` se sincronizará automáticamente cuando el usuario inicie sesión por primera vez
+- Si el correo ya existe pero está inactivo, el script lo activará automáticamente
+- El `username` debe ser único en la tabla
+
+#### Problema Común: "Correo no autorizado"
+
+Si recibes el error *"Este correo no está autorizado para acceder al sistema"*, significa que:
+- El correo no está en la tabla `usuarios`, o
+- El correo existe pero tiene `active=false`
+
+**Solución**: Ejecuta el script `agregar_usuario.sql` con el correo correcto.
+
 ### 🛠️ Desarrollo Local
 
 ```bash
