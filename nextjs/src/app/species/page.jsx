@@ -75,36 +75,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para requests autenticadas
-// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
-const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-    // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
-    if (authApiRequest) {
-        return authApiRequest(url, options);
-    }
-    
-    // Fallback: implementación local (para compatibilidad)
-    const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-    };
-
-    // Agregar Authorization header si hay token disponible
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-        console.log('[SpeciesPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
-    } else {
-        console.error('[SpeciesPage] ❌ No access token available for:', options.method || 'GET', url);
-    }
-
-    return fetch(url, {
-        ...options,
-        headers,
-        credentials: 'include',
-    });
-};
-
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) return null;
@@ -229,6 +199,36 @@ export default function SpeciesPage() {
         image_url: "", // URL de la imagen de la especie
     });
     const [submitting, setSubmitting] = useState(false);
+
+    // Helper para requests autenticadas
+    // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
+    const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        if (authApiRequest) {
+            return authApiRequest(url, options);
+        }
+        
+        // Fallback: implementación local (para compatibilidad)
+        const accessToken = getAccessTokenFromContext(accessTokenFromContext);
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+
+        // Agregar Authorization header si hay token disponible
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+            console.log('[SpeciesPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
+        } else {
+            console.error('[SpeciesPage] ❌ No access token available for:', options.method || 'GET', url);
+        }
+
+        return fetch(url, {
+            ...options,
+            headers,
+            credentials: 'include',
+        });
+    };
 
     // Verificar autenticación solo UNA vez
     useEffect(() => {

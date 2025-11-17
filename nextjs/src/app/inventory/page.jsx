@@ -63,36 +63,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para requests autenticadas
-// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
-const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-    // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
-    if (authApiRequest) {
-        return authApiRequest(url, options);
-    }
-    
-    // Fallback: implementación local (para compatibilidad)
-    const token = getAccessTokenFromContext(accessTokenFromContext);
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-    };
-
-    // Agregar Authorization header si hay token disponible
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('[InventoryPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
-    } else {
-        console.error('[InventoryPage] ❌ No access token available for:', options.method || 'GET', url);
-    }
-
-    return fetch(url, {
-        ...options,
-        headers,
-        credentials: 'include',
-    });
-};
-
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) return null;
     return (
