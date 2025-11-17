@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AuthenticatedImage from "../../components/AuthenticatedImage";
 import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
@@ -24,14 +25,53 @@ const getDynamicApiUrl = () => {
 
 const API = typeof window !== 'undefined' ? getDynamicApiUrl() : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 
-const getAccessToken = () => {
+// Helper para obtener el access token
+// Prioridad: token del AuthContext > cookies > localStorage
+const getAccessTokenFromContext = (accessTokenFromContext) => {
+    // Prioridad 1: Token del estado de AuthContext (más confiable)
+    if (accessTokenFromContext) {
+        console.log('[SpeciesEditor] Using token from AuthContext state');
+        return accessTokenFromContext;
+    }
+
     if (typeof window === 'undefined') return null;
-    // Primero intentar desde cookies (más seguro, HttpOnly)
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    if (match && match[2]) return match[2];
-    // Fallback a localStorage
-    const localStorageToken = localStorage.getItem('access_token');
-    return localStorageToken || null;
+
+    // Prioridad 2: cookies (incluyendo cookies cross-domain)
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            console.log('[SpeciesEditor] Using token from cookies (method 1)');
+            return match[2];
+        }
+
+        // Método 2: Buscar en todas las cookies
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                console.log('[SpeciesEditor] Using token from cookies (method 2)');
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[SpeciesEditor] Error reading cookies:', error);
+    }
+
+    // Prioridad 3: localStorage (para compatibilidad)
+    try {
+        const localStorageToken = localStorage.getItem('access_token');
+        if (localStorageToken) {
+            console.log('[SpeciesEditor] Using token from localStorage');
+            return localStorageToken;
+        }
+    } catch (error) {
+        console.warn('[SpeciesEditor] Error reading localStorage:', error);
+    }
+
+    console.warn('[SpeciesEditor] No token found in any source');
+    return null;
 };
 
 const getCsrfToken = () => {
@@ -42,9 +82,26 @@ const getCsrfToken = () => {
     return null;
 };
 
-const apiRequest = async (url, options = {}) => {
+// Helper para requests autenticadas
+// Recibe accessToken del AuthContext como parámetro
+const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
     try {
-        const accessToken = getAccessToken();
+        // Validar y corregir URL si es localhost desde dispositivo remoto
+        let finalUrl = url;
+        if (typeof window !== 'undefined') {
+            const currentHostname = window.location.hostname;
+            // Si la URL es localhost pero estamos en un dispositivo remoto, usar producción
+            if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
+                if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
+                    // Usar la URL del API configurada en lugar de hardcodear
+                    const apiUrl = getApiUrl();
+                    finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiUrl);
+                }
+            }
+        }
+
+        // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+        const accessToken = getAccessTokenFromContext(accessTokenFromContext);
         const csrfToken = getCsrfToken();
         const headers = {
             'Content-Type': 'application/json',
@@ -66,20 +123,9 @@ const apiRequest = async (url, options = {}) => {
         }
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
-        }
-
-        // Validar y corregir URL si es localhost desde dispositivo remoto
-        let finalUrl = url;
-        if (typeof window !== 'undefined') {
-            const currentHostname = window.location.hostname;
-            // Si la URL es localhost pero estamos en un dispositivo remoto, usar producción
-            if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
-                if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-                    // Usar la URL del API configurada en lugar de hardcodear
-                    const apiUrl = getApiUrl();
-                    finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiUrl);
-                }
-            }
+            console.log('[SpeciesEditor] Adding Authorization header to:', finalUrl);
+        } else {
+            console.warn('[SpeciesEditor] ⚠️ No access token available for:', finalUrl);
         }
 
         // Detectar si es un endpoint de especies del sector
@@ -130,7 +176,7 @@ const apiRequest = async (url, options = {}) => {
 };
 
 export default function SpeciesEditorPage() {
-    const { user, loading: authLoading, logout } = useAuth();
+    const { user, loading: authLoading, logout, accessToken } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);
@@ -184,7 +230,7 @@ export default function SpeciesEditorPage() {
             setLoading(true);
             setError("");
 
-            const res = await apiRequest(`${API}/species/staff`);
+            const res = await apiRequest(`${API}/species/staff`, {}, accessToken);
 
             if (!res.ok) {
                 if (res.status === 401 && !BYPASS_AUTH) {
@@ -222,7 +268,7 @@ export default function SpeciesEditorPage() {
             const sectorId = testSectorId || (sectors.length > 0 ? sectors[0].id : 1);
 
             // Hacer petición silenciosamente - el apiRequest ya maneja el 405
-            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`);
+            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`, {}, accessToken);
 
             if (res.ok) {
                 setSpeciesEndpointAvailable(true);
@@ -243,7 +289,7 @@ export default function SpeciesEditorPage() {
             setLoading(true);
             setError("");
             const apiUrl = typeof window !== 'undefined' ? getDynamicApiUrl() : API;
-            const res = await apiRequest(`${apiUrl}/sectors/staff`);
+            const res = await apiRequest(`${apiUrl}/sectors/staff`, {}, accessToken);
             if (!res.ok) {
                 if (res.status === 401 && !BYPASS_AUTH) {
                     setError("Sesión expirada");
@@ -285,7 +331,7 @@ export default function SpeciesEditorPage() {
         if (user || BYPASS_AUTH) {
             const fetchAllSpecies = async () => {
                 try {
-                    const res = await apiRequest(`${API}/species/staff`);
+                    const res = await apiRequest(`${API}/species/staff`, {}, accessToken);
                     if (res.ok) {
                         const data = await res.json();
                         setAllSpeciesList(data.sort((a, b) =>
@@ -462,7 +508,7 @@ export default function SpeciesEditorPage() {
 
         try {
             setLoadingSectorSpecies(true);
-            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`);
+            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`, {}, accessToken);
             if (res.ok) {
                 // Endpoint disponible y funcionando
                 setSpeciesEndpointAvailable(true);
@@ -541,7 +587,7 @@ export default function SpeciesEditorPage() {
                 const res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
                     method: "PUT",
                     body: JSON.stringify(cleanPayload)
-                });
+                }, accessToken);
 
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({}));
@@ -561,7 +607,7 @@ export default function SpeciesEditorPage() {
                 const res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
                     body: JSON.stringify(payload)
-                });
+                }, accessToken);
 
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({}));
@@ -575,7 +621,7 @@ export default function SpeciesEditorPage() {
                     const speciesRes = await apiRequest(`${API}/sectors/staff/${selectedSector.id}/species`, {
                         method: "PUT",
                         body: JSON.stringify({ especie_ids: sectorSpeciesIds })
-                    });
+                    }, accessToken);
 
                     if (!speciesRes.ok) {
                         // Si es 405, el backend aún no tiene la ruta desplegada
@@ -1095,7 +1141,7 @@ export default function SpeciesEditorPage() {
                                         >
                                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                 {(sp.cover_photo || sp.image_url) ? (
-                                                    <img
+                                                    <AuthenticatedImage
                                                         src={sp.cover_photo || sp.image_url}
                                                         alt={sp.scientific_name}
                                                         style={{
@@ -1384,7 +1430,7 @@ export default function SpeciesEditorPage() {
                                                     Imagen de Portada
                                                 </label>
                                                 {(selectedSpecies?.cover_photo || selectedSpecies?.image_url) ? (
-                                                    <img
+                                                    <AuthenticatedImage
                                                         src={selectedSpecies.cover_photo || selectedSpecies.image_url}
                                                         alt={selectedSpecies.scientific_name || "Portada"}
                                                         style={{

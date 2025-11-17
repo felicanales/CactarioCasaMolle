@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PhotoUploader from "../../components/PhotoUploader";
 import PhotoGallery from "../../components/PhotoGallery";
+import AuthenticatedImage from "../../components/AuthenticatedImage";
 import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
@@ -30,23 +31,47 @@ const formatCommonNames = (nombre_común, nombres_comunes) => {
 const getAccessTokenFromContext = (accessTokenFromContext) => {
     // Prioridad 1: Token del estado de AuthContext (más confiable)
     if (accessTokenFromContext) {
+        console.log('[SpeciesPage] Using token from AuthContext state');
         return accessTokenFromContext;
     }
 
     if (typeof window === 'undefined') return null;
 
-    // Prioridad 2: cookies
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    if (match) {
-        return match[2];
+    // Prioridad 2: cookies (incluyendo cookies cross-domain)
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            console.log('[SpeciesPage] Using token from cookies (method 1)');
+            return match[2];
+        }
+
+        // Método 2: Buscar en todas las cookies
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                console.log('[SpeciesPage] Using token from cookies (method 2)');
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[SpeciesPage] Error reading cookies:', error);
     }
 
     // Prioridad 3: localStorage (para compatibilidad)
-    const localStorageToken = localStorage.getItem('access_token');
-    if (localStorageToken) {
-        return localStorageToken;
+    try {
+        const localStorageToken = localStorage.getItem('access_token');
+        if (localStorageToken) {
+            console.log('[SpeciesPage] Using token from localStorage');
+            return localStorageToken;
+        }
+    } catch (error) {
+        console.warn('[SpeciesPage] Error reading localStorage:', error);
     }
 
+    console.warn('[SpeciesPage] No token found in any source');
     return null;
 };
 
@@ -1020,7 +1045,7 @@ export default function SpeciesPage() {
                                                         verticalAlign: "middle"
                                                     }}>
                                                         {(sp.cover_photo || sp.image_url) ? (
-                                                            <img
+                                                            <AuthenticatedImage
                                                                 className="species-image"
                                                                 src={sp.cover_photo || sp.image_url}
                                                                 alt={sp.nombre_común || sp.scientific_name}
@@ -1291,7 +1316,7 @@ export default function SpeciesPage() {
                                     textAlign: "center"
                                 }}>
                                     {(selectedSpecies.cover_photo || selectedSpecies.image_url) ? (
-                                        <img
+                                        <AuthenticatedImage
                                             src={selectedSpecies.cover_photo || selectedSpecies.image_url}
                                             alt={selectedSpecies.scientific_name}
                                             style={{

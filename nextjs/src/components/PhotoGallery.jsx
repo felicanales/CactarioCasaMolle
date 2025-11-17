@@ -5,9 +5,35 @@ import { getApiUrl } from "../utils/api-config";
 
 const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    if (match) return match[2];
-    return localStorage.getItem('access_token');
+    
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            return match[2];
+        }
+        
+        // Método 2: Buscar en todas las cookies (para cross-domain)
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[PhotoGallery] Error reading cookies:', error);
+    }
+    
+    // Fallback a localStorage (para compatibilidad)
+    try {
+        return localStorage.getItem('access_token');
+    } catch (error) {
+        console.warn('[PhotoGallery] Error reading localStorage:', error);
+    }
+    
+    return null;
 };
 
 export default function PhotoGallery({ 
@@ -26,13 +52,31 @@ export default function PhotoGallery({
         setError("");
         try {
             const API = getApiUrl();
-            const response = await fetch(`${API}/photos/${entityType}/${entityId}`);
+            const token = getAccessToken();
+            
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(`${API}/photos/${entityType}/${entityId}`, {
+                headers,
+                credentials: 'include'
+            });
+            
             const data = await response.json();
 
             if (response.ok) {
                 setPhotos(data.photos || []);
             } else {
-                setError(data.detail || 'Error al cargar fotos');
+                if (response.status === 401) {
+                    setError('No estás autenticado. Por favor, inicia sesión.');
+                } else {
+                    setError(data.detail || 'Error al cargar fotos');
+                }
             }
         } catch (err) {
             setError(`Error: ${err.message}`);

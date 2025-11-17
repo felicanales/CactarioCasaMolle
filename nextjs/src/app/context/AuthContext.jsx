@@ -27,15 +27,30 @@ const getCsrfToken = () => {
   return null;
 };
 
-// Helper para obtener el access token SOLO de cookies (más seguro)
+// Helper para obtener el access token de cookies (cross-domain compatible)
 const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
 
-  // Solo usar cookies (más seguro, HttpOnly)
-  const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-  if (match) {
-    console.log('[AuthContext] Using token from cookies');
-    return match[2];
+  // Intentar leer cookies de diferentes formas para cross-domain
+  try {
+    // Método 1: Regex estándar
+    let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+    if (match && match[2]) {
+      console.log('[AuthContext] Using token from cookies (regex)');
+      return match[2];
+    }
+    
+    // Método 2: Buscar en todas las cookies (para cross-domain)
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'sb-access-token' && value) {
+        console.log('[AuthContext] Using token from cookies (split method)');
+        return value;
+      }
+    }
+  } catch (error) {
+    console.warn('[AuthContext] Error reading cookies:', error);
   }
 
   return null;

@@ -14,12 +14,53 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
 
-const getAccessToken = () => {
+// Helper para obtener el access token
+// Prioridad: token del AuthContext > cookies > localStorage
+const getAccessTokenFromContext = (accessTokenFromContext) => {
+    // Prioridad 1: Token del estado de AuthContext (más confiable)
+    if (accessTokenFromContext) {
+        console.log('[SectorsPage] Using token from AuthContext state');
+        return accessTokenFromContext;
+    }
+
     if (typeof window === 'undefined') return null;
-    const localStorageToken = localStorage.getItem('access_token');
-    if (localStorageToken) return localStorageToken;
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    return match ? match[2] : null;
+
+    // Prioridad 2: cookies (incluyendo cookies cross-domain)
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            console.log('[SectorsPage] Using token from cookies (method 1)');
+            return match[2];
+        }
+        
+        // Método 2: Buscar en todas las cookies
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                console.log('[SectorsPage] Using token from cookies (method 2)');
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[SectorsPage] Error reading cookies:', error);
+    }
+
+    // Prioridad 3: localStorage (para compatibilidad)
+    try {
+        const localStorageToken = localStorage.getItem('access_token');
+        if (localStorageToken) {
+            console.log('[SectorsPage] Using token from localStorage');
+            return localStorageToken;
+        }
+    } catch (error) {
+        console.warn('[SectorsPage] Error reading localStorage:', error);
+    }
+
+    console.warn('[SectorsPage] No token found in any source');
+    return null;
 };
 
 const getCsrfToken = () => {
@@ -30,19 +71,31 @@ const getCsrfToken = () => {
     return null;
 };
 
-const apiRequest = async (url, options = {}) => {
-    const accessToken = getAccessToken();
+// Helper para requests autenticadas
+// Recibe accessToken del AuthContext como parámetro
+const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+    // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+    const token = getAccessTokenFromContext(accessTokenFromContext);
     const csrfToken = getCsrfToken();
+
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
+
+    // Agregar CSRF token para operaciones que modifican datos
     if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
     }
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+
+    // Agregar Authorization header si hay token disponible
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('[SectorsPage] Adding Authorization header to:', url);
+    } else {
+        console.warn('[SectorsPage] ⚠️ No access token available for:', url);
     }
+
     return fetch(url, {
         ...options,
         headers,
@@ -133,7 +186,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SectorsPage() {
-    const { user, loading: authLoading, logout } = useAuth();
+    const { user, loading: authLoading, logout, accessToken } = useAuth();
     const router = useRouter();
 
     const [sectors, setSectors] = useState([]);
@@ -178,7 +231,7 @@ export default function SectorsPage() {
             const url = searchQuery
                 ? `${API}/sectors/staff?q=${encodeURIComponent(searchQuery)}`
                 : `${API}/sectors/staff`;
-            const res = await apiRequest(url);
+            const res = await apiRequest(url, {}, accessToken);
             if (!res.ok && !BYPASS_AUTH) {
                 if (res.status === 401) {
                     setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
@@ -211,7 +264,7 @@ export default function SectorsPage() {
                 for (const sector of sectors) {
                     try {
                         setLoadingSpeciesMap(prev => ({ ...prev, [sector.id]: true }));
-                        const res = await apiRequest(`${API}/sectors/staff/${sector.id}/species`);
+                        const res = await apiRequest(`${API}/sectors/staff/${sector.id}/species`, {}, accessToken);
                         if (res.ok) {
                             const data = await res.json();
                             setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: data }));
@@ -256,7 +309,7 @@ export default function SectorsPage() {
     const fetchSectorSpecies = async (sectorId) => {
         try {
             setLoadingSpecies(true);
-            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`);
+            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`, {}, accessToken);
             if (res.ok) {
                 const data = await res.json();
                 setSectorSpecies(data);
@@ -290,13 +343,13 @@ export default function SectorsPage() {
                 res = await apiRequest(`${API}/sectors/staff`, {
                     method: "POST",
                     body: JSON.stringify(formData)
-                });
+                }, accessToken);
                 console.log("[handleSubmit] Respuesta del servidor:", res.status, res.ok);
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
                     body: JSON.stringify(formData)
-                });
+                }, accessToken);
             }
 
             // Verificar respuesta siempre, incluso con BYPASS_AUTH
@@ -331,7 +384,7 @@ export default function SectorsPage() {
         try {
             const res = await apiRequest(`${API}/sectors/staff/${sectorIdToDelete}`, {
                 method: "DELETE"
-            });
+            }, accessToken);
             setShowDeleteModal(false);
             setSectorIdToDelete(null);
             fetchSectors();

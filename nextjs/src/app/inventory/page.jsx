@@ -14,12 +14,53 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
 
-const getAccessToken = () => {
+// Helper para obtener el access token
+// Prioridad: token del AuthContext > cookies > localStorage
+const getAccessTokenFromContext = (accessTokenFromContext) => {
+    // Prioridad 1: Token del estado de AuthContext (más confiable)
+    if (accessTokenFromContext) {
+        console.log('[InventoryPage] Using token from AuthContext state');
+        return accessTokenFromContext;
+    }
+
     if (typeof window === 'undefined') return null;
-    const localStorageToken = localStorage.getItem('access_token');
-    if (localStorageToken) return localStorageToken;
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    return match ? match[2] : null;
+
+    // Prioridad 2: cookies (incluyendo cookies cross-domain)
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            console.log('[InventoryPage] Using token from cookies (method 1)');
+            return match[2];
+        }
+        
+        // Método 2: Buscar en todas las cookies
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                console.log('[InventoryPage] Using token from cookies (method 2)');
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[InventoryPage] Error reading cookies:', error);
+    }
+
+    // Prioridad 3: localStorage (para compatibilidad)
+    try {
+        const localStorageToken = localStorage.getItem('access_token');
+        if (localStorageToken) {
+            console.log('[InventoryPage] Using token from localStorage');
+            return localStorageToken;
+        }
+    } catch (error) {
+        console.warn('[InventoryPage] Error reading localStorage:', error);
+    }
+
+    console.warn('[InventoryPage] No token found in any source');
+    return null;
 };
 
 const getCsrfToken = () => {
@@ -30,19 +71,31 @@ const getCsrfToken = () => {
     return null;
 };
 
-const apiRequest = async (url, options = {}) => {
-    const accessToken = getAccessToken();
+// Helper para requests autenticadas
+// Recibe accessToken del AuthContext como parámetro
+const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+    // Usar token del contexto si está disponible, sino buscar en cookies/localStorage
+    const token = getAccessTokenFromContext(accessTokenFromContext);
     const csrfToken = getCsrfToken();
+
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
+
+    // Agregar CSRF token para operaciones que modifican datos
     if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
     }
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+
+    // Agregar Authorization header si hay token disponible
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('[InventoryPage] Adding Authorization header to:', url);
+    } else {
+        console.warn('[InventoryPage] ⚠️ No access token available for:', url);
     }
+
     return fetch(url, {
         ...options,
         headers,
@@ -133,7 +186,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function InventoryPage() {
-    const { user, loading: authLoading, logout } = useAuth();
+    const { user, loading: authLoading, logout, accessToken } = useAuth();
     const router = useRouter();
 
     const [ejemplares, setEjemplares] = useState([]);
@@ -197,7 +250,7 @@ export default function InventoryPage() {
     useEffect(() => {
         const fetchSpecies = async () => {
             try {
-                const res = await apiRequest(`${API}/species/staff`);
+                const res = await apiRequest(`${API}/species/staff`, {}, accessToken);
                 if (res.ok) {
                     const data = await res.json();
                     setSpeciesList(data);
@@ -209,7 +262,7 @@ export default function InventoryPage() {
         
         const fetchSectors = async () => {
             try {
-                const res = await apiRequest(`${API}/sectors/staff`);
+                const res = await apiRequest(`${API}/sectors/staff`, {}, accessToken);
                 if (res.ok) {
                     const data = await res.json();
                     setSectorsList(data);
@@ -241,7 +294,7 @@ export default function InventoryPage() {
             params.append('sort_order', sortOrder);
             
             const url = `${API}/ejemplar/staff?${params.toString()}`;
-            const res = await apiRequest(url);
+            const res = await apiRequest(url, {}, accessToken);
             
             if (!res.ok && !BYPASS_AUTH) {
                 if (res.status === 401) {
@@ -310,7 +363,7 @@ export default function InventoryPage() {
         try {
             const ok = typeof window !== "undefined" ? window.confirm("¿Eliminar este registro? Esta acción no se puede deshacer.") : true;
             if (!ok) return;
-            const res = await apiRequest(`${API}/ejemplar/staff/${ej.id}`, { method: "DELETE" });
+            const res = await apiRequest(`${API}/ejemplar/staff/${ej.id}`, { method: "DELETE" }, accessToken);
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.detail || "No se pudo eliminar el ejemplar");
@@ -341,7 +394,7 @@ export default function InventoryPage() {
 
             for (const id of idsArray) {
                 try {
-                    const res = await apiRequest(`${API}/ejemplar/staff/${id}`, { method: "DELETE" });
+                    const res = await apiRequest(`${API}/ejemplar/staff/${id}`, { method: "DELETE" }, accessToken);
                     if (!res.ok) {
                         const data = await res.json().catch(() => ({}));
                         throw new Error(data.detail || "Error al eliminar");
@@ -419,7 +472,7 @@ export default function InventoryPage() {
             const res = await apiRequest(`${API}/ejemplar/staff/${selectedEjemplar.id}`, {
                 method: "PUT",
                 body: JSON.stringify(payload)
-            });
+            }, accessToken);
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.detail || "No se pudo actualizar el ejemplar");
@@ -523,7 +576,7 @@ export default function InventoryPage() {
                     const res = await apiRequest(`${API}/ejemplar/staff`, {
                         method: "POST",
                         body: JSON.stringify(basePayload)
-                    });
+                    }, accessToken);
                     
                     if (!res.ok) {
                         const errorData = await res.json().catch(() => ({}));
