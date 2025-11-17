@@ -95,9 +95,12 @@ export default function ReportsPage() {
 
         if (token) {
             headers.Authorization = `Bearer ${token}`;
-            console.log('[ReportsPage] Adding Authorization header to:', fullUrl);
+            console.log('[ReportsPage] ✅ Adding Authorization header to:', options.method || 'GET', fullUrl);
+            console.log('[ReportsPage] Token source:', accessToken ? 'AuthContext' : 'cookies/localStorage');
         } else {
-            console.warn('[ReportsPage] ⚠️ No access token available for:', fullUrl);
+            console.error('[ReportsPage] ❌ No access token available for:', options.method || 'GET', fullUrl);
+            console.error('[ReportsPage] accessToken from context:', accessToken);
+            console.error('[ReportsPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
         }
 
         try {

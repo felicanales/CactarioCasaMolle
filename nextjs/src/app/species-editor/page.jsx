@@ -123,9 +123,12 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
         }
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
-            console.log('[SpeciesEditor] Adding Authorization header to:', finalUrl);
+            console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
+            console.log('[SpeciesEditor] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
         } else {
-            console.warn('[SpeciesEditor] ⚠️ No access token available for:', finalUrl);
+            console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
+            console.error('[SpeciesEditor] accessTokenFromContext:', accessTokenFromContext);
+            console.error('[SpeciesEditor] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
         }
 
         // Detectar si es un endpoint de especies del sector

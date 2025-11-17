@@ -91,9 +91,12 @@ const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
     // Agregar Authorization header si hay token disponible
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('[InventoryPage] Adding Authorization header to:', url);
+        console.log('[InventoryPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
+        console.log('[InventoryPage] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
     } else {
-        console.warn('[InventoryPage] ⚠️ No access token available for:', url);
+        console.error('[InventoryPage] ❌ No access token available for:', options.method || 'GET', url);
+        console.error('[InventoryPage] accessTokenFromContext:', accessTokenFromContext);
+        console.error('[InventoryPage] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
     }
 
     return fetch(url, {
