@@ -375,11 +375,20 @@ def me(request: Request):
     if not validate_user_active(user_claims["id"]):
         raise HTTPException(403, "User account is inactive")
     
-    # Return user information including the access token
-    return {
+    # Get CSRF token from cookie if available
+    csrf_token = request.cookies.get("csrf-token")
+    
+    # Return user information including the access token and CSRF token
+    response_data = {
         "id": user_claims["id"],
         "email": user_claims["email"],
         "role": user_claims.get("role", "authenticated"),
         "authenticated": True,
         "access_token": token  # Include the token so frontend can update localStorage
     }
+    
+    # Include CSRF token if available (necesario para cookies cross-domain)
+    if csrf_token:
+        response_data["csrf_token"] = csrf_token
+    
+    return response_data
