@@ -262,7 +262,11 @@ export default function LoginPage() {
       await verifyOtp(email, codeValidation.sanitized);
       setSuccess("✅ Autenticación exitosa");
       setAttempts(0); // Resetear intentos en éxito
-      router.push("/staff");
+      
+      // Esperar un momento para que el estado se actualice antes de redirigir
+      setTimeout(() => {
+        router.push("/staff");
+      }, 300);
     } catch (err) {
       setError(err.message || "Código inválido");
       // Limpiar código en error

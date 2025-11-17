@@ -213,10 +213,33 @@ export function AuthProvider({ children }) {
     }
     if (data.user) {
       setUser(data.user);
+      console.log('[AuthContext] User set from verify response:', data.user);
     }
 
-    // Actualizar estado completo
-    await fetchMe();
+    // Esperar un poco para que las cookies se propaguen antes de llamar fetchMe
+    // Esto es necesario porque las cookies pueden no estar disponibles inmediatamente
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Actualizar estado completo con fetchMe
+    try {
+      const fetchMeSuccess = await fetchMe();
+      if (fetchMeSuccess) {
+        console.log('[AuthContext] fetchMe successful after verify');
+      } else {
+        console.warn('[AuthContext] fetchMe failed after verify, but user data is available');
+        // Si fetchMe falla pero tenemos datos del usuario de la respuesta, mantenerlos
+        if (data.user) {
+          setUser(data.user);
+        }
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error in fetchMe after verify:', error);
+      // Si fetchMe falla pero tenemos datos del usuario de la respuesta, mantenerlos
+      if (data.user) {
+        setUser(data.user);
+      }
+    }
+
     return data;
   };
 
