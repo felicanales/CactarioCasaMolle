@@ -22,9 +22,39 @@ console.log(`🌐 Server will listen on: ${HOSTNAME}:${PORT}`);
 console.log(`🔐 PORT from Railway: ${process.env.PORT || '(not set, using 3000)'}`);
 console.log('');
 
-// Copy static files if they don't exist in standalone directory
+// Debug: List directory structure
 const fs = require('fs');
 const path = require('path');
+
+function listDirectory(dir, depth = 0, maxDepth = 3) {
+    if (depth > maxDepth) return;
+    try {
+        if (fs.existsSync(dir)) {
+            const items = fs.readdirSync(dir, { withFileTypes: true });
+            const indent = '  '.repeat(depth);
+            console.log(`${indent}📁 ${path.basename(dir)}/`);
+            items.forEach(item => {
+                const fullPath = path.join(dir, item.name);
+                if (item.isDirectory()) {
+                    listDirectory(fullPath, depth + 1, maxDepth);
+                } else {
+                    console.log(`${indent}  📄 ${item.name}`);
+                }
+            });
+        }
+    } catch (error) {
+        console.log(`${'  '.repeat(depth)}❌ Error reading ${dir}: ${error.message}`);
+    }
+}
+
+console.log('🔍 Checking build output structure...');
+if (fs.existsSync('.next')) {
+    console.log('📁 .next directory exists');
+    listDirectory('.next', 0, 2);
+} else {
+    console.log('❌ .next directory does NOT exist - build may have failed');
+}
+console.log('');
 
 function copyStaticFiles() {
     console.log('🔍 Checking for static files...');
@@ -54,11 +84,25 @@ function copyStaticFiles() {
 // Run copy before checking server paths
 copyStaticFiles();
 
+// Detect standalone directory first
+let standaloneBase = null;
+if (existsSync('.next/standalone/nextjs')) {
+    standaloneBase = '.next/standalone/nextjs';
+    console.log('📁 Detected monorepo structure: .next/standalone/nextjs');
+} else if (existsSync('.next/standalone')) {
+    standaloneBase = '.next/standalone';
+    console.log('📁 Detected standard structure: .next/standalone');
+} else {
+    console.error('❌ ERROR: Standalone directory not found!');
+    console.error('   Searched: .next/standalone and .next/standalone/nextjs');
+    process.exit(1);
+}
+
 // Possible locations for server.js in standalone build
 const possiblePaths = [
-    '.next/standalone/nextjs/server.js',     // Monorepo with outputFileTracingRoot
-    '.next/standalone/server.js',             // Standard standalone
-    '../.next/standalone/nextjs/server.js',   // Alternative monorepo structure
+    path.join(standaloneBase, 'server.js'),   // Most common location
+    '.next/standalone/server.js',             // Fallback
+    '.next/standalone/nextjs/server.js',      // Fallback
 ];
 
 console.log('🔍 Searching for standalone server.js...');
