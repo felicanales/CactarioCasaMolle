@@ -9,6 +9,8 @@
 const { existsSync } = require('fs');
 const { resolve } = require('path');
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 // Railway provides PORT, default to 3000 for local development
 const PORT = process.env.PORT || 3000;
@@ -23,9 +25,6 @@ console.log(`🔐 PORT from Railway: ${process.env.PORT || '(not set, using 3000
 console.log('');
 
 // Debug: List directory structure
-const fs = require('fs');
-const path = require('path');
-
 function listDirectory(dir, depth = 0, maxDepth = 3) {
     if (depth > maxDepth) return;
     try {
@@ -59,20 +58,33 @@ console.log('');
 function copyStaticFiles() {
     console.log('🔍 Checking for static files...');
 
+    // Detect standalone directory structure first
+    let standaloneDir = null;
+    if (existsSync('.next/standalone/nextjs')) {
+        standaloneDir = '.next/standalone/nextjs';
+        console.log('📁 Detected monorepo structure: .next/standalone/nextjs');
+    } else if (existsSync('.next/standalone')) {
+        standaloneDir = '.next/standalone';
+        console.log('📁 Detected standard structure: .next/standalone');
+    } else {
+        console.warn('⚠️  Standalone directory not found, skipping file copy');
+        return;
+    }
+
     const staticSource = '.next/static';
-    const staticDest = '.next/standalone/nextjs/.next/static';
+    const staticDest = path.join(standaloneDir, '.next/static');
     const publicSource = 'public';
-    const publicDest = '.next/standalone/nextjs/public';
+    const publicDest = path.join(standaloneDir, 'public');
 
     try {
         if (existsSync(staticSource) && !existsSync(staticDest)) {
-            console.log('📦 Copying .next/static to standalone...');
+            console.log(`📦 Copying .next/static to ${staticDest}...`);
             fs.cpSync(staticSource, staticDest, { recursive: true });
             console.log('   ✅ Static files copied');
         }
 
         if (existsSync(publicSource) && !existsSync(publicDest)) {
-            console.log('📦 Copying public to standalone...');
+            console.log(`📦 Copying public to ${publicDest}...`);
             fs.cpSync(publicSource, publicDest, { recursive: true });
             console.log('   ✅ Public files copied');
         }
@@ -84,33 +96,20 @@ function copyStaticFiles() {
 // Run copy before checking server paths
 copyStaticFiles();
 
-// Detect standalone directory first
-let standaloneBase = null;
-if (existsSync('.next/standalone/nextjs')) {
-    standaloneBase = '.next/standalone/nextjs';
-    console.log('📁 Detected monorepo structure: .next/standalone/nextjs');
-} else if (existsSync('.next/standalone')) {
-    standaloneBase = '.next/standalone';
-    console.log('📁 Detected standard structure: .next/standalone');
-} else {
-    console.error('❌ ERROR: Standalone directory not found!');
-    console.error('   Searched: .next/standalone and .next/standalone/nextjs');
-    process.exit(1);
-}
-
 // Possible locations for server.js in standalone build
 const possiblePaths = [
-    path.join(standaloneBase, 'server.js'),   // Most common location
-    '.next/standalone/server.js',             // Fallback
-    '.next/standalone/nextjs/server.js',      // Fallback
+    '.next/standalone/server.js',             // Standard standalone (most common)
+    '.next/standalone/nextjs/server.js',      // Monorepo structure
+    '.next/standalone/.next/server.js',       // Alternative structure
 ];
 
 console.log('🔍 Searching for standalone server.js...');
 
 let serverPath = null;
 
-for (const path of possiblePaths) {
-    const fullPath = resolve(path);
+// Check each possible path
+for (const possiblePath of possiblePaths) {
+    const fullPath = resolve(possiblePath);
     console.log(`   Checking: ${fullPath}`);
     if (existsSync(fullPath)) {
         serverPath = fullPath;
@@ -121,6 +120,38 @@ for (const path of possiblePaths) {
     }
 }
 
+// If not found in standard locations, search recursively
+if (!serverPath) {
+    console.log('🔍 Searching recursively in .next/standalone...');
+    const standaloneDir = '.next/standalone';
+    if (existsSync(standaloneDir)) {
+        function findServerJs(dir, depth = 0) {
+            if (depth > 3) return null; // Limit recursion depth
+            try {
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry.name);
+                    if (entry.isFile() && entry.name === 'server.js') {
+                        return resolve(fullPath);
+                    }
+                    if (entry.isDirectory() && !entry.name.startsWith('.')) {
+                        const found = findServerJs(fullPath, depth + 1);
+                        if (found) return found;
+                    }
+                }
+            } catch (error) {
+                // Ignore errors
+            }
+            return null;
+        }
+        const found = findServerJs(standaloneDir);
+        if (found) {
+            serverPath = found;
+            console.log(`   ✅ Found recursively: ${found}`);
+        }
+    }
+}
+
 if (!serverPath) {
     console.error('');
     console.error('❌ ERROR: Could not find server.js in any expected location');
@@ -128,6 +159,7 @@ if (!serverPath) {
     possiblePaths.forEach(p => console.error(`  - ${resolve(p)}`));
     console.error('');
     console.error('💡 TIP: Make sure "npm run build" completed successfully');
+    console.error('💡 TIP: Check that output: "standalone" is set in next.config.mjs');
     process.exit(1);
 }
 
@@ -162,4 +194,3 @@ child.on('exit', (code) => {
     }
     process.exit(code);
 });
-
