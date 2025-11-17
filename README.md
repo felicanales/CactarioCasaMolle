@@ -1,6 +1,44 @@
 # 🌵 Cactario Casa Molle
 
-Sistema de gestión de cactáceas para Casa Molle - Frontend Next.js + Backend FastAPI
+Sistema de gestión de cactáceas para Casa Molle con múltiples interfaces: panel de administración (staff) y aplicación móvil para visitantes.
+
+## 📦 Componentes del Sistema
+
+### 1. **Frontend Staff** (`nextjs/`)
+Panel de administración para el personal del cactuario. Permite gestionar especies, sectores, inventario y reportes.
+
+- **Tecnología**: Next.js 15.5.5
+- **Puerto desarrollo**: 3000
+- **Características**:
+  - Gestión de especies
+  - Gestión de sectores
+  - Control de inventario
+  - Reportes y estadísticas
+  - Subida y gestión de fotos
+
+### 2. **Frontend Mobile** (`mobile/`)
+Aplicación web móvil para visitantes del cactuario. Permite explorar sectores, especies y escanear códigos QR.
+
+- **Tecnología**: Next.js 15.5.5
+- **Puerto desarrollo**: 3002
+- **Características**:
+  - Home con carrusel de fotos
+  - Escáner de códigos QR
+  - Navegación por sectores
+  - Visualización de especies
+  - Detalle de especies con fotos
+
+### 3. **Backend API** (`fastapi/`)
+API REST para gestionar datos del cactuario. Proporciona endpoints públicos y privados.
+
+- **Tecnología**: FastAPI (Python)
+- **Puerto desarrollo**: 8000
+- **Características**:
+  - API REST completa
+  - Endpoints públicos para visitantes
+  - Endpoints privados para staff
+  - Gestión de fotos y almacenamiento
+  - Integración con Supabase
 
 ## 🚀 Despliegue en Railway
 
@@ -24,10 +62,9 @@ SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
 # Database
 DATABASE_URL=tu_database_url
 
-# Security
-SECRET_KEY=tu_secret_key_muy_seguro
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Environment
+ENVIRONMENT=production
+NODE_ENV=production
 ```
 
 ### 🚂 Deploy en Railway
@@ -37,85 +74,147 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
    - New Project → Deploy from GitHub repo
    - Seleccionar este repositorio
 
-2. **Configurar Variables**:
-   - Settings → Variables
-   - Agregar todas las variables de entorno
+2. **Configurar Servicios**:
+   - Crear 3 servicios separados:
+     - **Backend**: Carpeta `fastapi/`
+     - **Frontend Staff**: Carpeta `nextjs/`
+     - **Frontend Mobile**: Carpeta `mobile/`
 
-3. **Deploy Automático**:
+3. **Configurar Variables**:
+   - Settings → Variables en cada servicio
+   - Agregar todas las variables de entorno necesarias
+
+4. **Deploy Automático**:
    - Railway detectará automáticamente Node.js y Python
    - Deploy automático en cada push
 
 ### 🛠️ Desarrollo Local
 
 ```bash
-# Instalar dependencias
-npm run install:nextjs
-npm run install:fastapi
+# Instalar dependencias de todos los servicios
+cd nextjs && npm install
+cd ../mobile && npm install
+cd ../fastapi && pip install -r requirements.txt
 
-# Desarrollo (solo frontend)
+# Desarrollo Frontend Staff
+cd nextjs
 npm run dev
+# Disponible en http://localhost:3000
 
-# Desarrollo completo (frontend + backend)
-npm run start:all
+# Desarrollo Frontend Mobile
+cd mobile
+npm run dev
+# Disponible en http://localhost:3002
 
-# Build para producción
-npm run build
+# Desarrollo Backend
+cd fastapi
+uvicorn app.main:app --reload
+# Disponible en http://localhost:8000
 ```
 
 ### 📁 Estructura del Proyecto
 
 ```
 /
-├── nextjs/              # Frontend Next.js
+├── nextjs/              # Frontend Staff (Next.js)
 │   ├── src/
-│   │   └── app/
-│   │       ├── login/   # Página de login
-│   │       ├── staff/   # Panel de staff
-│   │       └── context/ # Contexto de autenticación
+│   │   ├── app/
+│   │   │   ├── staff/   # Panel de staff
+│   │   │   ├── species/ # Gestión de especies
+│   │   │   ├── sectors/ # Gestión de sectores
+│   │   │   ├── inventory/ # Inventario
+│   │   │   └── reports/ # Reportes
+│   │   ├── components/  # Componentes React
+│   │   └── utils/      # Utilidades
+│   ├── railway.json     # Configuración Railway frontend staff
+│   └── package.json
+├── mobile/              # Frontend Mobile (Next.js)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.js  # Home
+│   │   │   ├── qr/      # Escáner QR
+│   │   │   ├── sectores/ # Navegación sectores
+│   │   │   └── especies/ # Detalle especies
+│   │   ├── components/  # Componentes React
+│   │   └── utils/       # Utilidades
 │   └── package.json
 ├── fastapi/             # Backend FastAPI
 │   ├── app/
 │   │   ├── api/         # Rutas de la API
 │   │   ├── core/        # Configuración core
-│   │   └── models/      # Modelos de datos
+│   │   ├── models/      # Modelos de datos
+│   │   └── services/    # Lógica de negocio
 │   ├── Dockerfile       # Configuración Docker
 │   ├── railway.json     # Configuración Railway backend
 │   └── requirements.txt
 └── package.json         # Scripts principales
 ```
 
-### 🔐 Autenticación
-
-- **Frontend**: Next.js con contexto de autenticación
-- **Backend**: FastAPI con JWT y cookies HTTP-Only
-- **Base de datos**: Supabase
-- **CORS**: Configurado para Railway
-
 ### 🌐 URLs
 
-- **Desarrollo**: `http://localhost:3000` (frontend) + `http://localhost:8000` (backend)
-- **Producción**: `https://tu-proyecto.railway.app` (ambos servicios)
+#### Desarrollo
+- **Frontend Staff**: `http://localhost:3000`
+- **Frontend Mobile**: `http://localhost:3002`
+- **Backend API**: `http://localhost:8000`
+
+#### Producción
+- **Frontend Staff**: `https://tu-frontend-staff.railway.app`
+- **Frontend Mobile**: `https://tu-frontend-mobile.railway.app`
+- **Backend API**: `https://tu-backend.railway.app`
 
 ### 📱 Características
 
-- ✅ Login con código de verificación por email
-- ✅ Formulario de código con inputs separados
-- ✅ Panel de staff
+#### Frontend Staff
+- ✅ Panel de administración completo
 - ✅ Gestión de especies y sectores
-- ✅ Autenticación segura con cookies HTTP-Only
-- ✅ CORS configurado correctamente
-- ✅ Deploy automático en Railway
+- ✅ Control de inventario
+- ✅ Reportes y estadísticas
+- ✅ Subida y gestión de fotos
+
+#### Frontend Mobile
+- ✅ Interfaz móvil optimizada
+- ✅ Escáner de códigos QR
+- ✅ Navegación por sectores
+- ✅ Visualización de especies
+- ✅ Carrusel de fotos
+
+#### Backend
+- ✅ API REST completa
+- ✅ Endpoints públicos y privados
+- ✅ Gestión de fotos
+- ✅ Integración con Supabase
+- ✅ CORS configurado
 
 ## 🎯 Scripts Disponibles
 
+### Frontend Staff
 ```bash
-npm run dev              # Desarrollo frontend
-npm run start:all        # Frontend + Backend
-npm run build           # Build ambos servicios
-npm run start:nextjs    # Solo frontend
-npm run start:fastapi   # Solo backend
+cd nextjs
+npm run dev          # Desarrollo
+npm run build        # Build producción
+npm start            # Producción
 ```
+
+### Frontend Mobile
+```bash
+cd mobile
+npm run dev          # Desarrollo
+npm run build        # Build producción
+npm start            # Producción
+```
+
+### Backend
+```bash
+cd fastapi
+uvicorn app.main:app --reload  # Desarrollo
+```
+
+## 📚 Documentación Adicional
+
+- `mobile/README.md` - Documentación detallada del frontend mobile
+- `DEPLOYMENT_GUIDE.md` - Guía de despliegue
+- `INSTRUCCIONES_DEPLOY_RAILWAY.md` - Instrucciones específicas para Railway
 
 ## 📞 Soporte
 
-Para problemas o preguntas, revisar los logs en Railway Dashboard.
+Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la documentación de cada componente.
