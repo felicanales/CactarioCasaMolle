@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getApiUrl } from "../../utils/api-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+// Por defecto está DESACTIVADO (requiere autenticación)
+// Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Calcular API dinámicamente para evitar problemas en móviles
 const getDynamicApiUrl = () => {

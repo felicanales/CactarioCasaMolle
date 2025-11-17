@@ -47,11 +47,19 @@ export default function PhotoGallery({
 
     const handleSetCover = async (photoId) => {
         try {
+            const token = getAccessToken();
+            if (!token) {
+                console.error('No hay token de autenticación');
+                setError('No estás autenticado. Por favor, inicia sesión.');
+                return;
+            }
+
             const API = getApiUrl();
 
             const response = await fetch(`${API}/photos/${photoId}`, {
                 method: 'PUT',
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
                 body: new URLSearchParams({
@@ -73,10 +81,20 @@ export default function PhotoGallery({
         if (!confirm('¿Estás seguro de eliminar esta foto?')) return;
 
         try {
+            const token = getAccessToken();
+            if (!token) {
+                console.error('No hay token de autenticación');
+                setError('No estás autenticado. Por favor, inicia sesión.');
+                return;
+            }
+
             const API = getApiUrl();
 
             const response = await fetch(`${API}/photos/${photoId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 credentials: 'include'
             });
 

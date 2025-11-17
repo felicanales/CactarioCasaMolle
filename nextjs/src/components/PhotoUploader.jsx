@@ -79,6 +79,13 @@ export default function PhotoUploader({
         setSuccess("");
 
         try {
+            const token = getAccessToken();
+            if (!token) {
+                setError("No estás autenticado. Por favor, inicia sesión.");
+                setUploading(false);
+                return;
+            }
+
             const formData = new FormData();
             files.forEach(file => {
                 formData.append('files', file);
@@ -88,6 +95,9 @@ export default function PhotoUploader({
 
             const response = await fetch(`${API}/photos/${entityType}/${entityId}`, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
                 credentials: 'include'
             });

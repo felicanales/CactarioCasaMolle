@@ -9,9 +9,9 @@ import PhotoGallery from "../../components/PhotoGallery";
 import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
-// Por defecto está ACTIVADO en desarrollo local (no requiere .env)
-// Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+// Por defecto está DESACTIVADO (requiere autenticación)
+// Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Usar configuración centralizada de API URL
 const API = getApiUrl();

@@ -1,11 +1,13 @@
 # app/api/routes_photos.py
-from fastapi import APIRouter, HTTPException, Path, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, Path, File, UploadFile, Form, Depends
 from typing import List, Optional
 from app.services import photos_service as svc
+from app.middleware.auth_middleware import get_current_user
+from fastapi import Request
 
 router = APIRouter()
 
-@router.post("/{entity_type}/{entity_id}")
+@router.post("/{entity_type}/{entity_id}", dependencies=[Depends(get_current_user)])
 async def upload_photos(
     entity_type: str = Path(..., description="Tipo de entidad: especie, sector, ejemplar, etc."),
     entity_id: int = Path(..., ge=1),
@@ -14,7 +16,7 @@ async def upload_photos(
 ):
     """
     Sube fotos para cualquier entidad.
-    Acceso público (sin autenticación).
+    Requiere autenticación.
     """
     try:
         uploaded = await svc.upload_photos(entity_type, entity_id, files, is_cover_photo_id)
@@ -60,7 +62,7 @@ def get_cover_photo(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-@router.put("/{photo_id}")
+@router.put("/{photo_id}", dependencies=[Depends(get_current_user)])
 def update_photo(
     photo_id: int = Path(..., ge=1),
     is_cover: Optional[bool] = Form(None, description="Marcar como foto de portada"),
@@ -69,7 +71,7 @@ def update_photo(
 ):
     """
     Actualiza una foto (marcar como portada, cambiar orden, agregar descripción).
-    Acceso público (sin autenticación).
+    Requiere autenticación.
     """
     try:
         updated = svc.update_photo(photo_id, is_cover, order_index, caption)
@@ -79,13 +81,13 @@ def update_photo(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-@router.delete("/{photo_id}", status_code=204)
+@router.delete("/{photo_id}", status_code=204, dependencies=[Depends(get_current_user)])
 def delete_photo(
     photo_id: int = Path(..., ge=1)
 ):
     """
     Elimina una foto (del storage y de la base de datos).
-    Acceso público (sin autenticación).
+    Requiere autenticación.
     """
     try:
         svc.delete_photo(photo_id)

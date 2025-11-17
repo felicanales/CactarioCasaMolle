@@ -15,9 +15,9 @@ from app.core.security import (
 )
 
 # BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
-# Por defecto está ACTIVADO (bypass) para facilitar desarrollo sin autenticación
-# Para desactivar el bypass: setear BYPASS_AUTH=false en la variable de entorno
-BYPASS_AUTH = os.getenv("BYPASS_AUTH", "true").lower() == "true"
+# Por defecto está DESACTIVADO (requiere autenticación)
+# Para activar el bypass en desarrollo: setear BYPASS_AUTH=true en la variable de entorno
+BYPASS_AUTH = os.getenv("BYPASS_AUTH", "false").lower() == "true"
 
 class AuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp):
@@ -47,8 +47,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/docs",
             "/openapi.json",
             "/health",
-            "/debug",
-            "/photos"  # Rutas de fotos sin autenticación
+            "/debug"
+            # "/photos" removed - ahora requiere autenticación
         ]
         
         # Skip OPTIONS requests (CORS preflight)

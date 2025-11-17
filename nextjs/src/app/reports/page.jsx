@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApiUrl } from "../../utils/api-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
+// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
+// Por defecto está DESACTIVADO (requiere autenticación)
+// Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
+const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 export default function ReportsPage() {
     const { user, loading, logout } = useAuth();
