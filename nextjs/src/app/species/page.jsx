@@ -207,7 +207,7 @@ export default function SpeciesPage() {
         if (authApiRequest) {
             return authApiRequest(url, options);
         }
-        
+
         // Fallback: implementación local (para compatibilidad)
         const accessToken = getAccessTokenFromContext(accessTokenFromContext);
         const headers = {
