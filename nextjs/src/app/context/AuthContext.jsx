@@ -201,11 +201,19 @@ export function AuthProvider({ children }) {
           setAccessToken(data.access_token);
           console.log('[AuthContext] User authenticated, token available via cookies');
         }
-        // Actualizar CSRF token desde cookies
-        const csrfFromCookie = getCsrfToken();
-        if (csrfFromCookie) {
-          setCsrfToken(csrfFromCookie);
-          console.log('[AuthContext] CSRF token updated from cookies');
+        // Actualizar CSRF token desde respuesta del backend (prioridad) o cookies
+        if (data.csrf_token) {
+          setCsrfToken(data.csrf_token);
+          console.log('[AuthContext] CSRF token updated from backend response');
+        } else {
+          // Fallback: intentar leer de cookies (puede no funcionar en cross-domain)
+          const csrfFromCookie = getCsrfToken();
+          if (csrfFromCookie) {
+            setCsrfToken(csrfFromCookie);
+            console.log('[AuthContext] CSRF token updated from cookies');
+          } else {
+            console.warn('[AuthContext] No CSRF token available in response or cookies');
+          }
         }
         return true;
       }
