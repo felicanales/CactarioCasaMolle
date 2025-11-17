@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getApiUrl } from "../../utils/api-config";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
 
@@ -29,14 +30,7 @@ export default function ReportsPage() {
         }
     }, [user]);
 
-    const getApiUrl = () => {
-        if (typeof window === "undefined") return "";
-        const hostname = window.location.hostname;
-        if (hostname === "localhost" || hostname === "127.0.0.1") {
-            return "http://localhost:8000";
-        }
-        return "https://cactariocasamolle-production.up.railway.app";
-    };
+    // Usar configuración centralizada de API URL
 
     const apiRequest = async (url, options = {}) => {
         const API = getApiUrl();

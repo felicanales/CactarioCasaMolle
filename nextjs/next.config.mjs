@@ -8,6 +8,9 @@ const __dirname = dirname(__filename);
 const nextConfig = {
     reactStrictMode: true,
 
+    // Standalone output for Railway deployment
+    output: 'standalone',
+
     // Fix monorepo lockfile warning
     outputFileTracingRoot: join(__dirname, '../'),
 

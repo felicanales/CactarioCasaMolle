@@ -6,34 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PhotoUploader from "../../components/PhotoUploader";
 import PhotoGallery from "../../components/PhotoGallery";
+import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está ACTIVADO en desarrollo local (no requiere .env)
 // Para desactivar: setear NEXT_PUBLIC_BYPASS_AUTH=false en producción
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
 
-// Configuración dinámica de API
-const getApiUrl = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
-
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-
-        // Si se accede por ngrok o railway, usar backend de producción
-        if (hostname.includes('railway.app') ||
-            hostname.includes('ngrok.io') ||
-            hostname.includes('ngrok-free.app') ||
-            hostname.includes('ngrok-free.dev') ||
-            hostname.includes('ngrokapp.com')) {
-            return "https://cactariocasamolle-production.up.railway.app";
-        }
-    }
-
-    return "http://localhost:8000";
-};
-
+// Usar configuración centralizada de API URL
 const API = getApiUrl();
 
 // Helper para formatear nombres comunes
@@ -434,7 +414,7 @@ export default function SpeciesPage() {
             if (payload.image_url) delete payload.image_url; // image_url no existe en la tabla
             if (payload.created_at) delete payload.created_at;
             if (payload.updated_at) delete payload.updated_at;
-            
+
             // Convertir strings vacíos a null para campos ENUM (no aceptan strings vacíos)
             const enumFields = ["morfología_cactus", "tipo_morfología", "tipo_planta"];
             enumFields.forEach(field => {
@@ -442,7 +422,7 @@ export default function SpeciesPage() {
                     payload[field] = null;
                 }
             });
-            
+
             // Mapear tipo_morfología a morfología_cactus si es necesario
             if (payload.tipo_morfología && !payload.morfología_cactus) {
                 payload.morfología_cactus = payload.tipo_morfología;
@@ -1001,7 +981,7 @@ export default function SpeciesPage() {
                                                 textAlign: "center",
                                                 color: "#9ca3af"
                                             }}>
-                                                {species.length === 0 
+                                                {species.length === 0
                                                     ? "No hay especies registradas. ¡Crea la primera!"
                                                     : "No hay especies que coincidan con los filtros"}
                                             </td>
@@ -1010,10 +990,10 @@ export default function SpeciesPage() {
                                         filteredSpecies.map((sp) => {
                                             const isEndangered = sp.categoria_conservacion === "En peligro de extinción";
                                             return (
-                                            <tr
-                                                key={sp.id}
-                                                style={{
-                                                    borderBottom: "1px solid #e5e7eb",
+                                                <tr
+                                                    key={sp.id}
+                                                    style={{
+                                                        borderBottom: "1px solid #e5e7eb",
                                                         transition: "background-color 0.2s",
                                                         backgroundColor: isEndangered ? "#fee2e2" : "white",
                                                         borderLeft: isEndangered ? "4px solid #ef4444" : "none"
@@ -1086,23 +1066,23 @@ export default function SpeciesPage() {
                                                         )}
                                                     </td>
                                                     <td className="table-cell" style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
-                                                    color: "#111827",
-                                                    fontWeight: "500",
+                                                        padding: "16px",
+                                                        fontSize: "14px",
+                                                        color: "#111827",
+                                                        fontWeight: "500",
                                                         fontStyle: "italic",
                                                         verticalAlign: "middle"
-                                                }}>
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                                        <span>{sp.scientific_name}</span>
-                                                        <span style={{ fontSize: "12px", color: "#9ca3af", fontFamily: "monospace", marginTop: "2px" }}>
-                                                            ID: {sp.id}
-                                                        </span>
-                                                    </div>
-                                                </td>
+                                                    }}>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                                            <span>{sp.scientific_name}</span>
+                                                            <span style={{ fontSize: "12px", color: "#9ca3af", fontFamily: "monospace", marginTop: "2px" }}>
+                                                                ID: {sp.id}
+                                                            </span>
+                                                        </div>
+                                                    </td>
                                                     <td className="table-cell" style={{
-                                                    padding: "16px",
-                                                    fontSize: "14px",
+                                                        padding: "16px",
+                                                        fontSize: "14px",
                                                         color: "#374151",
                                                         verticalAlign: "middle"
                                                     }}>
@@ -1119,7 +1099,7 @@ export default function SpeciesPage() {
                                                                 <span style={{ fontStyle: "italic", color: "#9ca3af", fontSize: "14px" }}>-</span>
                                                             )}
                                                         </div>
-                                                </td>
+                                                    </td>
                                                     <td className="table-cell" style={{
                                                         padding: "16px",
                                                         verticalAlign: "middle"
@@ -1192,54 +1172,54 @@ export default function SpeciesPage() {
                                                         </div>
                                                     </td>
                                                     <td className="table-cell" style={{
-                                                    padding: "16px",
+                                                        padding: "16px",
                                                         textAlign: "right",
                                                         verticalAlign: "middle"
-                                                }}>
-                                                    <div style={{
-                                                        display: "flex",
-                                                        gap: "8px",
-                                                        justifyContent: "flex-end"
                                                     }}>
-                                                        <button
-                                                            onClick={() => handleView(sp)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#eff6ff",
-                                                                color: "#2563eb",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
-                                                        >
-                                                            Ver
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(sp.id)}
-                                                            style={{
-                                                                padding: "6px 12px",
-                                                                backgroundColor: "#fef2f2",
-                                                                color: "#dc2626",
-                                                                border: "none",
-                                                                borderRadius: "6px",
-                                                                fontSize: "13px",
-                                                                fontWeight: "500",
-                                                                cursor: "pointer",
-                                                                transition: "all 0.2s"
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                        <div style={{
+                                                            display: "flex",
+                                                            gap: "8px",
+                                                            justifyContent: "flex-end"
+                                                        }}>
+                                                            <button
+                                                                onClick={() => handleView(sp)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#eff6ff",
+                                                                    color: "#2563eb",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#dbeafe"}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#eff6ff"}
+                                                            >
+                                                                Ver
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(sp.id)}
+                                                                style={{
+                                                                    padding: "6px 12px",
+                                                                    backgroundColor: "#fef2f2",
+                                                                    color: "#dc2626",
+                                                                    border: "none",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "13px",
+                                                                    fontWeight: "500",
+                                                                    cursor: "pointer",
+                                                                    transition: "all 0.2s"
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = "#fee2e2"}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = "#fef2f2"}
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             );
                                         })
                                     )}
@@ -1426,10 +1406,10 @@ export default function SpeciesPage() {
                                     }}>
                                         📸 Fotos de la Especie
                                     </h3>
-                                    
+
                                     {/* Galería de fotos existentes */}
-                                    <PhotoGallery 
-                                        entityType="especie" 
+                                    <PhotoGallery
+                                        entityType="especie"
                                         entityId={selectedSpecies.id}
                                         showManageButtons={true}
                                         onRefresh={() => {
@@ -1439,10 +1419,10 @@ export default function SpeciesPage() {
                                             }
                                         }}
                                     />
-                                    
+
                                     {/* Componente para subir nuevas fotos */}
-                                    <PhotoUploader 
-                                        entityType="especie" 
+                                    <PhotoUploader
+                                        entityType="especie"
                                         entityId={selectedSpecies.id}
                                         onUploadComplete={() => {
                                             // Refrescar la galería después de subir

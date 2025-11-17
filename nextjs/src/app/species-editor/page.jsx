@@ -4,60 +4,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getApiUrl } from "../../utils/api-config";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
-
-const getApiUrl = () => {
-    // Prioridad 1: Variable de entorno
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
-
-    // Prioridad 2: Detectar si estamos en un dominio público (ngrok, railway, etc.)
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        const protocol = window.location.protocol;
-
-        // Si estamos en un dominio ngrok o railway, usar backend de producción
-        if (hostname.includes('railway.app') ||
-            hostname.includes('ngrok.io') ||
-            hostname.includes('ngrok-free.app') ||
-            hostname.includes('ngrok-free.dev') ||
-            hostname.includes('ngrokapp.com') ||
-            hostname.includes('ngrok')) {
-            return "https://cactariocasamolle-production.up.railway.app";
-        }
-
-        // Si estamos en HTTPS, SIEMPRE usar producción (ngrok, producción, etc.)
-        if (protocol === 'https:') {
-            // Solo localhost con HTTPS en desarrollo local (raro pero posible)
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                // Incluso en localhost HTTPS, usar producción por defecto para evitar problemas
-                return "https://cactariocasamolle-production.up.railway.app";
-            }
-            return "https://cactariocasamolle-production.up.railway.app";
-        }
-
-        // Si estamos en HTTP pero en una IP local (192.168.x.x, 10.x.x.x, 172.x.x.x), usar backend de producción
-        // Esto cubre el caso de acceder desde celular en la misma red local
-        // NUNCA usar localhost desde móvil (no funciona)
-        if (protocol === 'http:') {
-            if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
-                // IP local desde móvil o red local - usar producción
-                return "https://cactariocasamolle-production.up.railway.app";
-            }
-        }
-    }
-
-    // Prioridad 3: Desarrollo local (solo funciona en la misma máquina con localhost)
-    // Solo usar localhost si estamos en localhost exacto
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        return "http://localhost:8000";
-    }
-
-    // Fallback seguro: usar producción
-    return "https://cactariocasamolle-production.up.railway.app";
-};
 
 // Calcular API dinámicamente para evitar problemas en móviles
 const getDynamicApiUrl = () => {
@@ -65,11 +14,12 @@ const getDynamicApiUrl = () => {
         return getApiUrl();
     } catch (error) {
         // Fallback seguro
-        return process.env.NEXT_PUBLIC_API_URL || "https://cactariocasamolle-production.up.railway.app";
+        console.error('[species-editor] Error getting API URL:', error);
+        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     }
 };
 
-const API = typeof window !== 'undefined' ? getDynamicApiUrl() : (process.env.NEXT_PUBLIC_API_URL || "https://cactariocasamolle-production.up.railway.app");
+const API = typeof window !== 'undefined' ? getDynamicApiUrl() : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 
 const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
@@ -122,7 +72,9 @@ const apiRequest = async (url, options = {}) => {
             // Si la URL es localhost pero estamos en un dispositivo remoto, usar producción
             if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
                 if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-                    finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, 'https://cactariocasamolle-production.up.railway.app');
+                    // Usar la URL del API configurada en lugar de hardcodear
+                    const apiUrl = getApiUrl();
+                    finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiUrl);
                 }
             }
         }

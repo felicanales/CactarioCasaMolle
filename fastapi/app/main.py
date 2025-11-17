@@ -65,28 +65,43 @@ app = FastAPI(
 )
 
 # Permitir el origen del frontend - configuración dinámica por entorno
-origins = [
-    "http://localhost:3001",  # Frontend en puerto 3001
-    "http://127.0.0.1:3001",
-    "http://localhost:3000",  # Frontend alternativo
-    "http://127.0.0.1:3000",
-    "https://cactario-casa-molle.vercel.app",
-    "https://cactario-frontend-production.up.railway.app",  # Frontend Railway
-    "https://cactario-backend-production.up.railway.app",    # Backend Railway
-    "https://lymphatolytic-remona-jingly.ngrok-free.dev"      # ngrok tunneling
-]
+origins = []
 
-# Agregar orígenes desde variables de entorno si existen
-if os.getenv("CORS_ORIGINS"):
-    origins.extend(os.getenv("CORS_ORIGINS").split(","))
+# Desarrollo local - solo agregar si no estamos en producción
+environment = os.getenv("ENVIRONMENT", "development")
+if environment != "production":
+    origins.extend([
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ])
+
+# Producción - usar variables de entorno
+# Frontend domain desde variable de entorno (recomendado)
+frontend_domain = os.getenv("FRONTEND_DOMAIN")
+if frontend_domain:
+    # Remover protocolo si está incluido
+    domain = frontend_domain.replace("https://", "").replace("http://", "")
+    origins.append(f"https://{domain}")
+    origins.append(f"http://{domain}")
+
+# Railway - usar dominio público automáticamente
+railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+if railway_domain:
+    # Remover protocolo si está incluido
+    domain = railway_domain.replace("https://", "").replace("http://", "")
+    origins.append(f"https://{domain}")
+    origins.append(f"http://{domain}")
+
+# CORS adicional desde variable de entorno (separado por comas)
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    additional_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+    origins.extend(additional_origins)
 
 # Filtrar strings vacíos de la lista
-origins = [origin for origin in origins if origin]
-
-# En producción, permitir el mismo dominio (para Railway)
-if os.getenv("RAILWAY_PUBLIC_DOMAIN"):
-    origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}")
-    origins.append(f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN').replace('https://', '')}")
+origins = [origin for origin in origins if origin and origin.strip()]
 
 # Remover duplicados
 origins = list(set(origins))

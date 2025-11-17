@@ -4,26 +4,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
 
-// Configuración dinámica de API
-const getApiUrl = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        if (hostname.includes('railway.app') || hostname.includes('ngrok.io') ||
-            hostname.includes('ngrok-free.app') || hostname.includes('ngrok-free.dev') ||
-            hostname.includes('ngrokapp.com')) {
-            return "https://cactariocasamolle-production.up.railway.app";
-        }
-    }
-    return "http://localhost:8000";
-};
-
+// Usar configuración centralizada de API URL
 const API = getApiUrl();
 
 const getAccessToken = () => {
@@ -310,7 +296,7 @@ export default function SectorsPage() {
                     body: JSON.stringify(formData)
                 });
             }
-            
+
             // Verificar respuesta siempre, incluso con BYPASS_AUTH
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
@@ -318,11 +304,11 @@ export default function SectorsPage() {
                 console.error("[handleSubmit] Error del servidor:", errorMessage);
                 throw new Error(errorMessage);
             }
-            
+
             // Si la respuesta es exitosa, obtener los datos
             const result = await res.json().catch(() => null);
             console.log("[handleSubmit] Sector guardado exitosamente:", result);
-            
+
             setShowModal(false);
             fetchSectors();
         } catch (err) {

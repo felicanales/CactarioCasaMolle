@@ -4,25 +4,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getApiUrl } from "../../utils/api-config";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH !== "false";
 
-// Configuración dinámica de API
-const getApiUrl = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        if (hostname.includes('railway.app') || hostname.includes('ngrok.io') ||
-            hostname.includes('ngrok-free.app') || hostname.includes('ngrok-free.dev') ||
-            hostname.includes('ngrokapp.com')) {
-            return "https://cactariocasamolle-production.up.railway.app";
-        }
-    }
-    return "http://localhost:8000";
-};
-
+// Usar configuración centralizada de API URL
 const API = getApiUrl();
 
 const getAccessToken = () => {
