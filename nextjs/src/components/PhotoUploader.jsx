@@ -1,13 +1,56 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "../app/context/AuthContext";
 import { getApiUrl } from "../utils/api-config";
 
-const getAccessToken = () => {
+// Helper para obtener el access token
+// Prioridad: token del AuthContext > cookies > localStorage
+const getAccessTokenFromContext = (accessTokenFromContext) => {
+    // Prioridad 1: Token del estado de AuthContext (más confiable)
+    if (accessTokenFromContext) {
+        console.log('[PhotoUploader] Using token from AuthContext state');
+        return accessTokenFromContext;
+    }
+
     if (typeof window === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-    if (match) return match[2];
-    return localStorage.getItem('access_token');
+
+    // Prioridad 2: cookies (incluyendo cookies cross-domain)
+    // Intentar leer cookies de diferentes formas para cross-domain
+    try {
+        // Método 1: Regex estándar
+        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
+        if (match && match[2]) {
+            console.log('[PhotoUploader] Using token from cookies (method 1)');
+            return match[2];
+        }
+        
+        // Método 2: Buscar en todas las cookies (para cross-domain)
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'sb-access-token' && value) {
+                console.log('[PhotoUploader] Using token from cookies (method 2)');
+                return value;
+            }
+        }
+    } catch (error) {
+        console.warn('[PhotoUploader] Error reading cookies:', error);
+    }
+
+    // Prioridad 3: localStorage (para compatibilidad)
+    try {
+        const localStorageToken = localStorage.getItem('access_token');
+        if (localStorageToken) {
+            console.log('[PhotoUploader] Using token from localStorage');
+            return localStorageToken;
+        }
+    } catch (error) {
+        console.warn('[PhotoUploader] Error reading localStorage:', error);
+    }
+
+    console.warn('[PhotoUploader] No token found in any source');
+    return null;
 };
 
 export default function PhotoUploader({
@@ -16,6 +59,10 @@ export default function PhotoUploader({
     onUploadComplete,
     maxPhotos = 10
 }) {
+    // Obtener el token del AuthContext si está disponible
+    // El componente debe estar dentro del AuthProvider para que esto funcione
+    const auth = useAuth();
+    const accessTokenFromContext = auth?.accessToken || null;
     const [files, setFiles] = useState([]);
     const [previews, setPreviews] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -79,8 +126,12 @@ export default function PhotoUploader({
         setSuccess("");
 
         try {
-            const token = getAccessToken();
+            const token = getAccessTokenFromContext(accessTokenFromContext);
+            console.log('[PhotoUploader] Attempting upload, token available:', !!token);
+            console.log('[PhotoUploader] Token source:', accessTokenFromContext ? 'AuthContext' : 'cookies/localStorage');
+            
             if (!token) {
+                console.error('[PhotoUploader] No token available for upload');
                 setError("No estás autenticado. Por favor, inicia sesión.");
                 setUploading(false);
                 return;
@@ -92,19 +143,36 @@ export default function PhotoUploader({
             });
 
             const API = getApiUrl();
+            const url = `${API}/photos/${entityType}/${entityId}`;
+            
+            console.log('[PhotoUploader] Uploading to:', url);
+            console.log('[PhotoUploader] Files count:', files.length);
+            console.log('[PhotoUploader] Authorization header will be included');
 
-            const response = await fetch(`${API}/photos/${entityType}/${entityId}`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
+                    // NO incluir 'Content-Type' - el navegador lo establece automáticamente con boundary para FormData
                 },
                 body: formData,
                 credentials: 'include'
             });
+            
+            console.log('[PhotoUploader] Response status:', response.status);
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                console.error('[PhotoUploader] Error parsing response:', e);
+                const text = await response.text();
+                console.error('[PhotoUploader] Response text:', text);
+                throw new Error('Error al procesar respuesta del servidor');
+            }
 
             if (response.ok) {
+                console.log('[PhotoUploader] Upload successful:', data);
                 setSuccess(`${data.count || data.photos?.length || files.length} fotos subidas exitosamente`);
                 // Revocar URLs de previews antes de limpiar
                 previews.forEach(p => URL.revokeObjectURL(p.preview));
@@ -118,7 +186,12 @@ export default function PhotoUploader({
                     }, 1000);
                 }
             } else {
-                setError(data.detail || data.message || 'Error al subir fotos');
+                console.error('[PhotoUploader] Upload failed:', data);
+                if (response.status === 401) {
+                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+                } else {
+                    setError(data.detail || data.message || `Error al subir fotos (${response.status})`);
+                }
             }
         } catch (err) {
             setError(`Error: ${err.message}`);
