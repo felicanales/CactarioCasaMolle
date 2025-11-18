@@ -180,25 +180,22 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[update_staff] Se intentó actualizar 'photos', removiéndolo del payload")
         del payload["photos"]
     
+    # IMPORTANTE: Remover morfología_cactus completamente del payload
+    # El frontend solo debe usar tipo_morfología, no morfología_cactus
+    # Si morfología_cactus viene en el payload, siempre removerlo para evitar errores de enum
+    if "morfología_cactus" in payload:
+        logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (el frontend debe usar 'tipo_morfología'): '{payload.get('morfología_cactus')}'")
+        del payload["morfología_cactus"]
+    
     # Convertir strings vacíos a None para campos ENUM y opcionales
     # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
-    enum_fields = ["morfología_cactus", "tipo_morfología", "tipo_planta"]
+    enum_fields = ["tipo_morfología", "tipo_planta"]  # Removido morfología_cactus de la lista
     for field in enum_fields:
         if field in payload:
             # Si el valor es string vacío, convertir a None
             if payload[field] == "":
                 logger.info(f"[update_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
                 payload[field] = None
-            # Si el valor no es None y no está en los valores válidos conocidos, removerlo
-            # Esto evita errores de enum inválido
-            elif payload[field] is not None:
-                # Obtener los valores válidos del enum desde la base de datos
-                # Por ahora, si el valor parece inválido (como "Agave" para morfología_cactus),
-                # lo removemos del payload para evitar errores
-                # NOTA: Esto es una solución temporal. Idealmente deberíamos validar contra los valores reales del enum
-                if field == "morfología_cactus" and payload[field] not in ["Cactus", "Suculenta", "Cactácea"]:
-                    logger.warning(f"[update_staff] Valor inválido para enum {field}: '{payload[field]}', removiéndolo del payload")
-                    del payload[field]
     
     # Convertir strings vacíos a None para campos de texto opcionales
     optional_text_fields = ["nombre_común", "nombres_comunes", "habitat", "distribución", 
