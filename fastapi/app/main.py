@@ -142,8 +142,8 @@ app.add_middleware(
     allow_origins=origins,
     allow_origin_regex=combined_regex,  # Permitir dominios de ngrok y Railway con regex
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos
-    allow_headers=["*"],  # Permitir todos los headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],  # Todos los métodos HTTP comunes
+    allow_headers=["*"],  # Permitir todos los headers (FastAPI acepta "*" aquí)
     expose_headers=["*"],
 )
 logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok y Railway")
