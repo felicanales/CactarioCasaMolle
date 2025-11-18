@@ -11,7 +11,7 @@ export default function EspecieDetail() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug;
-  
+
   const [especie, setEspecie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ export default function EspecieDetail() {
     if (!content || (typeof content === 'string' && content.trim() === '')) {
       return null;
     }
-    
+
     return (
       <div
         onClick={onClick}
@@ -121,9 +121,9 @@ export default function EspecieDetail() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
         minHeight: '100vh',
         backgroundColor: '#F5E6D3',
         color: '#5D4037',
@@ -139,9 +139,9 @@ export default function EspecieDetail() {
 
   if (error || !especie) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
         minHeight: '100vh',
         backgroundColor: '#F5E6D3',
         color: '#5D4037',
@@ -169,17 +169,17 @@ export default function EspecieDetail() {
   }
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       minHeight: '100vh',
       backgroundColor: '#F5E6D3',
       color: '#3E2723',
     }}>
       <Header />
-      
+
       {/* Header con imagen de fondo */}
-      <div 
+      <div
         onClick={() => photos.length > 0 && setSelectedImageIndex(0)}
         style={{
           position: 'relative',
@@ -212,28 +212,6 @@ export default function EspecieDetail() {
               bottom: 0,
               backgroundColor: 'rgba(0, 0, 0, 0.4)',
             }} />
-            {/* Indicador de que la imagen es clicable */}
-            {photos.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                bottom: '20px',
-                right: '20px',
-                background: 'rgba(0, 0, 0, 0.6)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                color: '#FFFFFF',
-                fontSize: '12px',
-                fontWeight: '500',
-                zIndex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}>
-                📷 {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
-              </div>
-            )}
           </>
         )}
         {!coverPhoto && (
@@ -279,31 +257,6 @@ export default function EspecieDetail() {
           >
             ←
           </button>
-          
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              color: '#FFFFFF',
-              fontSize: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-              zIndex: 2,
-            }}
-          >
-            ⋮
-          </div>
 
           <h1 style={{
             fontSize: '32px',
@@ -314,7 +267,7 @@ export default function EspecieDetail() {
           }}>
             {especie.nombre_común || especie.scientific_name}
           </h1>
-          
+
           {especie.scientific_name && (
             <div style={{
               fontSize: '16px',
@@ -340,283 +293,276 @@ export default function EspecieDetail() {
         </div>
       </div>
 
-      <main style={{ 
-        flex: 1, 
+      <main style={{
+        flex: 1,
         padding: '20px',
         paddingBottom: '100px',
         backgroundColor: '#F5E6D3',
       }}>
         <>
-            {/* Badges de información básica */}
-            <div style={{ 
-              marginBottom: '24px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}>
-              {(especie.categoría_de_conservación || especie.categoria_conservacion) && 
-                renderBadge('Conservación', especie.categoría_de_conservación || especie.categoria_conservacion)}
-              {especie.Endémica && (
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(160, 82, 45, 0.2)',
-                  color: '#A0522D',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  marginRight: '8px',
-                  marginBottom: '8px',
-                  border: '1px solid #A0522D40',
-                }}>
-                  🇨🇱 Endémica de Chile
-                </div>
-              )}
-              {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#8B7355')}
-              {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#8B7355')}
-            </div>
-
-            {/* Galería de imágenes */}
-            {photos.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px',
-                }}>
-                  <h2 style={{
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    color: '#3E2723',
-                  }}>
-                    Imágenes
-                  </h2>
-                  <span style={{ color: '#8B7355', fontSize: '18px', cursor: 'pointer' }}>⋮</span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  overflowX: 'auto',
-                  paddingBottom: '8px',
-                }}>
-                  {photos.map((photo, index) => (
-                    <div
-                      key={photo.id || index}
-                      onClick={() => setSelectedImageIndex(index)}
-                      style={{
-                        minWidth: '120px',
-                        width: '120px',
-                        height: '120px',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <AuthenticatedImage
-                        src={photo.public_url || photo.url}
-                        alt={`Foto ${index + 1} de ${especie.nombre_común || especie.scientific_name}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
+          {/* Badges de información básica */}
+          <div style={{
+            marginBottom: '24px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            {(especie.categoría_de_conservación || especie.categoria_conservacion) &&
+              renderBadge('Conservación', especie.categoría_de_conservación || especie.categoria_conservacion)}
+            {especie.Endémica && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '6px 12px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(160, 82, 45, 0.2)',
+                color: '#A0522D',
+                fontSize: '12px',
+                fontWeight: '500',
+                marginRight: '8px',
+                marginBottom: '8px',
+                border: '1px solid #A0522D40',
+              }}>
+                🇨🇱 Endémica de Chile
               </div>
             )}
+            {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#8B7355')}
+            {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#8B7355')}
+          </div>
 
-            {/* Modal de imagen ampliada */}
-            {selectedImageIndex !== null && photos.length > 0 && (
+          {/* Galería de imágenes */}
+          {photos.length > 0 && (
+            <div style={{ marginBottom: '32px' }}>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#3E2723',
+                marginBottom: '16px',
+              }}>
+                Imágenes
+              </h2>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+              }}>
+                {photos.map((photo, index) => (
+                  <div
+                    key={photo.id || index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    style={{
+                      minWidth: '120px',
+                      width: '120px',
+                      height: '120px',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    <AuthenticatedImage
+                      src={photo.public_url || photo.url}
+                      alt={`Foto ${index + 1} de ${especie.nombre_común || especie.scientific_name}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Modal de imagen ampliada */}
+          {selectedImageIndex !== null && photos.length > 0 && (
+            <div
+              onClick={() => setSelectedImageIndex(null)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                zIndex: 1000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+              }}
+            >
               <div
-                onClick={() => setSelectedImageIndex(null)}
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  zIndex: 1000,
+                  position: 'relative',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '20px',
                 }}
               >
-                <div
-                  onClick={(e) => e.stopPropagation()}
+                {/* Botón cerrar */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex(null);
+                  }}
                   style={{
-                    position: 'relative',
-                    maxWidth: '100%',
-                    maxHeight: '100%',
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50%',
+                    width: '44px',
+                    height: '44px',
+                    color: '#FFFFFF',
+                    fontSize: '28px',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    zIndex: 1001,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                    lineHeight: 1,
                   }}
                 >
-                  {/* Botón cerrar */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedImageIndex(null);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: 'rgba(0, 0, 0, 0.6)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      borderRadius: '50%',
-                      width: '44px',
-                      height: '44px',
-                      color: '#FFFFFF',
-                      fontSize: '28px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1001,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                      lineHeight: 1,
-                    }}
-                  >
-                    ×
-                  </button>
+                  ×
+                </button>
 
-                  {/* Navegación anterior/siguiente */}
-                  {photos.length > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex((selectedImageIndex - 1 + photos.length) % photos.length);
-                        }}
+                {/* Navegación anterior/siguiente */}
+                {photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex((selectedImageIndex - 1 + photos.length) % photos.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: '10px',
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '50%',
+                        width: '48px',
+                        height: '48px',
+                        color: '#FFFFFF',
+                        fontSize: '24px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1001,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex((selectedImageIndex + 1) % photos.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '50%',
+                        width: '48px',
+                        height: '48px',
+                        color: '#FFFFFF',
+                        fontSize: '24px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1001,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+
+                {/* Imagen ampliada */}
+                <AuthenticatedImage
+                  src={photos[selectedImageIndex]?.public_url || photos[selectedImageIndex]?.url}
+                  alt={`Foto ${selectedImageIndex + 1} de ${especie.nombre_común || especie.scientific_name}`}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '90vh',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                  }}
+                />
+
+                {/* Indicador de imagen */}
+                {photos.length > 1 && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: '8px',
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(10px)',
+                  }}>
+                    {photos.map((_, index) => (
+                      <div
+                        key={index}
                         style={{
-                          position: 'absolute',
-                          left: '10px',
-                          background: 'rgba(0, 0, 0, 0.5)',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 255, 255, 0.3)',
+                          width: '8px',
+                          height: '8px',
                           borderRadius: '50%',
-                          width: '48px',
-                          height: '48px',
-                          color: '#FFFFFF',
-                          fontSize: '24px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 1001,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                          backgroundColor: index === selectedImageIndex ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)',
+                          transition: 'background-color 0.2s',
                         }}
-                      >
-                        ‹
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex((selectedImageIndex + 1) % photos.length);
-                        }}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          background: 'rgba(0, 0, 0, 0.5)',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 255, 255, 0.3)',
-                          borderRadius: '50%',
-                          width: '48px',
-                          height: '48px',
-                          color: '#FFFFFF',
-                          fontSize: '24px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 1001,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                        }}
-                      >
-                        ›
-                      </button>
-                    </>
-                  )}
-
-                  {/* Imagen ampliada */}
-                  <AuthenticatedImage
-                    src={photos[selectedImageIndex]?.public_url || photos[selectedImageIndex]?.url}
-                    alt={`Foto ${selectedImageIndex + 1} de ${especie.nombre_común || especie.scientific_name}`}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '90vh',
-                      objectFit: 'contain',
-                      borderRadius: '8px',
-                    }}
-                  />
-
-                  {/* Indicador de imagen */}
-                  {photos.length > 1 && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '20px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      display: 'flex',
-                      gap: '8px',
-                      background: 'rgba(0, 0, 0, 0.5)',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      backdropFilter: 'blur(10px)',
-                    }}>
-                      {photos.map((_, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: index === selectedImageIndex ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)',
-                            transition: 'background-color 0.2s',
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Secciones de información */}
-            {especie.estado_conservación && renderInfoCard('ⓘ', 'Estado de Conservación', especie.estado_conservación)}
-            {especie.habitat && renderInfoCard('🌍', 'Hábitat', especie.habitat)}
-            {especie.distribución && renderInfoCard('🗺️', 'Distribución', especie.distribución)}
-            {especie.expectativa_vida && renderInfoCard('⏱️', 'Expectativa de Vida', especie.expectativa_vida)}
-            {especie.floración && renderInfoCard('🌸', 'Floración', especie.floración)}
-            {especie.cuidado && renderInfoCard('💧', 'Cuidado y Recomendaciones', especie.cuidado)}
-            {especie.usos && renderInfoCard('🔧', 'Usos', especie.usos)}
-            {especie.historia_nombre && renderInfoCard('📖', 'Historia del Nombre', especie.historia_nombre)}
-            {especie.historia_y_leyendas && renderInfoCard('📚', 'Historia y Leyendas', especie.historia_y_leyendas)}
+          {/* Secciones de información */}
+          {especie.estado_conservación && renderInfoCard('ⓘ', 'Estado de Conservación', especie.estado_conservación)}
+          {especie.habitat && renderInfoCard('🌍', 'Hábitat', especie.habitat)}
+          {especie.distribución && renderInfoCard('🗺️', 'Distribución', especie.distribución)}
+          {especie.expectativa_vida && renderInfoCard('⏱️', 'Expectativa de Vida', especie.expectativa_vida)}
+          {especie.floración && renderInfoCard('🌸', 'Floración', especie.floración)}
+          {especie.cuidado && renderInfoCard('💧', 'Cuidado y Recomendaciones', especie.cuidado)}
+          {especie.usos && renderInfoCard('🔧', 'Usos', especie.usos)}
+          {especie.historia_nombre && renderInfoCard('📖', 'Historia del Nombre', especie.historia_nombre)}
+          {especie.historia_y_leyendas && renderInfoCard('📚', 'Historia y Leyendas', especie.historia_y_leyendas)}
 
-            {/* Mensaje si no hay información */}
-            {!especie.habitat && 
-             !especie.distribución && 
-             !especie.floración && 
-             !especie.cuidado && 
-             !especie.usos && 
-             !especie.historia_nombre && 
-             !especie.historia_y_leyendas && (
+          {/* Mensaje si no hay información */}
+          {!especie.habitat &&
+            !especie.distribución &&
+            !especie.floración &&
+            !especie.cuidado &&
+            !especie.usos &&
+            !especie.historia_nombre &&
+            !especie.historia_y_leyendas && (
               <div style={{
                 padding: '40px 20px',
                 textAlign: 'center',
@@ -628,7 +574,7 @@ export default function EspecieDetail() {
             )}
         </>
       </main>
-      
+
       <BottomNavigation />
     </div>
   );

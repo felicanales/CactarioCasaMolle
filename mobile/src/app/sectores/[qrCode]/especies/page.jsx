@@ -64,7 +64,7 @@ export default function SectorEspecies() {
         </button>
         
         <h1>
-          Especies presentes en el sector {sector?.name || sector?.nombre || qrCode}
+          Especies presentes en {sector?.name || sector?.nombre || qrCode}
         </h1>
 
         {loading ? (
