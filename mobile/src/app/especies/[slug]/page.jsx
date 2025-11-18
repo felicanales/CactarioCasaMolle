@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
-import ImageCarousel from '@/components/ImageCarousel';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { speciesApi } from '@/utils/api';
 
@@ -16,6 +15,7 @@ export default function EspecieDetail() {
   const [especie, setEspecie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('informacion');
 
   useEffect(() => {
     if (slug) {
@@ -37,40 +37,68 @@ export default function EspecieDetail() {
     }
   };
 
-  const fotos = especie?.fotos || especie?.imagenes || especie?.cover_photo ? [
-    { id: 1, url: especie.cover_photo },
-  ] : [];
+  // Preparar fotos desde el array photos
+  const photos = especie?.photos || [];
+  const coverPhoto = especie?.cover_photo || (photos.length > 0 ? photos[0]?.public_url : null);
 
-  const renderSection = (title, content) => {
+  const renderInfoCard = (icon, title, content, onClick = null) => {
     if (!content || (typeof content === 'string' && content.trim() === '')) {
       return null;
     }
+    
     return (
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ 
-          fontSize: '18px', 
-          fontWeight: '600', 
-          color: '#111827', 
-          marginBottom: '12px' 
-        }}>
-          {title}
-        </h2>
-        <div style={{
-          backgroundColor: '#f9fafb',
+      <div
+        onClick={onClick}
+        style={{
+          backgroundColor: '#1f2937',
+          borderRadius: '12px',
           padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb',
-          color: '#374151',
-          lineHeight: '1.6',
-          whiteSpace: 'pre-wrap',
-        }}>
-          {content}
+          marginBottom: '12px',
+          border: '1px solid #374151',
+          cursor: onClick ? 'pointer' : 'default',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+        }}
+      >
+        {icon && (
+          <div style={{
+            fontSize: '24px',
+            flexShrink: 0,
+            marginTop: '2px',
+          }}>
+            {icon}
+          </div>
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#ffffff',
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <span>{title}</span>
+            {onClick && (
+              <span style={{ color: '#10b981', fontSize: '18px' }}>›</span>
+            )}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: '#d1d5db',
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap',
+          }}>
+            {content}
+          </div>
         </div>
       </div>
     );
   };
 
-  const renderBadge = (label, value) => {
+  const renderBadge = (label, value, color = '#10b981') => {
     if (!value) return null;
     return (
       <div style={{
@@ -78,87 +106,234 @@ export default function EspecieDetail() {
         alignItems: 'center',
         padding: '6px 12px',
         borderRadius: '16px',
-        backgroundColor: '#eff6ff',
-        color: '#1e40af',
-        fontSize: '13px',
+        backgroundColor: color === '#10b981' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+        color: color,
+        fontSize: '12px',
         fontWeight: '500',
         marginRight: '8px',
         marginBottom: '8px',
+        border: `1px solid ${color}40`,
       }}>
         {label}: {value}
       </div>
     );
   };
 
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        minHeight: '100vh',
+        backgroundColor: '#111827',
+        color: '#ffffff',
+      }}>
+        <Header />
+        <main style={{ flex: 1, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#9ca3af' }}>Cargando información...</div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  if (error || !especie) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        minHeight: '100vh',
+        backgroundColor: '#111827',
+        color: '#ffffff',
+      }}>
+        <Header />
+        <main style={{ flex: 1, padding: '20px' }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '24px',
+              cursor: 'pointer',
+              marginBottom: '20px',
+            }}
+          >
+            ←
+          </button>
+          <div style={{ color: '#ef4444' }}>{error || 'Especie no encontrada'}</div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh',
+      backgroundColor: '#111827',
+      color: '#ffffff',
+    }}>
       <Header />
-      <main className="main-content">
-        <button
-          className="back-button"
-          onClick={() => router.back()}
-          aria-label="Volver"
-        >
-          ←
-        </button>
-        
-        {loading ? (
-          <div className="loading">Cargando información...</div>
-        ) : error ? (
-          <div className="error">{error}</div>
-        ) : especie ? (
-          <>
-            {/* Imagen de portada */}
-            {especie.cover_photo && (
-              <div style={{ marginBottom: '24px' }}>
-                <AuthenticatedImage
-                  src={especie.cover_photo}
-                  alt={especie.nombre_común || especie.scientific_name}
-                  style={{
-                    width: '100%',
-                    maxHeight: '300px',
-                    objectFit: 'cover',
-                    borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  }}
-                />
-              </div>
-            )}
+      
+      {/* Header con imagen de fondo */}
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        minHeight: '280px',
+        overflow: 'hidden',
+      }}>
+        {coverPhoto && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url(${coverPhoto})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(20px) brightness(0.4)',
+            transform: 'scale(1.1)',
+          }} />
+        )}
+        <div style={{
+          position: 'relative',
+          zIndex: 1,
+          padding: '20px',
+          paddingTop: '60px',
+        }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              left: '20px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              color: '#ffffff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ←
+          </button>
+          
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(255, 255, 255, 0.2)',
+            backdropFilter: 'blur(10px)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            color: '#ffffff',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            ⋮
+          </div>
 
-            {/* Nombre científico y común */}
-            <div style={{ marginBottom: '24px' }}>
-              <h1 style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                fontStyle: 'italic',
-                color: '#111827',
-                marginBottom: '8px',
-              }}>
-                {especie.scientific_name || 'Nombre científico no disponible'}
-              </h1>
-              {especie.nombre_común && (
-                <p style={{
-                  fontSize: '18px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '4px',
-                }}>
-                  {especie.nombre_común}
-                </p>
-              )}
-              {especie.nombres_comunes && especie.nombres_comunes !== especie.nombre_común && (
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  fontStyle: 'italic',
-                }}>
-                  Otros nombres: {especie.nombres_comunes}
-                </p>
-              )}
+          <h1 style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#ffffff',
+            marginBottom: '8px',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          }}>
+            {especie.nombre_común || especie.scientific_name}
+          </h1>
+          
+          {especie.scientific_name && (
+            <div style={{
+              fontSize: '16px',
+              color: '#d1d5db',
+              fontStyle: 'italic',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span>{especie.scientific_name}</span>
+              <span style={{ fontSize: '18px', cursor: 'pointer' }}>🔊</span>
             </div>
+          )}
 
-            {/* Información básica - badges */}
+          {especie.nombres_comunes && (
+            <div style={{
+              fontSize: '14px',
+              color: '#9ca3af',
+              marginTop: '8px',
+            }}>
+              También conocida como: {especie.nombres_comunes}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs de navegación */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid #374151',
+        backgroundColor: '#111827',
+      }}>
+        <button
+          onClick={() => setActiveTab('notas')}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'none',
+            border: 'none',
+            color: activeTab === 'notas' ? '#10b981' : '#9ca3af',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'notas' ? '2px solid #10b981' : '2px solid transparent',
+          }}
+        >
+          Notas
+        </button>
+        <button
+          onClick={() => setActiveTab('informacion')}
+          style={{
+            flex: 1,
+            padding: '16px',
+            background: 'none',
+            border: 'none',
+            color: activeTab === 'informacion' ? '#10b981' : '#9ca3af',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'informacion' ? '2px solid #10b981' : '2px solid transparent',
+          }}
+        >
+          Información
+        </button>
+      </div>
+
+      <main style={{ 
+        flex: 1, 
+        padding: '20px',
+        paddingBottom: '100px',
+        backgroundColor: '#111827',
+      }}>
+        {activeTab === 'informacion' && (
+          <>
+            {/* Badges de información básica */}
             <div style={{ 
               marginBottom: '24px',
               display: 'flex',
@@ -172,66 +347,84 @@ export default function EspecieDetail() {
                   alignItems: 'center',
                   padding: '6px 12px',
                   borderRadius: '16px',
-                  backgroundColor: '#ecfdf5',
-                  color: '#065f46',
-                  fontSize: '13px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                  color: '#10b981',
+                  fontSize: '12px',
                   fontWeight: '500',
                   marginRight: '8px',
                   marginBottom: '8px',
+                  border: '1px solid #10b98140',
                 }}>
                   🇨🇱 Endémica de Chile
                 </div>
               )}
-              {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología)}
-              {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta)}
+              {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#3b82f6')}
+              {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#3b82f6')}
             </div>
 
-            {/* Estado de conservación */}
-            {especie.estado_conservación && renderSection('Estado de Conservación', especie.estado_conservación)}
-
-            {/* Hábitat */}
-            {especie.habitat && renderSection('Hábitat', especie.habitat)}
-
-            {/* Distribución */}
-            {especie.distribución && renderSection('Distribución', especie.distribución)}
-
-            {/* Expectativa de vida */}
-            {especie.expectativa_vida && renderSection('Expectativa de Vida', especie.expectativa_vida)}
-
-            {/* Floración */}
-            {especie.floración && renderSection('Floración', especie.floración)}
-
-            {/* Cuidado */}
-            {especie.cuidado && renderSection('Cuidado y Recomendaciones', especie.cuidado)}
-
-            {/* Usos */}
-            {especie.usos && renderSection('Usos', especie.usos)}
-
-            {/* Historia del nombre */}
-            {especie.historia_nombre && renderSection('Historia del Nombre', especie.historia_nombre)}
-
-            {/* Historia y leyendas */}
-            {especie.historia_y_leyendas && renderSection('Historia y Leyendas', especie.historia_y_leyendas)}
-
             {/* Galería de imágenes */}
-            {fotos.length > 0 && (
-              <div style={{ marginTop: '24px' }}>
-                <h2 style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
-                  color: '#111827', 
-                  marginBottom: '12px' 
+            {photos.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px',
                 }}>
-                  Galería de Imágenes
-                </h2>
-                <ImageCarousel 
-                  images={fotos} 
-                  placeholderText={`Fotos de ${especie.nombre_común || especie.scientific_name}`}
-                />
+                  <h2 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#ffffff',
+                  }}>
+                    Imágenes
+                  </h2>
+                  <span style={{ color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}>⋮</span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  overflowX: 'auto',
+                  paddingBottom: '8px',
+                }}>
+                  {photos.map((photo, index) => (
+                    <div
+                      key={photo.id || index}
+                      style={{
+                        minWidth: '120px',
+                        width: '120px',
+                        height: '120px',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AuthenticatedImage
+                        src={photo.public_url || photo.url}
+                        alt={`Foto ${index + 1} de ${especie.nombre_común || especie.scientific_name}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Mensaje si no hay información adicional */}
+            {/* Secciones de información */}
+            {especie.estado_conservación && renderInfoCard('ⓘ', 'Estado de Conservación', especie.estado_conservación)}
+            {especie.habitat && renderInfoCard('🌍', 'Hábitat', especie.habitat)}
+            {especie.distribución && renderInfoCard('🗺️', 'Distribución', especie.distribución)}
+            {especie.expectativa_vida && renderInfoCard('⏱️', 'Expectativa de Vida', especie.expectativa_vida)}
+            {especie.floración && renderInfoCard('🌸', 'Floración', especie.floración)}
+            {especie.cuidado && renderInfoCard('💧', 'Cuidado y Recomendaciones', especie.cuidado)}
+            {especie.usos && renderInfoCard('🔧', 'Usos', especie.usos)}
+            {especie.historia_nombre && renderInfoCard('📖', 'Historia del Nombre', especie.historia_nombre)}
+            {especie.historia_y_leyendas && renderInfoCard('📚', 'Historia y Leyendas', especie.historia_y_leyendas)}
+
+            {/* Mensaje si no hay información */}
             {!especie.habitat && 
              !especie.distribución && 
              !especie.floración && 
@@ -240,7 +433,7 @@ export default function EspecieDetail() {
              !especie.historia_nombre && 
              !especie.historia_y_leyendas && (
               <div style={{
-                padding: '24px',
+                padding: '40px 20px',
                 textAlign: 'center',
                 color: '#6b7280',
                 fontStyle: 'italic',
@@ -249,8 +442,20 @@ export default function EspecieDetail() {
               </div>
             )}
           </>
-        ) : null}
+        )}
+
+        {activeTab === 'notas' && (
+          <div style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#6b7280',
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+            <div>Las notas estarán disponibles próximamente</div>
+          </div>
+        )}
       </main>
+      
       <BottomNavigation />
     </div>
   );

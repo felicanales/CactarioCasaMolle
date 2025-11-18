@@ -5,7 +5,9 @@ from app.services import photos_service
 
 PUBLIC_SPECIES_FIELDS = [
     "id", "slug", "nombre_común", "scientific_name",
-    "habitat", "estado_conservación", "tipo_planta", "distribución", "floración", "cuidado", "usos"
+    "habitat", "estado_conservación", "tipo_planta", "distribución", "floración", "cuidado", "usos",
+    "nombres_comunes", "historia_y_leyendas", "historia_nombre", 
+    "Endémica", "expectativa_vida", "tipo_morfología", "categoria_conservacion"
 ]
 STAFF_EXTRA_FIELDS = [
     "nombres_comunes", "image_url", "historia_y_leyendas", "historia_nombre", 
@@ -43,6 +45,9 @@ def get_public_by_slug(slug: str) -> Optional[Dict[str, Any]]:
     if not res.data:
         return None
     species = res.data[0]
+    # Obtener foto de portada
+    cover = photos_service.get_cover_photo("especie", species["id"])
+    species["cover_photo"] = cover["public_url"] if cover else None
     # Todas las fotos usando el servicio genérico
     species["photos"] = photos_service.list_photos("especie", species["id"])
     return species
