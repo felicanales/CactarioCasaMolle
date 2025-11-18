@@ -185,19 +185,29 @@ export default function EspecieDetail() {
         overflow: 'hidden',
       }}>
         {coverPhoto && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `url(${coverPhoto})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'blur(20px) brightness(1.1) sepia(0.3)',
-            transform: 'scale(1.1)',
-            backgroundColor: '#F5E6D3',
-          }} />
+          <>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: `url(${coverPhoto})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'brightness(1.1) sepia(0.3)',
+              backgroundColor: '#F5E6D3',
+            }} />
+            {/* Overlay oscuro para mejorar contraste del texto */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            }} />
+          </>
         )}
         {!coverPhoto && (
           <div style={{
@@ -221,18 +231,19 @@ export default function EspecieDetail() {
               position: 'absolute',
               top: '20px',
               left: '20px',
-              background: 'rgba(245, 230, 211, 0.8)',
+              background: 'rgba(0, 0, 0, 0.5)',
               backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(212, 184, 150, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '50%',
               width: '40px',
               height: '40px',
-              color: '#3E2723',
+              color: '#FFFFFF',
               fontSize: '20px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
             }}
           >
             ←
@@ -242,18 +253,19 @@ export default function EspecieDetail() {
             position: 'absolute',
             top: '20px',
             right: '20px',
-            background: 'rgba(245, 230, 211, 0.8)',
+            background: 'rgba(0, 0, 0, 0.5)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(212, 184, 150, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             borderRadius: '50%',
             width: '40px',
             height: '40px',
-            color: '#3E2723',
+            color: '#FFFFFF',
             fontSize: '20px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
           }}>
             ⋮
           </div>
@@ -261,9 +273,9 @@ export default function EspecieDetail() {
           <h1 style={{
             fontSize: '32px',
             fontWeight: '700',
-            color: '#3E2723',
+            color: '#FFFFFF',
             marginBottom: '8px',
-            textShadow: '0 2px 4px rgba(255,255,255,0.5)',
+            textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)',
           }}>
             {especie.nombre_común || especie.scientific_name}
           </h1>
@@ -271,9 +283,10 @@ export default function EspecieDetail() {
           {especie.scientific_name && (
             <div style={{
               fontSize: '16px',
-              color: '#5D4037',
+              color: '#F5E6D3',
               fontStyle: 'italic',
               marginBottom: '8px',
+              textShadow: '0 2px 6px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.6)',
             }}>
               {especie.scientific_name}
             </div>
@@ -282,8 +295,9 @@ export default function EspecieDetail() {
           {especie.nombres_comunes && (
             <div style={{
               fontSize: '14px',
-              color: '#8B7355',
+              color: '#EDD4A6',
               marginTop: '8px',
+              textShadow: '0 2px 6px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.6)',
             }}>
               También conocida como: {especie.nombres_comunes}
             </div>
