@@ -56,8 +56,16 @@ def get_public_by_slug(slug: str) -> Optional[Dict[str, Any]]:
 
 def list_staff(q: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
     sb = get_public()
-    # Usar * para obtener todos los campos de la tabla
-    query = sb.table("especies").select("*")
+    # Seleccionar campos explícitamente, excluyendo morfología_cactus que puede tener valores inválidos
+    # El frontend solo usa tipo_morfología
+    fields = [
+        "id", "slug", "nombre_común", "scientific_name", "nombres_comunes",
+        "habitat", "estado_conservación", "tipo_planta", "tipo_morfología",
+        "distribución", "floración", "cuidado", "usos", "historia_nombre",
+        "historia_y_leyendas", "Endémica", "expectativa_vida",
+        "categoría_de_conservación", "created_at", "updated_at"
+    ]
+    query = sb.table("especies").select(",".join(fields))
     if q:
         query = query.or_(f"nombre_común.ilike.%{q}%,scientific_name.ilike.%{q}%")
     res = query.order("updated_at", desc=True).range(offset, offset + limit - 1).execute()
