@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos
 from app.middleware.auth_middleware import AuthMiddleware
@@ -196,15 +196,39 @@ async def options_handler(path: str):
     logger.debug(f"OPTIONS request para: /{path}")
     return {"message": "OK"}
 
-# Exception handler global para asegurar que todos los errores tengan headers CORS
-# IMPORTANTE: Este handler debe estar después de que se registren los middlewares
-# pero FastAPI aplicará CORS automáticamente si el middleware está configurado correctamente
+# Exception handler para HTTPException - FastAPI ya maneja esto, pero agregamos CORS
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Handler para HTTPException que asegura headers CORS.
+    FastAPI maneja HTTPException automáticamente, pero este handler asegura CORS.
+    """
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+    
+    # Agregar headers CORS
+    origin = request.headers.get("origin")
+    if origin:
+        import re
+        railway_regex = r"https://.*\.railway\.app"
+        ngrok_regex = r"https://.*\.ngrok.*"
+        if re.match(railway_regex, origin) or re.match(ngrok_regex, origin) or origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Exception handler global solo para excepciones no manejadas (no HTTPException)
+# Esto evita interferir con el middleware de CORS de Starlette
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
-    Global exception handler que asegura que todos los errores tengan headers CORS.
-    El middleware de CORS debería agregar los headers automáticamente, pero este handler
-    los agrega explícitamente como respaldo.
+    Global exception handler para excepciones no manejadas.
+    Solo captura excepciones que no son HTTPException para evitar interferir con CORS.
     """
     import traceback
     logger.error(f"Unhandled exception: {exc}")
@@ -216,11 +240,9 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": f"Error interno del servidor: {str(exc)}"}
     )
     
-    # Agregar headers CORS explícitamente como respaldo
-    # El middleware de CORS debería hacer esto automáticamente, pero lo hacemos explícito
+    # Agregar headers CORS explícitamente
     origin = request.headers.get("origin")
     if origin:
-        # Verificar si el origen está permitido (usar el mismo regex que el middleware)
         import re
         railway_regex = r"https://.*\.railway\.app"
         ngrok_regex = r"https://.*\.ngrok.*"
