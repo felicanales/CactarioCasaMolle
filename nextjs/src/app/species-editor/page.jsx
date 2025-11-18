@@ -74,128 +74,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para requests autenticadas
-// Usa el apiRequest del AuthContext si está disponible, sino crea uno local
-// Mantiene la lógica especial para ngrok y endpoints de especies
-const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-    try {
-        // Validar y corregir URL si es localhost desde dispositivo remoto
-        let finalUrl = url;
-        if (typeof window !== 'undefined') {
-            const currentHostname = window.location.hostname;
-            // Si la URL es localhost pero estamos en un dispositivo remoto, usar producción
-            if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
-                if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
-                    // Usar la URL del API configurada en lugar de hardcodear
-                    const apiUrl = getApiUrl();
-                    finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiUrl);
-                }
-            }
-        }
-
-        // Detectar si es un endpoint de especies del sector
-        const isSpeciesEndpoint = finalUrl.includes('/sectors/staff/') && finalUrl.includes('/species');
-
-        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
-        if (authApiRequest) {
-            // Agregar header de ngrok si es necesario
-            const ngrokHeaders = {};
-            if (typeof window !== 'undefined' &&
-                (window.location.hostname.includes('ngrok.io') ||
-                    window.location.hostname.includes('ngrok-free.dev') ||
-                    window.location.hostname.includes('ngrok-free.app') ||
-                    window.location.hostname.includes('ngrokapp.com') ||
-                    window.location.hostname.includes('ngrok'))) {
-                ngrokHeaders['ngrok-skip-browser-warning'] = 'true';
-            }
-
-            const response = await authApiRequest(finalUrl, {
-                ...options,
-                headers: {
-                    ...ngrokHeaders,
-                    ...options.headers,
-                },
-                signal: options.signal
-            });
-
-            // Manejar error 405 para endpoints de especies
-            if (!response.ok && response.status === 405 && isSpeciesEndpoint) {
-                return {
-                    ok: false,
-                    status: 405,
-                    json: async () => ({}),
-                    text: async () => '',
-                    headers: response.headers,
-                    statusText: 'Method Not Allowed'
-                };
-            }
-
-            return response;
-        }
-
-        // Fallback: implementación local (para compatibilidad)
-        const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        };
-
-        // Agregar header de ngrok si estamos en un dominio ngrok
-        if (typeof window !== 'undefined' &&
-            (window.location.hostname.includes('ngrok.io') ||
-                window.location.hostname.includes('ngrok-free.dev') ||
-                window.location.hostname.includes('ngrok-free.app') ||
-                window.location.hostname.includes('ngrokapp.com') ||
-                window.location.hostname.includes('ngrok'))) {
-            headers['ngrok-skip-browser-warning'] = 'true';
-        }
-
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-            console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
-        } else {
-            console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
-        }
-
-        try {
-            const response = await fetch(finalUrl, {
-                ...options,
-                headers,
-                credentials: 'include',
-                signal: options.signal
-            });
-
-            if (!response.ok) {
-                // Suprimir completamente el error 405 para endpoints de especies
-                if (response.status === 405 && isSpeciesEndpoint) {
-                    return {
-                        ok: false,
-                        status: 405,
-                        json: async () => ({}),
-                        text: async () => '',
-                        headers: response.headers,
-                        statusText: 'Method Not Allowed'
-                    };
-                }
-
-                const errorText = await response.text().catch(() => '');
-                const errorMessage = errorText || response.statusText;
-                throw new Error(`HTTP ${response.status}: ${errorMessage}`);
-            }
-
-            return response;
-        } catch (fetchError) {
-            throw fetchError;
-        }
-    } catch (error) {
-        // Si es un error de red, lanzarlo con un mensaje más descriptivo
-        if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
-            throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
-        }
-        throw error;
-    }
-};
-
 export default function SpeciesEditorPage() {
     const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
@@ -239,12 +117,142 @@ export default function SpeciesEditorPage() {
     // Ordenamiento de sectores
     const [sectorSortOrder, setSectorSortOrder] = useState("asc"); // "asc" | "desc"
 
+    const [checkedAuth, setCheckedAuth] = useState(false);
+
     useEffect(() => {
-        if (BYPASS_AUTH) return;
-        if (!authLoading && !user) {
+        if (BYPASS_AUTH) {
+            setCheckedAuth(true);
+            return;
+        }
+        if (!authLoading && !checkedAuth) {
+            if (!user) {
             router.replace("/login");
         }
-    }, [user, authLoading, router]);
+            setCheckedAuth(true);
+        }
+    }, [user, authLoading, router, checkedAuth]);
+
+    // Helper para requests autenticadas
+    // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
+    // Mantiene la lógica especial para ngrok y endpoints de especies
+    const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
+        try {
+            // Validar y corregir URL si es localhost desde dispositivo remoto
+            let finalUrl = url;
+            if (typeof window !== 'undefined') {
+                const currentHostname = window.location.hostname;
+                // Si la URL es localhost pero estamos en un dispositivo remoto, usar producción
+                if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
+                    if (currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
+                        // Usar la URL del API configurada en lugar de hardcodear
+                        const apiUrl = getApiUrl();
+                        finalUrl = url.replace(/http:\/\/(localhost|127\.0\.0\.1):8000/g, apiUrl);
+                    }
+                }
+            }
+
+            // Detectar si es un endpoint de especies del sector
+            const isSpeciesEndpoint = finalUrl.includes('/sectors/staff/') && finalUrl.includes('/species');
+
+            // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+            if (authApiRequest) {
+                // Agregar header de ngrok si es necesario
+                const ngrokHeaders = {};
+                if (typeof window !== 'undefined' &&
+                    (window.location.hostname.includes('ngrok.io') ||
+                        window.location.hostname.includes('ngrok-free.dev') ||
+                        window.location.hostname.includes('ngrok-free.app') ||
+                        window.location.hostname.includes('ngrokapp.com') ||
+                        window.location.hostname.includes('ngrok'))) {
+                    ngrokHeaders['ngrok-skip-browser-warning'] = 'true';
+                }
+
+                const response = await authApiRequest(finalUrl, {
+                    ...options,
+                    headers: {
+                        ...ngrokHeaders,
+                        ...options.headers,
+                    },
+                    signal: options.signal
+                });
+
+                // Manejar error 405 para endpoints de especies
+                if (!response.ok && response.status === 405 && isSpeciesEndpoint) {
+                    return {
+                        ok: false,
+                        status: 405,
+                        json: async () => ({}),
+                        text: async () => '',
+                        headers: response.headers,
+                        statusText: 'Method Not Allowed'
+                    };
+                }
+
+                return response;
+            }
+
+            // Fallback: implementación local (para compatibilidad)
+            const accessToken = getAccessTokenFromContext(accessTokenFromContext);
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+
+            // Agregar header de ngrok si estamos en un dominio ngrok
+            if (typeof window !== 'undefined' &&
+                (window.location.hostname.includes('ngrok.io') ||
+                    window.location.hostname.includes('ngrok-free.dev') ||
+                    window.location.hostname.includes('ngrok-free.app') ||
+                    window.location.hostname.includes('ngrokapp.com') ||
+                    window.location.hostname.includes('ngrok'))) {
+                headers['ngrok-skip-browser-warning'] = 'true';
+            }
+
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+                console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
+            } else {
+                console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
+            }
+
+            try {
+                const response = await fetch(finalUrl, {
+                    ...options,
+                    headers,
+                    credentials: 'include',
+                    signal: options.signal
+                });
+
+                if (!response.ok) {
+                    // Suprimir completamente el error 405 para endpoints de especies
+                    if (response.status === 405 && isSpeciesEndpoint) {
+                        return {
+                            ok: false,
+                            status: 405,
+                            json: async () => ({}),
+                            text: async () => '',
+                            headers: response.headers,
+                            statusText: 'Method Not Allowed'
+                        };
+                    }
+
+                    const errorText = await response.text().catch(() => '');
+                    const errorMessage = errorText || response.statusText;
+                    throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+                }
+
+                return response;
+            } catch (fetchError) {
+                throw fetchError;
+            }
+        } catch (error) {
+            // Si es un error de red, lanzarlo con un mensaje más descriptivo
+            if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
+                throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
+            }
+            throw error;
+        }
+    };
 
     const fetchSpecies = async () => {
         try {
@@ -341,11 +349,11 @@ export default function SpeciesEditorPage() {
     };
 
     useEffect(() => {
-        if (user || BYPASS_AUTH) {
+        if (checkedAuth && (user || BYPASS_AUTH)) {
             fetchSpecies();
             fetchSectors();
         }
-    }, [user]);
+    }, [user, checkedAuth]);
 
     // Cargar todas las especies para el selector (solo una vez)
     useEffect(() => {
