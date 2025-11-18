@@ -15,7 +15,6 @@ export default function EspecieDetail() {
   const [especie, setEspecie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('informacion');
 
   useEffect(() => {
     if (slug) {
@@ -50,11 +49,11 @@ export default function EspecieDetail() {
       <div
         onClick={onClick}
         style={{
-          backgroundColor: '#1f2937',
+          backgroundColor: '#EDD4A6',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '12px',
-          border: '1px solid #374151',
+          border: '1px solid #D4B896',
           cursor: onClick ? 'pointer' : 'default',
           display: 'flex',
           alignItems: 'flex-start',
@@ -74,7 +73,7 @@ export default function EspecieDetail() {
           <div style={{
             fontSize: '14px',
             fontWeight: '600',
-            color: '#ffffff',
+            color: '#3E2723',
             marginBottom: '8px',
             display: 'flex',
             alignItems: 'center',
@@ -82,12 +81,12 @@ export default function EspecieDetail() {
           }}>
             <span>{title}</span>
             {onClick && (
-              <span style={{ color: '#10b981', fontSize: '18px' }}>›</span>
+              <span style={{ color: '#A0522D', fontSize: '18px' }}>›</span>
             )}
           </div>
           <div style={{
             fontSize: '14px',
-            color: '#d1d5db',
+            color: '#5D4037',
             lineHeight: '1.6',
             whiteSpace: 'pre-wrap',
           }}>
@@ -98,7 +97,7 @@ export default function EspecieDetail() {
     );
   };
 
-  const renderBadge = (label, value, color = '#10b981') => {
+  const renderBadge = (label, value, color = '#A0522D') => {
     if (!value) return null;
     return (
       <div style={{
@@ -106,7 +105,7 @@ export default function EspecieDetail() {
         alignItems: 'center',
         padding: '6px 12px',
         borderRadius: '16px',
-        backgroundColor: color === '#10b981' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+        backgroundColor: color === '#A0522D' ? 'rgba(160, 82, 45, 0.2)' : 'rgba(139, 115, 85, 0.2)',
         color: color,
         fontSize: '12px',
         fontWeight: '500',
@@ -125,12 +124,12 @@ export default function EspecieDetail() {
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '100vh',
-        backgroundColor: '#111827',
-        color: '#ffffff',
+        backgroundColor: '#F5E6D3',
+        color: '#5D4037',
       }}>
         <Header />
         <main style={{ flex: 1, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#9ca3af' }}>Cargando información...</div>
+          <div style={{ color: '#8B7355' }}>Cargando información...</div>
         </main>
         <BottomNavigation />
       </div>
@@ -143,8 +142,8 @@ export default function EspecieDetail() {
         display: 'flex', 
         flexDirection: 'column', 
         minHeight: '100vh',
-        backgroundColor: '#111827',
-        color: '#ffffff',
+        backgroundColor: '#F5E6D3',
+        color: '#5D4037',
       }}>
         <Header />
         <main style={{ flex: 1, padding: '20px' }}>
@@ -153,7 +152,7 @@ export default function EspecieDetail() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#ffffff',
+              color: '#5D4037',
               fontSize: '24px',
               cursor: 'pointer',
               marginBottom: '20px',
@@ -161,7 +160,7 @@ export default function EspecieDetail() {
           >
             ←
           </button>
-          <div style={{ color: '#ef4444' }}>{error || 'Especie no encontrada'}</div>
+          <div style={{ color: '#C62828' }}>{error || 'Especie no encontrada'}</div>
         </main>
         <BottomNavigation />
       </div>
@@ -173,8 +172,8 @@ export default function EspecieDetail() {
       display: 'flex', 
       flexDirection: 'column', 
       minHeight: '100vh',
-      backgroundColor: '#111827',
-      color: '#ffffff',
+      backgroundColor: '#F5E6D3',
+      color: '#3E2723',
     }}>
       <Header />
       
@@ -195,8 +194,19 @@ export default function EspecieDetail() {
             backgroundImage: `url(${coverPhoto})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(20px) brightness(0.4)',
+            filter: 'blur(20px) brightness(1.1) sepia(0.3)',
             transform: 'scale(1.1)',
+            backgroundColor: '#F5E6D3',
+          }} />
+        )}
+        {!coverPhoto && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#E8D5B7',
           }} />
         )}
         <div style={{
@@ -211,13 +221,13 @@ export default function EspecieDetail() {
               position: 'absolute',
               top: '20px',
               left: '20px',
-              background: 'rgba(255, 255, 255, 0.2)',
+              background: 'rgba(245, 230, 211, 0.8)',
               backdropFilter: 'blur(10px)',
-              border: 'none',
+              border: '1px solid rgba(212, 184, 150, 0.5)',
               borderRadius: '50%',
               width: '40px',
               height: '40px',
-              color: '#ffffff',
+              color: '#3E2723',
               fontSize: '20px',
               cursor: 'pointer',
               display: 'flex',
@@ -232,13 +242,13 @@ export default function EspecieDetail() {
             position: 'absolute',
             top: '20px',
             right: '20px',
-            background: 'rgba(255, 255, 255, 0.2)',
+            background: 'rgba(245, 230, 211, 0.8)',
             backdropFilter: 'blur(10px)',
-            border: 'none',
+            border: '1px solid rgba(212, 184, 150, 0.5)',
             borderRadius: '50%',
             width: '40px',
             height: '40px',
-            color: '#ffffff',
+            color: '#3E2723',
             fontSize: '20px',
             cursor: 'pointer',
             display: 'flex',
@@ -251,9 +261,9 @@ export default function EspecieDetail() {
           <h1 style={{
             fontSize: '32px',
             fontWeight: '700',
-            color: '#ffffff',
+            color: '#3E2723',
             marginBottom: '8px',
-            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            textShadow: '0 2px 4px rgba(255,255,255,0.5)',
           }}>
             {especie.nombre_común || especie.scientific_name}
           </h1>
@@ -261,22 +271,18 @@ export default function EspecieDetail() {
           {especie.scientific_name && (
             <div style={{
               fontSize: '16px',
-              color: '#d1d5db',
+              color: '#5D4037',
               fontStyle: 'italic',
               marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
             }}>
-              <span>{especie.scientific_name}</span>
-              <span style={{ fontSize: '18px', cursor: 'pointer' }}>🔊</span>
+              {especie.scientific_name}
             </div>
           )}
 
           {especie.nombres_comunes && (
             <div style={{
               fontSize: '14px',
-              color: '#9ca3af',
+              color: '#8B7355',
               marginTop: '8px',
             }}>
               También conocida como: {especie.nombres_comunes}
@@ -285,54 +291,13 @@ export default function EspecieDetail() {
         </div>
       </div>
 
-      {/* Tabs de navegación */}
-      <div style={{
-        display: 'flex',
-        borderBottom: '1px solid #374151',
-        backgroundColor: '#111827',
-      }}>
-        <button
-          onClick={() => setActiveTab('notas')}
-          style={{
-            flex: 1,
-            padding: '16px',
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'notas' ? '#10b981' : '#9ca3af',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'notas' ? '2px solid #10b981' : '2px solid transparent',
-          }}
-        >
-          Notas
-        </button>
-        <button
-          onClick={() => setActiveTab('informacion')}
-          style={{
-            flex: 1,
-            padding: '16px',
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'informacion' ? '#10b981' : '#9ca3af',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'informacion' ? '2px solid #10b981' : '2px solid transparent',
-          }}
-        >
-          Información
-        </button>
-      </div>
-
       <main style={{ 
         flex: 1, 
         padding: '20px',
         paddingBottom: '100px',
-        backgroundColor: '#111827',
+        backgroundColor: '#F5E6D3',
       }}>
-        {activeTab === 'informacion' && (
-          <>
+        <>
             {/* Badges de información básica */}
             <div style={{ 
               marginBottom: '24px',
@@ -348,19 +313,19 @@ export default function EspecieDetail() {
                   alignItems: 'center',
                   padding: '6px 12px',
                   borderRadius: '16px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                  color: '#10b981',
+                  backgroundColor: 'rgba(160, 82, 45, 0.2)',
+                  color: '#A0522D',
                   fontSize: '12px',
                   fontWeight: '500',
                   marginRight: '8px',
                   marginBottom: '8px',
-                  border: '1px solid #10b98140',
+                  border: '1px solid #A0522D40',
                 }}>
                   🇨🇱 Endémica de Chile
                 </div>
               )}
-              {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#3b82f6')}
-              {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#3b82f6')}
+              {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#8B7355')}
+              {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#8B7355')}
             </div>
 
             {/* Galería de imágenes */}
@@ -375,11 +340,11 @@ export default function EspecieDetail() {
                   <h2 style={{
                     fontSize: '18px',
                     fontWeight: '600',
-                    color: '#ffffff',
+                    color: '#3E2723',
                   }}>
                     Imágenes
                   </h2>
-                  <span style={{ color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}>⋮</span>
+                  <span style={{ color: '#8B7355', fontSize: '18px', cursor: 'pointer' }}>⋮</span>
                 </div>
                 <div style={{
                   display: 'flex',
@@ -436,25 +401,13 @@ export default function EspecieDetail() {
               <div style={{
                 padding: '40px 20px',
                 textAlign: 'center',
-                color: '#6b7280',
+                color: '#8B7355',
                 fontStyle: 'italic',
               }}>
                 No hay información adicional disponible para esta especie.
               </div>
             )}
-          </>
-        )}
-
-        {activeTab === 'notas' && (
-          <div style={{
-            padding: '40px 20px',
-            textAlign: 'center',
-            color: '#6b7280',
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-            <div>Las notas estarán disponibles próximamente</div>
-          </div>
-        )}
+        </>
       </main>
       
       <BottomNavigation />
