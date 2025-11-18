@@ -104,7 +104,7 @@ export default function SpeciesEditorPage() {
     // Estados para sectores
     const [sectorSearchQuery, setSectorSearchQuery] = useState("");
     const [sectorFormData, setSectorFormData] = useState({
-        name: "", description: "", location: "", qr_code: ""
+        name: "", description: "", qr_code: ""
     });
     const [sectorSpeciesIds, setSectorSpeciesIds] = useState([]); // IDs de especies asociadas
     const [allSpeciesList, setAllSpeciesList] = useState([]); // Lista completa de especies para selección
@@ -433,7 +433,6 @@ export default function SpeciesEditorPage() {
             filtered = filtered.filter(s =>
                 s.name?.toLowerCase().includes(query) ||
                 s.description?.toLowerCase().includes(query) ||
-                s.location?.toLowerCase().includes(query) ||
                 s.qr_code?.toLowerCase().includes(query)
             );
         }
@@ -573,7 +572,6 @@ export default function SpeciesEditorPage() {
         setSectorFormData({
             name: sector.name || "",
             description: sector.description || "",
-            location: sector.location || "",
             qr_code: sector.qr_code || ""
         });
         setSectorSpeciesIds([]);
@@ -649,9 +647,7 @@ export default function SpeciesEditorPage() {
                 fetchSpecies();
             } else if (editorMode === "sectors" && selectedSector) {
                 // Preparar payload: convertir strings vacíos a null para qr_code
-                // Remover 'location' ya que no existe en la tabla sectores
                 const payload = { ...sectorFormData };
-                delete payload.location; // El campo 'location' no existe en la tabla sectores
                 if (payload.qr_code === "") {
                     payload.qr_code = null;
                 }
@@ -1380,12 +1376,6 @@ export default function SpeciesEditorPage() {
                                             }}>
                                                 {sector.name}
                                             </div>
-                                            <div style={{
-                                                fontSize: "12px",
-                                                color: "#6b7280"
-                                            }}>
-                                                {sector.location || "Sin ubicación"}
-                                            </div>
                                             {sector.qr_code && (
                                                 <div style={{
                                                     fontSize: "11px",
@@ -1856,9 +1846,6 @@ export default function SpeciesEditorPage() {
                                             }}>
                                                 {selectedSector.name}
                                             </h2>
-                                            <p style={{ fontSize: "14px", color: "#6b7280", margin: 0 }}>
-                                                {selectedSector.location || "Sin ubicación"}
-                                            </p>
                                         </div>
                                         <span style={{
                                             padding: "4px 12px", borderRadius: "12px",

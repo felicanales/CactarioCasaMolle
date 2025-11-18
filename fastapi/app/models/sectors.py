@@ -8,7 +8,6 @@ class Sector(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     name = Column(Text, nullable=False)
     description = Column(Text)
-    location = Column(Text)
     qr_code = Column(Text, unique=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
