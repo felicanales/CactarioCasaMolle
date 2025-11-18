@@ -7,7 +7,7 @@ PUBLIC_SPECIES_FIELDS = [
     "id", "slug", "nombre_común", "scientific_name",
     "habitat", "estado_conservación", "tipo_planta", "distribución", "floración", "cuidado", "usos",
     "nombres_comunes", "historia_y_leyendas", "historia_nombre", 
-    "Endémica", "expectativa_vida", "tipo_morfología", "categoria_conservacion"
+    "Endémica", "expectativa_vida", "tipo_morfología", "categoría_de_conservación"
 ]
 STAFF_EXTRA_FIELDS = [
     "nombres_comunes", "image_url", "historia_y_leyendas", "historia_nombre", 

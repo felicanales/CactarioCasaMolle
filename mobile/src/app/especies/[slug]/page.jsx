@@ -340,7 +340,8 @@ export default function EspecieDetail() {
               flexWrap: 'wrap',
               gap: '8px',
             }}>
-              {especie.categoria_conservacion && renderBadge('Conservación', especie.categoria_conservacion)}
+              {(especie.categoría_de_conservación || especie.categoria_conservacion) && 
+                renderBadge('Conservación', especie.categoría_de_conservación || especie.categoria_conservacion)}
               {especie.Endémica && (
                 <div style={{
                   display: 'inline-flex',
