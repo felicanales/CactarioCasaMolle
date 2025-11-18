@@ -608,6 +608,28 @@ export default function SpeciesEditorPage() {
                 // Omitir image_url si no existe en la tabla
                 if (Object.prototype.hasOwnProperty.call(payload, 'image_url')) delete payload.image_url;
 
+                // Remover morfología_cactus si existe (es un enum con valores limitados, no debe enviarse desde el frontend)
+                // El frontend solo usa tipo_morfología
+                if (Object.prototype.hasOwnProperty.call(payload, 'morfología_cactus')) {
+                    delete payload.morfología_cactus;
+                }
+
+                // Remover campos calculados que no existen en la tabla
+                const calculatedFields = ['cover_photo', 'photos'];
+                calculatedFields.forEach(field => {
+                    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+                        delete payload[field];
+                    }
+                });
+
+                // Remover campos de timestamp que deben ser generados automáticamente
+                const autoFields = ['created_at', 'updated_at'];
+                autoFields.forEach(field => {
+                    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+                        delete payload[field];
+                    }
+                });
+
                 // Validar que el payload no tenga campos undefined
                 const cleanPayload = Object.fromEntries(
                     Object.entries(payload).filter(([_, v]) => v !== undefined)
