@@ -59,8 +59,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/":
             return await call_next(request)
         
-        # Check if path should skip auth
+        # Check if path should skip auth (exact match or starts with)
         if any(request.url.path.startswith(path) for path in skip_auth_paths):
+            return await call_next(request)
+        
+        # Skip auth for public endpoints (any path containing /public)
+        # This covers /sectors/public, /species/public, and their sub-paths
+        if "/public" in request.url.path:
             return await call_next(request)
         
         # Get token from request
