@@ -649,7 +649,9 @@ export default function SpeciesEditorPage() {
                 fetchSpecies();
             } else if (editorMode === "sectors" && selectedSector) {
                 // Preparar payload: convertir strings vacíos a null para qr_code
+                // Remover 'location' ya que no existe en la tabla sectores
                 const payload = { ...sectorFormData };
+                delete payload.location; // El campo 'location' no existe en la tabla sectores
                 if (payload.qr_code === "") {
                     payload.qr_code = null;
                 }
