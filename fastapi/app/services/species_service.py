@@ -185,18 +185,15 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[update_staff] Se intentó actualizar 'photos', removiéndolo del payload")
         del payload["photos"]
     
-    # IMPORTANTE: Establecer morfología_cactus explícitamente a NULL
+    # IMPORTANTE: NO incluir morfología_cactus en el UPDATE
     # El frontend solo debe usar tipo_morfología, no morfología_cactus
-    # Si morfología_cactus viene en el payload con un valor inválido, establecerlo a NULL
-    # Esto evita que Supabase use un valor existente inválido en la base de datos
+    # Si morfología_cactus viene en el payload, removerlo completamente
+    # NO establecerlo a NULL porque puede causar errores de validación de enum
+    # Al no incluirlo en el UPDATE, Supabase mantendrá el valor existente (o NULL si no existe)
+    # pero no intentará validarlo contra el enum
     if "morfología_cactus" in payload:
-        logger.warning(f"[update_staff] Campo 'morfología_cactus' encontrado con valor: '{payload.get('morfología_cactus')}', estableciendo a NULL")
-        payload["morfología_cactus"] = None
-    else:
-        # Establecer explícitamente a NULL para evitar que Supabase use un valor existente inválido
-        # Solo si el campo existe en la tabla y tiene un valor inválido
-        logger.info(f"[update_staff] Estableciendo 'morfología_cactus' a NULL explícitamente")
-        payload["morfología_cactus"] = None
+        logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (valor: '{payload.get('morfología_cactus')}'). El frontend debe usar 'tipo_morfología'")
+        del payload["morfología_cactus"]
     
     # Convertir strings vacíos a None para campos ENUM y opcionales
     # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
@@ -219,17 +216,15 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"[update_staff] Payload limpio para actualizar: {list(payload.keys())}")
     logger.info(f"[update_staff] Payload completo (valores): {payload}")
     
-    # Verificación final: asegurar que morfología_cactus sea NULL
-    if "morfología_cactus" in payload and payload["morfología_cactus"] is not None:
-        logger.warning(f"[update_staff] Verificación final: morfología_cactus tiene valor '{payload['morfología_cactus']}', estableciendo a NULL")
-        payload["morfología_cactus"] = None
-    elif "morfología_cactus" not in payload:
-        payload["morfología_cactus"] = None
-        logger.info(f"[update_staff] Verificación final: agregando morfología_cactus = NULL al payload")
+    # Verificación final: asegurar que morfología_cactus NO esté en el payload
+    if "morfología_cactus" in payload:
+        logger.error(f"[update_staff] ERROR: morfología_cactus todavía está en el payload después de la limpieza: '{payload.get('morfología_cactus')}'")
+        del payload["morfología_cactus"]
+        logger.warning(f"[update_staff] Removido morfología_cactus del payload como medida de seguridad final")
     
     try:
         logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload final: {list(payload.keys())}")
-        logger.info(f"[update_staff] Valor de morfología_cactus en payload: {payload.get('morfología_cactus')}")
+        logger.info(f"[update_staff] Verificación: morfología_cactus NO debe estar en el payload: {'morfología_cactus' not in payload}")
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")
