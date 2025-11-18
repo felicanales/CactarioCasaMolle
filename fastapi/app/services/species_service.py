@@ -185,12 +185,18 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[update_staff] Se intentó actualizar 'photos', removiéndolo del payload")
         del payload["photos"]
     
-    # IMPORTANTE: Remover morfología_cactus completamente del payload
+    # IMPORTANTE: Establecer morfología_cactus explícitamente a NULL
     # El frontend solo debe usar tipo_morfología, no morfología_cactus
-    # Si morfología_cactus viene en el payload, siempre removerlo para evitar errores de enum
+    # Si morfología_cactus viene en el payload con un valor inválido, establecerlo a NULL
+    # Esto evita que Supabase use un valor existente inválido en la base de datos
     if "morfología_cactus" in payload:
-        logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (el frontend debe usar 'tipo_morfología'): '{payload.get('morfología_cactus')}'")
-        del payload["morfología_cactus"]
+        logger.warning(f"[update_staff] Campo 'morfología_cactus' encontrado con valor: '{payload.get('morfología_cactus')}', estableciendo a NULL")
+        payload["morfología_cactus"] = None
+    else:
+        # Establecer explícitamente a NULL para evitar que Supabase use un valor existente inválido
+        # Solo si el campo existe en la tabla y tiene un valor inválido
+        logger.info(f"[update_staff] Estableciendo 'morfología_cactus' a NULL explícitamente")
+        payload["morfología_cactus"] = None
     
     # Convertir strings vacíos a None para campos ENUM y opcionales
     # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
