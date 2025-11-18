@@ -21,18 +21,48 @@ export default function Sectores() {
       setLoading(true);
       setError(null);
       console.log('Cargando sectores desde:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
-      const response = await sectorsApi.list();
-      console.log('Respuesta de sectores:', response.data);
       
-      if (response.data && Array.isArray(response.data)) {
-        setSectores(response.data);
+      const response = await sectorsApi.list();
+      console.log('Respuesta completa:', response);
+      console.log('Respuesta data:', response.data);
+      console.log('Tipo de respuesta data:', typeof response.data);
+      console.log('Es array?', Array.isArray(response.data));
+      
+      // Asegurarnos de obtener los datos correctamente
+      let data = response.data;
+      
+      // Si la respuesta es directamente un array (caso edge)
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response && response.data) {
+        data = response.data;
+      }
+      
+      if (data && Array.isArray(data)) {
+        console.log(`Se encontraron ${data.length} sectores`);
+        setSectores(data);
       } else {
-        console.warn('Respuesta no es un array:', response.data);
+        console.warn('Respuesta no es un array. Tipo:', typeof data, 'Valor:', data);
         setSectores([]);
       }
     } catch (err) {
       console.error('Error al cargar sectores:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'No se pudieron cargar los sectores';
+      console.error('Error response:', err.response);
+      console.error('Error response data:', err.response?.data);
+      
+      let errorMessage = 'No se pudieron cargar los sectores';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(`Error: ${errorMessage}`);
       setSectores([]);
     } finally {
@@ -55,6 +85,10 @@ export default function Sectores() {
           <div className="loading">Cargando sectores...</div>
         ) : error ? (
           <div className="error">{error}</div>
+        ) : sectores.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+            No se encontraron sectores
+          </div>
         ) : (
           <div className="grid-2-col">
             {sectores.map((sector) => (
