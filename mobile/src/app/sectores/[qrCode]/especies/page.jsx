@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
+import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { sectorsApi, speciesApi } from '@/utils/api';
 
 export default function SectorEspecies() {
@@ -83,7 +84,34 @@ export default function SectorEspecies() {
                 onClick={() => handleEspecieClick(especie)}
                 style={{ cursor: 'pointer' }}
               >
-                <div className="grid-item-image">foto</div>
+                <div className="grid-item-image">
+                  {especie.cover_photo ? (
+                    <AuthenticatedImage
+                      src={especie.cover_photo}
+                      alt={especie.nombre_común || especie.scientific_name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '8px',
+                      color: '#9ca3af',
+                      fontSize: '48px',
+                    }}>
+                      🌵
+                    </div>
+                  )}
+                </div>
                 <div className="grid-item-text">
                   {especie.nombre_común || especie.nombre || especie.scientific_name || especie.name || `Nombre de la Especie`}
                 </div>
