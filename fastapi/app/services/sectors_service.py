@@ -15,14 +15,92 @@ def list_public(q: Optional[str] = None) -> List[Dict[str, Any]]:
     return res.data or []
 
 def get_public_by_qr(qr_code: str) -> Optional[Dict[str, Any]]:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
-    res = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).eq("qr_code", qr_code).limit(1).execute()
-    return res.data[0] if res.data else None
+    # Normalizar qr_code: remover espacios y convertir a string
+    qr_code_normalized = str(qr_code).strip() if qr_code else None
+    
+    if not qr_code_normalized:
+        logger.warning("[get_public_by_qr] qr_code vacío o None")
+        return None
+    
+    logger.info(f"[get_public_by_qr] Buscando sector con qr_code: '{qr_code_normalized}'")
+    
+    try:
+        res = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).eq("qr_code", qr_code_normalized).limit(1).execute()
+        
+        # Log detallado de la respuesta
+        logger.info(f"[get_public_by_qr] Respuesta de Supabase:")
+        logger.info(f"  - tiene data: {bool(res.data)}")
+        logger.info(f"  - tipo de data: {type(res.data)}")
+        logger.info(f"  - longitud: {len(res.data) if res.data else 0}")
+        if res.data:
+            logger.info(f"  - contenido: {res.data}")
+        
+        if res.data and len(res.data) > 0:
+            sector = res.data[0]
+            logger.info(f"[get_public_by_qr] Sector encontrado: id={sector.get('id')}, name={sector.get('name')}, qr_code={sector.get('qr_code')}")
+            return sector
+        else:
+            logger.warning(f"[get_public_by_qr] No se encontró sector con qr_code: '{qr_code_normalized}'")
+            
+            # Intentar búsqueda por ID si el qr_code tiene formato SECTOR{id}
+            import re
+            match = re.match(r'^SECTOR(\d+)$', qr_code_normalized, re.IGNORECASE)
+            if match:
+                sector_id = int(match.group(1))
+                logger.info(f"[get_public_by_qr] qr_code tiene formato SECTOR{{id}}, buscando por ID: {sector_id}")
+                res_by_id = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).eq("id", sector_id).limit(1).execute()
+                if res_by_id.data and len(res_by_id.data) > 0:
+                    sector = res_by_id.data[0]
+                    logger.info(f"[get_public_by_qr] Sector encontrado por ID: id={sector.get('id')}, name={sector.get('name')}, qr_code={sector.get('qr_code')}")
+                    return sector
+            
+            # Intentar búsqueda sin distinción de mayúsculas/minúsculas como fallback
+            logger.info(f"[get_public_by_qr] Intentando búsqueda alternativa (case-insensitive)...")
+            all_sectors = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).execute()
+            if all_sectors.data:
+                for sector in all_sectors.data:
+                    if sector.get("qr_code") and str(sector.get("qr_code")).strip().upper() == qr_code_normalized.upper():
+                        logger.info(f"[get_public_by_qr] Sector encontrado (case-insensitive): id={sector.get('id')}, qr_code={sector.get('qr_code')}")
+                        return sector
+            logger.warning(f"[get_public_by_qr] No se encontró sector con qr_code (ni por ID, ni case-insensitive): '{qr_code_normalized}'")
+            return None
+    except Exception as e:
+        logger.error(f"[get_public_by_qr] Error al buscar sector: {str(e)}", exc_info=True)
+        return None
 
 def _get_sector_id_by_qr(qr_code: str) -> Optional[int]:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
-    r = sb.table("sectores").select("id").eq("qr_code", qr_code).limit(1).execute()
-    return r.data[0]["id"] if r.data else None
+    qr_code_normalized = str(qr_code).strip() if qr_code else None
+    
+    if not qr_code_normalized:
+        return None
+    
+    try:
+        r = sb.table("sectores").select("id").eq("qr_code", qr_code_normalized).limit(1).execute()
+        if r.data and len(r.data) > 0:
+            logger.info(f"[_get_sector_id_by_qr] Sector encontrado con id: {r.data[0]['id']} para qr_code: {qr_code_normalized}")
+            return r.data[0]["id"]
+        else:
+            # Intentar búsqueda por ID si el qr_code tiene formato SECTOR{id}
+            import re
+            match = re.match(r'^SECTOR(\d+)$', qr_code_normalized, re.IGNORECASE)
+            if match:
+                sector_id = int(match.group(1))
+                logger.info(f"[_get_sector_id_by_qr] qr_code tiene formato SECTOR{{id}}, retornando ID: {sector_id}")
+                return sector_id
+            
+            logger.warning(f"[_get_sector_id_by_qr] No se encontró sector con qr_code: {qr_code_normalized}")
+            return None
+    except Exception as e:
+        logger.error(f"[_get_sector_id_by_qr] Error al buscar sector: {str(e)}", exc_info=True)
+        return None
 
 def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
     """

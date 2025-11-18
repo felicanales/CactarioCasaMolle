@@ -22,9 +22,17 @@ def get_sector_public(qr_code: str = Path(..., description="QR code del sector")
     """
     Ficha pública de un sector por su QR (sin auth).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"[get_sector_public] Recibido qr_code: {qr_code}")
     row = svc.get_public_by_qr(qr_code)
+    
     if not row:
-        raise HTTPException(404, "Sector no encontrado")
+        logger.warning(f"[get_sector_public] Sector no encontrado para qr_code: {qr_code}")
+        raise HTTPException(status_code=404, detail=f"Sector no encontrado con QR: {qr_code}")
+    
+    logger.info(f"[get_sector_public] Sector encontrado: {row.get('id')} - {row.get('name')}")
     return row
 
 @router.get("/public/{qr_code}/species")
