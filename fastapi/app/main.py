@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos
 from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -194,6 +195,32 @@ async def options_handler(path: str):
     """Handle preflight OPTIONS requests for CORS"""
     logger.debug(f"OPTIONS request para: /{path}")
     return {"message": "OK"}
+
+# Exception handler global para asegurar que todos los errores tengan headers CORS
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler que asegura que todos los errores tengan headers CORS
+    """
+    import traceback
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(traceback.format_exc())
+    
+    # Crear respuesta de error
+    response = JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"Error interno del servidor: {str(exc)}"}
+    )
+    
+    # Agregar headers CORS
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
 
 # ============================================================
 # MENSAJE DE INICIO COMPLETADO
