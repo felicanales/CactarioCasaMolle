@@ -211,7 +211,7 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             logger.error(f"[create_staff] Error: qr_code '{payload['qr_code']}' ya existe")
             raise ValueError("qr_code ya existe")
     
-    # Limpiar payload: solo enviar campos válidos (location no existe en la tabla)
+    # Limpiar payload: solo enviar campos válidos
     # IMPORTANTE: NO incluir 'id' - debe ser generado automáticamente por la base de datos
     valid_fields = ["name", "description", "qr_code"]
     clean_payload = {k: v for k, v in payload.items() if k in valid_fields}
