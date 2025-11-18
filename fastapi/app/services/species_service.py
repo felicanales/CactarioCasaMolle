@@ -206,8 +206,16 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
             payload[field] = None
     
     logger.info(f"[update_staff] Payload limpio para actualizar: {list(payload.keys())}")
+    logger.info(f"[update_staff] Payload completo (valores): {payload}")
+    
+    # Verificar explícitamente que morfología_cactus no esté en el payload
+    if "morfología_cactus" in payload:
+        logger.error(f"[update_staff] ERROR: morfología_cactus todavía está en el payload después de la limpieza: {payload.get('morfología_cactus')}")
+        del payload["morfología_cactus"]
+        logger.warning(f"[update_staff] Removido morfología_cactus del payload como medida de seguridad")
     
     try:
+        logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload: {list(payload.keys())}")
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")
