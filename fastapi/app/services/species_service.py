@@ -139,15 +139,89 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Actualiza una especie existente en la base de datos.
+    Limpia el payload antes de actualizar para evitar errores con campos enum y campos no válidos.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Validar slug único si se está actualizando
     if "slug" in payload and payload["slug"]:
         exists = sb.table("especies").select("id").eq("slug", payload["slug"]).neq("id", species_id).limit(1).execute()
         if exists.data:
             raise ValueError("slug ya existe en otra especie")
-    res = sb.table("especies").update(payload).eq("id", species_id).execute()
-    if not res.data:
-        raise LookupError("Especie no encontrada")
-    return res.data[0]
+    
+    # Remover campos que no deben actualizarse o no existen en la tabla
+    if "id" in payload:
+        logger.warning(f"[update_staff] Se intentó actualizar 'id', removiéndolo del payload")
+        del payload["id"]
+    
+    # Remover campos de timestamp que deben ser generados automáticamente
+    for auto_field in ["created_at", "updated_at"]:
+        if auto_field in payload:
+            logger.warning(f"[update_staff] Se intentó actualizar '{auto_field}', removiéndolo del payload")
+            del payload[auto_field]
+    
+    # Remover image_url si existe (no existe en la tabla)
+    if "image_url" in payload:
+        logger.warning("[update_staff] Se intentó actualizar 'image_url', removiéndolo del payload")
+        del payload["image_url"]
+    
+    # Remover cover_photo si existe (es un campo calculado, no existe en la tabla)
+    if "cover_photo" in payload:
+        logger.warning("[update_staff] Se intentó actualizar 'cover_photo', removiéndolo del payload")
+        del payload["cover_photo"]
+    
+    # Remover photos si existe (es un campo calculado, no existe en la tabla)
+    if "photos" in payload:
+        logger.warning("[update_staff] Se intentó actualizar 'photos', removiéndolo del payload")
+        del payload["photos"]
+    
+    # Convertir strings vacíos a None para campos ENUM y opcionales
+    # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
+    enum_fields = ["morfología_cactus", "tipo_morfología", "tipo_planta"]
+    for field in enum_fields:
+        if field in payload:
+            # Si el valor es string vacío, convertir a None
+            if payload[field] == "":
+                logger.info(f"[update_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
+                payload[field] = None
+            # Si el valor no es None y no está en los valores válidos conocidos, removerlo
+            # Esto evita errores de enum inválido
+            elif payload[field] is not None:
+                # Obtener los valores válidos del enum desde la base de datos
+                # Por ahora, si el valor parece inválido (como "Agave" para morfología_cactus),
+                # lo removemos del payload para evitar errores
+                # NOTA: Esto es una solución temporal. Idealmente deberíamos validar contra los valores reales del enum
+                if field == "morfología_cactus" and payload[field] not in ["Cactus", "Suculenta", "Cactácea"]:
+                    logger.warning(f"[update_staff] Valor inválido para enum {field}: '{payload[field]}', removiéndolo del payload")
+                    del payload[field]
+    
+    # Convertir strings vacíos a None para campos de texto opcionales
+    optional_text_fields = ["nombre_común", "nombres_comunes", "habitat", "distribución", 
+                           "estado_conservación", "categoría_de_conservación", "expectativa_vida",
+                           "floración", "cuidado", "usos", "historia_nombre", "historia_y_leyendas"]
+    for field in optional_text_fields:
+        if field in payload and payload[field] == "":
+            payload[field] = None
+    
+    logger.info(f"[update_staff] Payload limpio para actualizar: {list(payload.keys())}")
+    
+    try:
+        res = sb.table("especies").update(payload).eq("id", species_id).execute()
+        if not res.data:
+            raise LookupError("Especie no encontrada")
+        logger.info(f"[update_staff] Especie actualizada exitosamente: {species_id}")
+        return res.data[0]
+    except Exception as e:
+        logger.error(f"[update_staff] Error al actualizar especie: {str(e)}")
+        # Si el error es relacionado con enum, dar un mensaje más claro
+        if "enum" in str(e).lower() or "22P02" in str(e):
+            raise ValueError(f"Valor inválido para un campo enum: {str(e)}")
+        raise
 
 def delete_admin(species_id: int) -> None:
     sb = get_public()
