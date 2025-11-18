@@ -131,13 +131,19 @@ railway_regex = r"https://.*\.railway\.app"  # Permitir todos los dominios de Ra
 # Combinar regex en una sola expresión
 combined_regex = f"({ngrok_regex}|{railway_regex})"
 
+# Asegurarse de que el frontend de Railway esté en la lista de orígenes permitidos
+# Si no está explícitamente, el regex lo cubrirá, pero es mejor tenerlo explícito
+if "https://cactario-frontend-production.up.railway.app" not in origins:
+    origins.append("https://cactario-frontend-production.up.railway.app")
+    logger.info("   ➕ Agregado explícitamente: https://cactario-frontend-production.up.railway.app")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_origin_regex=combined_regex,  # Permitir dominios de ngrok y Railway con regex
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*", "X-CSRF-Token", "Authorization", "Content-Type", "ngrok-skip-browser-warning"],
+    allow_methods=["*"],  # Permitir todos los métodos
+    allow_headers=["*"],  # Permitir todos los headers
     expose_headers=["*"],
 )
 logger.info("   ✅ CORSMiddleware configurado con soporte para ngrok y Railway")
