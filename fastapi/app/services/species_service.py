@@ -219,14 +219,17 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"[update_staff] Payload limpio para actualizar: {list(payload.keys())}")
     logger.info(f"[update_staff] Payload completo (valores): {payload}")
     
-    # Verificar explícitamente que morfología_cactus no esté en el payload
-    if "morfología_cactus" in payload:
-        logger.error(f"[update_staff] ERROR: morfología_cactus todavía está en el payload después de la limpieza: {payload.get('morfología_cactus')}")
-        del payload["morfología_cactus"]
-        logger.warning(f"[update_staff] Removido morfología_cactus del payload como medida de seguridad")
+    # Verificación final: asegurar que morfología_cactus sea NULL
+    if "morfología_cactus" in payload and payload["morfología_cactus"] is not None:
+        logger.warning(f"[update_staff] Verificación final: morfología_cactus tiene valor '{payload['morfología_cactus']}', estableciendo a NULL")
+        payload["morfología_cactus"] = None
+    elif "morfología_cactus" not in payload:
+        payload["morfología_cactus"] = None
+        logger.info(f"[update_staff] Verificación final: agregando morfología_cactus = NULL al payload")
     
     try:
-        logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload: {list(payload.keys())}")
+        logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload final: {list(payload.keys())}")
+        logger.info(f"[update_staff] Valor de morfología_cactus en payload: {payload.get('morfología_cactus')}")
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")
