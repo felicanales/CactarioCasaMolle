@@ -79,7 +79,16 @@ def list_staff(q: Optional[str] = None, limit: int = 100, offset: int = 0) -> Li
 
 def get_staff(species_id: int) -> Optional[Dict[str, Any]]:
     sb = get_public()
-    res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
+    # Seleccionar campos explícitamente, excluyendo morfología_cactus que puede tener valores inválidos
+    # El frontend solo usa tipo_morfología
+    fields = [
+        "id", "slug", "nombre_común", "scientific_name", "nombres_comunes",
+        "habitat", "estado_conservación", "tipo_planta", "tipo_morfología",
+        "distribución", "floración", "cuidado", "usos", "historia_nombre",
+        "historia_y_leyendas", "Endémica", "expectativa_vida",
+        "categoría_de_conservación", "created_at", "updated_at"
+    ]
+    res = sb.table("especies").select(",".join(fields)).eq("id", species_id).limit(1).execute()
     if not res.data:
         return None
     species = res.data[0]
