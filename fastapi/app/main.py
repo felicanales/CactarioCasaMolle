@@ -197,10 +197,14 @@ async def options_handler(path: str):
     return {"message": "OK"}
 
 # Exception handler global para asegurar que todos los errores tengan headers CORS
+# IMPORTANTE: Este handler debe estar después de que se registren los middlewares
+# pero FastAPI aplicará CORS automáticamente si el middleware está configurado correctamente
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
-    Global exception handler que asegura que todos los errores tengan headers CORS
+    Global exception handler que asegura que todos los errores tengan headers CORS.
+    El middleware de CORS debería agregar los headers automáticamente, pero este handler
+    los agrega explícitamente como respaldo.
     """
     import traceback
     logger.error(f"Unhandled exception: {exc}")
@@ -212,13 +216,19 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": f"Error interno del servidor: {str(exc)}"}
     )
     
-    # Agregar headers CORS
+    # Agregar headers CORS explícitamente como respaldo
+    # El middleware de CORS debería hacer esto automáticamente, pero lo hacemos explícito
     origin = request.headers.get("origin")
     if origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        # Verificar si el origen está permitido (usar el mismo regex que el middleware)
+        import re
+        railway_regex = r"https://.*\.railway\.app"
+        ngrok_regex = r"https://.*\.ngrok.*"
+        if re.match(railway_regex, origin) or re.match(ngrok_regex, origin) or origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
     
     return response
 
