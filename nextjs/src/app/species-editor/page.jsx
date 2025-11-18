@@ -1922,20 +1922,6 @@ export default function SpeciesEditorPage() {
                                                     </div>
                                                     <div>
                                                         <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
-                                                            Ubicación
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={sectorFormData.location}
-                                                            onChange={(e) => setSectorFormData({ ...sectorFormData, location: e.target.value })}
-                                                            style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
                                                             Código QR
                                                         </label>
                                                         <input
