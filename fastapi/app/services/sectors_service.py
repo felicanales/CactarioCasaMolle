@@ -105,32 +105,53 @@ def _get_sector_id_by_qr(qr_code: str) -> Optional[int]:
 def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
     """
     Devuelve especies (campos públicos) presentes en el sector identificado por 'qr_code'.
+    Las especies se obtienen desde la tabla sectores_especies.
     Campos: id, slug, scientific_name, nombre_común + cover_photo (si existe).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
     sector_id = _get_sector_id_by_qr(qr_code)
+    
     if not sector_id:
+        logger.warning(f"[list_species_public_by_sector_qr] No se encontró sector_id para qr_code: {qr_code}")
         return []
 
-    # 1) Traer species_id desde ejemplar por sector
-    ej = sb.table("ejemplar").select("species_id").eq("sector_id", sector_id).execute()
-    species_ids: Set[int] = set([row["species_id"] for row in (ej.data or []) if row.get("species_id")])
+    logger.info(f"[list_species_public_by_sector_qr] Buscando especies para sector_id: {sector_id}")
 
-    if not species_ids:
+    # 1) Obtener los IDs de especies desde sectores_especies (tabla de relación)
+    relations = sb.table("sectores_especies").select("especie_id").eq("sector_id", sector_id).execute()
+    
+    logger.info(f"[list_species_public_by_sector_qr] Relaciones encontradas: {len(relations.data) if relations.data else 0}")
+    
+    if not relations.data:
+        logger.info(f"[list_species_public_by_sector_qr] No hay relaciones en sectores_especies para sector_id: {sector_id}")
+        return []
+    
+    especie_ids = [r["especie_id"] for r in relations.data if r.get("especie_id")]
+    
+    if not especie_ids:
+        logger.warning(f"[list_species_public_by_sector_qr] No hay especie_ids válidos en las relaciones")
         return []
 
-    # 2) Traer especies públicas por IDs
+    logger.info(f"[list_species_public_by_sector_qr] Obteniendo información de {len(especie_ids)} especies")
+
+    # 2) Obtener información de las especies (campos públicos)
     #    NOTA: nombres en tu schema: scientific_name, nombre_común, slug
-    sp = sb.table("especies").select("id, slug, scientific_name, nombre_común").in_("id", list(species_ids)).execute()
+    sp = sb.table("especies").select("id, slug, scientific_name, nombre_común").in_("id", especie_ids).execute()
     species = sp.data or []
+
+    logger.info(f"[list_species_public_by_sector_qr] Especies obtenidas: {len(species)}")
 
     # 3) Traer foto de portada por especie usando el servicio genérico
     cover_map: Dict[int, Optional[str]] = {}
     if species:
         ids = [s["id"] for s in species]
         cover_map = photos_service.get_cover_photos_map("especie", ids)
+        logger.info(f"[list_species_public_by_sector_qr] Fotos de portada obtenidas: {len([k for k, v in cover_map.items() if v])}")
 
-    # 4) Adjuntar cover_photo
+    # 4) Construir respuesta con cover_photo
     out = []
     for s in species:
         out.append({
@@ -140,8 +161,11 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
             "nombre_común": s.get("nombre_común"),
             "cover_photo": cover_map.get(s["id"]),
         })
-    # ordenar por nombre común o científico
+    
+    # Ordenar por nombre común o científico
     out.sort(key=lambda x: (x["nombre_común"] or x["scientific_name"]).lower())
+    
+    logger.info(f"[list_species_public_by_sector_qr] Retornando {len(out)} especies ordenadas")
     return out
 
 # ----------------- STAFF (privado) -----------------
