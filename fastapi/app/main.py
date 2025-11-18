@@ -68,15 +68,14 @@ app = FastAPI(
 # Permitir el origen del frontend - configuración dinámica por entorno
 origins = []
 
-# Desarrollo local - solo agregar si no estamos en producción
-environment = os.getenv("ENVIRONMENT", "development")
-if environment != "production":
-    origins.extend([
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-    ])
+# Desarrollo local - siempre agregar localhost para desarrollo
+# Esto permite trabajar localmente incluso si ENVIRONMENT=production
+origins.extend([
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+])
 
 # Producción - usar variables de entorno
 # Frontend domain desde variable de entorno (recomendado)

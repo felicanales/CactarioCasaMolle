@@ -311,15 +311,31 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError(f"Error al crear sector: {error_msg}")
 
 def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Remover campos que no existen en la tabla sectores
+    # La tabla solo tiene: id, name, description, qr_code, created_at, updated_at
+    # NO tiene 'location' aunque el modelo SQLAlchemy lo tenga
+    invalid_fields = ["location", "id", "created_at", "updated_at"]
+    for field in invalid_fields:
+        if field in payload:
+            logger.warning(f"[update_staff] Removiendo campo inválido '{field}' del payload de sector")
+            del payload[field]
+    
     # Convertir string vacío a None para qr_code
     if "qr_code" in payload and payload["qr_code"] == "":
         payload["qr_code"] = None
+    
     # Validar unicidad solo si qr_code tiene un valor
     if "qr_code" in payload and payload["qr_code"]:
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).neq("id", sector_id).limit(1).execute()
         if exists.data:
             raise ValueError("qr_code ya existe en otro sector")
+    
+    logger.info(f"[update_staff] Actualizando sector {sector_id} con campos: {list(payload.keys())}")
     res = sb.table("sectores").update(payload).eq("id", sector_id).execute()
     if not res.data:
         raise LookupError("Sector no encontrado")
