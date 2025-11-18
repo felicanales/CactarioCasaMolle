@@ -100,11 +100,16 @@ El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. 
 
 2. **Ejecutar el script de agregar usuario**:
    - Abre el archivo `agregar_usuario.sql` en la raíz del proyecto
+   - Busca la llamada a la función `insert_usuario_admin` (alrededor de la línea 75)
    - Reemplaza los valores marcados con ⚠️:
-     - `'nuevo_correo@ejemplo.com'` → El correo del nuevo usuario
-     - `'nombre_usuario'` → Un nombre de usuario único
-     - `'Nombre Completo'` → Nombre completo (opcional)
-   - Ejecuta el script
+     ```sql
+     SELECT * FROM public.insert_usuario_admin(
+         'karim@casamolle.cl',  -- ⚠️ CAMBIAR: Correo (se convierte a minúsculas automáticamente)
+         'karim',                -- ⚠️ CAMBIAR: Nombre de usuario único
+         'Karim Daire'           -- ⚠️ OPCIONAL: Nombre completo
+     );
+     ```
+   - Ejecuta el script completo (crea la función y luego la usa)
 
 3. **Verificar**:
    - El script incluye una consulta de verificación al final
@@ -112,9 +117,10 @@ El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. 
 
 #### ⚠️ Importante
 
-- El correo debe estar en **minúsculas** y coincidir exactamente con el que agregaste en Supabase Auth
+- El correo se convierte automáticamente a minúsculas (puedes escribirlo como prefieras)
 - El campo `supabase_uid` se sincronizará automáticamente cuando el usuario inicie sesión por primera vez
 - Si el correo ya existe pero está inactivo, el script lo activará automáticamente
+- Si el correo ya existe, el script actualizará el username y nombre completo
 - El `username` debe ser único en la tabla
 
 #### Problema Común: "Correo no autorizado"
