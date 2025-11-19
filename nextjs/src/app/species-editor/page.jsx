@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -122,6 +122,7 @@ export default function SpeciesEditorPage() {
     const [showPhotoUploader, setShowPhotoUploader] = useState(false);
     const [speciesPhotos, setSpeciesPhotos] = useState([]);
     const [loadingPhotos, setLoadingPhotos] = useState(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -1633,7 +1634,11 @@ export default function SpeciesEditorPage() {
 
                                                                 {/* Botón para subir más fotos */}
                                                                 <div
-                                                                    onClick={() => setShowPhotoUploader(!showPhotoUploader)}
+                                                                    onClick={() => {
+                                                                        if (fileInputRef.current) {
+                                                                            fileInputRef.current.click();
+                                                                        }
+                                                                    }}
                                                                     style={{
                                                                         width: "120px",
                                                                         height: "120px",
@@ -1641,30 +1646,39 @@ export default function SpeciesEditorPage() {
                                                                         display: "flex",
                                                                         alignItems: "center",
                                                                         justifyContent: "center",
-                                                                        backgroundColor: showPhotoUploader ? "#eff6ff" : "#f9fafb",
-                                                                        border: showPhotoUploader ? "2px solid #3b82f6" : "2px dashed #d1d5db",
+                                                                        backgroundColor: "#f9fafb",
+                                                                        border: "2px dashed #d1d5db",
                                                                         borderRadius: "8px",
                                                                         cursor: "pointer",
                                                                         transition: "all 0.2s",
-                                                                        color: showPhotoUploader ? "#3b82f6" : "#6b7280",
+                                                                        color: "#6b7280",
                                                                         fontSize: "32px",
                                                                         fontWeight: "300"
                                                                     }}
                                                                     onMouseEnter={(e) => {
-                                                                        if (!showPhotoUploader) {
-                                                                            e.currentTarget.style.backgroundColor = "#f3f4f6";
-                                                                            e.currentTarget.style.borderColor = "#9ca3af";
-                                                                        }
+                                                                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                                                                        e.currentTarget.style.borderColor = "#9ca3af";
                                                                     }}
                                                                     onMouseLeave={(e) => {
-                                                                        if (!showPhotoUploader) {
-                                                                            e.currentTarget.style.backgroundColor = "#f9fafb";
-                                                                            e.currentTarget.style.borderColor = "#d1d5db";
-                                                                        }
+                                                                        e.currentTarget.style.backgroundColor = "#f9fafb";
+                                                                        e.currentTarget.style.borderColor = "#d1d5db";
                                                                     }}
                                                                 >
                                                                     +
                                                                 </div>
+                                                                {/* Input file oculto */}
+                                                                <input
+                                                                    ref={fileInputRef}
+                                                                    type="file"
+                                                                    multiple
+                                                                    accept="image/*"
+                                                                    style={{ display: "none" }}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.files && e.target.files.length > 0) {
+                                                                            setShowPhotoUploader(true);
+                                                                        }
+                                                                    }}
+                                                                />
                                                             </>
                                                         )}
                                                     </div>
