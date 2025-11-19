@@ -449,9 +449,39 @@ export default function SpeciesEditorPage() {
         setFilteredSectors(filtered);
     }, [sectors, sectorSearchQuery, sectorSortOrder]);
 
+    const fetchSpeciesPhotos = async (speciesId) => {
+        if (!speciesId) return;
+        setLoadingPhotos(true);
+        try {
+            const token = getAccessTokenFromContext(accessToken);
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const res = await apiRequest(`${API}/photos/especie/${speciesId}`, {
+                method: 'GET',
+                headers
+            }, accessToken);
+            if (res.ok) {
+                const data = await res.json();
+                setSpeciesPhotos(data.photos || []);
+            } else {
+                setSpeciesPhotos([]);
+            }
+        } catch (err) {
+            console.error('[SpeciesEditor] Error fetching photos:', err);
+            setSpeciesPhotos([]);
+        } finally {
+            setLoadingPhotos(false);
+        }
+    };
+
     const handleSelect = (sp) => {
         setSelectedSpecies(sp);
         setShowPhotoUploader(false);
+        fetchSpeciesPhotos(sp.id);
 
         // Usar tipo_morfología tal cual viene de la base de datos
         let tipoMorfologia = sp.tipo_morfología || "";
