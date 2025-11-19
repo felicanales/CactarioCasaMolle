@@ -183,7 +183,7 @@ def get_staff(sector_id: int) -> Optional[Dict[str, Any]]:
     res = sb.table("sectores").select("*").eq("id", sector_id).limit(1).execute()
     return res.data[0] if res.data else None
 
-def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Crea un nuevo sector en la base de datos.
     """
@@ -310,8 +310,22 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
             logger.error(f"[create_staff] Error inesperado: {error_msg}")
             raise ValueError(f"Error al crear sector: {error_msg}")
 
-def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+def update_staff(sector_id: int, payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Obtener valores anteriores para auditoría
+    old_values = None
+    if user_id or user_email:
+        try:
+            old_res = sb.table("sectores").select("*").eq("id", sector_id).limit(1).execute()
+            if old_res.data:
+                old_values = old_res.data[0]
+        except Exception as e:
+            logger.warning(f"[update_staff] No se pudieron obtener valores anteriores para auditoría: {str(e)}")
+    
     # Convertir string vacío a None para qr_code
     if "qr_code" in payload and payload["qr_code"] == "":
         payload["qr_code"] = None
@@ -320,10 +334,38 @@ def update_staff(sector_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         exists = sb.table("sectores").select("id").eq("qr_code", payload["qr_code"]).neq("id", sector_id).limit(1).execute()
         if exists.data:
             raise ValueError("qr_code ya existe en otro sector")
+    
+    # Remover campos que no deben actualizarse
+    for field in ["id", "created_at", "updated_at"]:
+        if field in payload:
+            del payload[field]
+    
     res = sb.table("sectores").update(payload).eq("id", sector_id).execute()
     if not res.data:
         raise LookupError("Sector no encontrado")
-    return res.data[0]
+    
+    updated_sector = res.data[0]
+    
+    # Registrar en auditoría
+    if user_id or user_email:
+        try:
+            from app.services.audit_service import log_change
+            log_change(
+                table_name='sectores',
+                record_id=sector_id,
+                action='UPDATE',
+                user_id=user_id,
+                user_email=user_email,
+                user_name=user_name,
+                old_values=old_values,
+                new_values=updated_sector,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        except Exception as audit_error:
+            logger.warning(f"[update_staff] Error al registrar auditoría: {str(audit_error)}")
+    
+    return updated_sector
 
 def delete_admin(sector_id: int) -> None:
     sb = get_public()

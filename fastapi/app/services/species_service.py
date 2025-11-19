@@ -94,7 +94,7 @@ def get_staff(species_id: int) -> Optional[Dict[str, Any]]:
     species["photos"] = photos_service.list_photos("especie", species_id)
     return species
 
-def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Crea una nueva especie en la base de datos.
     """
@@ -135,13 +135,36 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         res = sb.table("especies").insert(payload).execute()
         if not res.data:
             raise ValueError("No se pudo crear la especie")
-        logger.info(f"[create_staff] Especie creada exitosamente: {res.data[0].get('id')}")
-        return res.data[0]
+        
+        created_species = res.data[0]
+        species_id = created_species.get('id')
+        logger.info(f"[create_staff] Especie creada exitosamente: {species_id}")
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='especies',
+                    record_id=species_id,
+                    action='CREATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=None,
+                    new_values=created_species,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[create_staff] Error al registrar auditoría: {str(audit_error)}")
+        
+        return created_species
     except Exception as e:
         logger.error(f"[create_staff] Error al crear especie: {str(e)}")
         raise
 
-def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+def update_staff(species_id: int, payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Actualiza una especie existente en la base de datos.
     Limpia el payload antes de actualizar para evitar errores con campos enum y campos no válidos.
@@ -150,6 +173,16 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     logger = logging.getLogger(__name__)
     
     sb = get_public()
+    
+    # Obtener valores anteriores para auditoría
+    old_values = None
+    if user_id or user_email:
+        try:
+            old_res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
+            if old_res.data:
+                old_values = old_res.data[0]
+        except Exception as e:
+            logger.warning(f"[update_staff] No se pudieron obtener valores anteriores para auditoría: {str(e)}")
     
     # Validar slug único si se está actualizando
     if "slug" in payload and payload["slug"]:
@@ -193,7 +226,29 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")
-        return res.data[0]
+        
+        updated_species = res.data[0]
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='especies',
+                    record_id=species_id,
+                    action='UPDATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=old_values,
+                    new_values=updated_species,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[update_staff] Error al registrar auditoría: {str(audit_error)}")
+        
+        return updated_species
     except Exception as e:
         logger.error(f"[update_staff] Error al actualizar especie: {str(e)}")
         raise

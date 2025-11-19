@@ -57,23 +57,35 @@ def get_species_staff(species_id: int = Path(..., ge=1)):
     return row
 
 @router.post("/staff", dependencies=[Depends(get_current_user)])
-def create_species_staff(payload: Dict[str, Any]):
+def create_species_staff(payload: Dict[str, Any], request: Request, current_user: dict = Depends(get_current_user)):
     """
     Crea especie (requiere usuario autenticado).
     """
     try:
-        created = svc.create_staff(payload)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        created = svc.create_staff(payload, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return created
     except ValueError as e:
         raise HTTPException(400, str(e))
 
 @router.put("/staff/{species_id}", dependencies=[Depends(get_current_user)])
-def update_species_staff(species_id: int, payload: Dict[str, Any]):
+def update_species_staff(species_id: int, payload: Dict[str, Any], request: Request, current_user: dict = Depends(get_current_user)):
     """
     Actualiza especie (requiere usuario autenticado).
     """
     try:
-        updated = svc.update_staff(species_id, payload)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        updated = svc.update_staff(species_id, payload, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return updated
     except LookupError as e:
         raise HTTPException(404, str(e))
