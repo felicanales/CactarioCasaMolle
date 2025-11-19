@@ -422,9 +422,25 @@ export default function SpeciesPage() {
                 slug,
             };
 
+            // Normalizar valores de enum a minúsculas antes de enviar al backend
+            // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
+            if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
+                payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
+            } else {
+                payload.tipo_morfología = null;
+            }
+            
+            // tipo_planta: normalizar a minúsculas si tiene valor
+            if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
+                payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
+            } else {
+                payload.tipo_planta = null;
+            }
+            
             // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
+            // Normalizar a minúsculas antes de enviar
             if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
-                payload.categoría_de_conservación = payload.categoria_conservacion.trim();
+                payload.categoría_de_conservación = payload.categoria_conservacion.trim().toLowerCase();
             } else {
                 payload.categoría_de_conservación = null;
             }
@@ -437,16 +453,24 @@ export default function SpeciesPage() {
             if (payload.updated_at) delete payload.updated_at;
 
             // Convertir strings vacíos a null para campos ENUM (no aceptan strings vacíos)
-            const enumFields = ["morfología_cactus", "tipo_morfología", "tipo_planta"];
-            enumFields.forEach(field => {
-                if (payload[field] === "") {
-                    payload[field] = null;
-                }
-            });
-
-            // Mapear tipo_morfología a morfología_cactus si es necesario
-            if (payload.tipo_morfología && !payload.morfología_cactus) {
-                payload.morfología_cactus = payload.tipo_morfología;
+            // Normalizar valores de enum a minúsculas antes de enviar al backend
+            // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
+            if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
+                payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
+            } else {
+                payload.tipo_morfología = null;
+            }
+            
+            // tipo_planta: normalizar a minúsculas si tiene valor
+            if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
+                payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
+            } else {
+                payload.tipo_planta = null;
+            }
+            
+            // Remover morfología_cactus si existe (no existe en la tabla)
+            if (payload.morfología_cactus) {
+                delete payload.morfología_cactus;
             }
 
             let res;

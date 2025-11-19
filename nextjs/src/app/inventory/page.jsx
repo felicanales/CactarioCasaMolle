@@ -683,7 +683,7 @@ export default function InventoryPage() {
     // Obtener morfologías únicas de las especies
     const morfologias = [...new Set(
         speciesList
-            .map(s => s.tipo_morfología || s.morfología_cactus)
+            .map(s => s.tipo_morfología)
             .filter(Boolean)
     )].sort();
 
