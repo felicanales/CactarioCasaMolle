@@ -129,7 +129,7 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
     
     # Convertir strings vacíos a None para campos ENUM y opcionales
     # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
-    enum_fields = ["morfología_cactus", "tipo_morfología", "tipo_planta"]  # Agregar otros campos ENUM si existen
+    enum_fields = ["tipo_morfología", "tipo_planta"]  # Agregar otros campos ENUM si existen
     for field in enum_fields:
         if field in payload and payload[field] == "":
             logger.info(f"[create_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
@@ -202,19 +202,15 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[update_staff] Se intentó actualizar 'photos', removiéndolo del payload")
         del payload["photos"]
     
-    # IMPORTANTE: NO incluir morfología_cactus en el UPDATE
-    # El frontend solo debe usar tipo_morfología, no morfología_cactus
-    # Si morfología_cactus viene en el payload, removerlo completamente
-    # NO establecerlo a NULL porque puede causar errores de validación de enum
-    # Al no incluirlo en el UPDATE, Supabase mantendrá el valor existente (o NULL si no existe)
-    # pero no intentará validarlo contra el enum
+    # IMPORTANTE: Remover morfología_cactus si viene en el payload (no existe en la base de datos)
+    # La tabla especies solo tiene tipo_morfología, NO tiene morfología_cactus
     if "morfología_cactus" in payload:
-        logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (valor: '{payload.get('morfología_cactus')}'). El frontend debe usar 'tipo_morfología'")
+        logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (no existe en la tabla). Usar 'tipo_morfología'")
         del payload["morfología_cactus"]
     
     # Convertir strings vacíos a None para campos ENUM y opcionales
     # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
-    enum_fields = ["tipo_morfología", "tipo_planta"]  # Removido morfología_cactus de la lista
+    enum_fields = ["tipo_morfología", "tipo_planta"]
     for field in enum_fields:
         if field in payload:
             # Si el valor es string vacío, convertir a None
@@ -233,46 +229,8 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"[update_staff] Payload limpio para actualizar: {list(payload.keys())}")
     logger.info(f"[update_staff] Payload completo (valores): {payload}")
     
-    # Verificación final: asegurar que morfología_cactus NO esté en el payload del frontend
-    if "morfología_cactus" in payload:
-        logger.warning(f"[update_staff] morfología_cactus viene del frontend, removiéndolo: '{payload.get('morfología_cactus')}'")
-        del payload["morfología_cactus"]
-    
-    # IMPORTANTE: Sincronizar tipo_morfología con morfología_cactus (enum)
-    # El frontend usa tipo_morfología (texto), pero la base de datos tiene morfología_cactus (enum)
-    # Mapear tipo_morfología a los valores válidos del enum: "columnar", "redondo", "agave", "tallo plano", "otro"
-    if "tipo_morfología" in payload and payload["tipo_morfología"]:
-        tipo_morfologia_value = payload["tipo_morfología"].strip()
-        # Mapear valores del frontend a valores del enum (en minúsculas)
-        enum_mapping = {
-            "columnar": "columnar",
-            "redondo": "redondo",
-            "agave": "agave",
-            "tallo plano": "tallo plano",
-            "otro": "otro"
-        }
-        # Buscar coincidencia case-insensitive
-        morfologia_cactus_value = None
-        for key, enum_value in enum_mapping.items():
-            if key.lower() == tipo_morfologia_value.lower():
-                morfologia_cactus_value = enum_value
-                break
-        
-        if morfologia_cactus_value:
-            payload["morfología_cactus"] = morfologia_cactus_value
-            logger.info(f"[update_staff] Sincronizando tipo_morfología '{tipo_morfologia_value}' → morfología_cactus '{morfologia_cactus_value}'")
-        else:
-            # Si no hay coincidencia, establecer a NULL para evitar errores de enum
-            payload["morfología_cactus"] = None
-            logger.warning(f"[update_staff] tipo_morfología '{tipo_morfologia_value}' no coincide con valores del enum, estableciendo morfología_cactus = NULL")
-    else:
-        # Si tipo_morfología es None o vacío, establecer morfología_cactus = NULL
-        payload["morfología_cactus"] = None
-        logger.info(f"[update_staff] tipo_morfología está vacío, estableciendo morfología_cactus = NULL")
-    
     try:
         logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload final: {list(payload.keys())}")
-        logger.info(f"[update_staff] Valor de morfología_cactus en payload: {payload.get('morfología_cactus')}")
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")

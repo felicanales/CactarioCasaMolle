@@ -80,7 +80,7 @@ def list_staff(
         especies_map = {}
         if species_ids:
             try:
-                especies_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología, morfología_cactus").in_("id", species_ids).execute()
+                especies_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología").in_("id", species_ids).execute()
                 for especie in (especies_res.data or []):
                     especies_map[especie["id"]] = especie
             except Exception as e:
@@ -112,7 +112,7 @@ def list_staff(
         # Filtrar por morfología (en la tabla especies)
         if morfologia:
             especie = ej.get("especies") or {}
-            tipo_morf = especie.get("tipo_morfología") or especie.get("morfología_cactus") or ""
+            tipo_morf = especie.get("tipo_morfología") or ""
             if morfologia.lower() not in tipo_morf.lower():
                 continue
         
@@ -202,7 +202,7 @@ def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
         species_id = ejemplar.get("species_id")
         if species_id:
             try:
-                especie_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología, morfología_cactus").eq("id", species_id).limit(1).execute()
+                especie_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología").eq("id", species_id).limit(1).execute()
                 ejemplar["especies"] = especie_res.data[0] if especie_res.data else None
             except Exception as e:
                 logger.warning(f"[get_staff] Error cargando especie: {str(e)}")
