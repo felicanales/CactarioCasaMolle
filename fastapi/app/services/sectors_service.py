@@ -240,8 +240,30 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
         if not res.data:
             logger.error("[create_staff] Error: Supabase no devolvió datos")
             raise ValueError("No se pudo crear el sector")
-        logger.info(f"[create_staff] Sector creado exitosamente: {res.data[0]}")
-        return res.data[0]
+        created_sector = res.data[0]
+        sector_id = created_sector.get('id')
+        logger.info(f"[create_staff] Sector creado exitosamente: {sector_id}")
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='sectores',
+                    record_id=sector_id,
+                    action='CREATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=None,
+                    new_values=created_sector,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[create_staff] Error al registrar auditoría: {str(audit_error)}")
+        
+        return created_sector
     except Exception as e:
         # Capturar errores de Supabase y proporcionar mensaje más claro
         logger.error(f"[create_staff] Excepción capturada: {type(e).__name__}: {str(e)}")
