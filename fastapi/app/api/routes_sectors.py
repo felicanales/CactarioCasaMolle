@@ -56,7 +56,7 @@ def list_sectors_staff(q: Optional[str] = Query(None, description="Filtro por no
     return svc.list_staff(q)
 
 @router.post("/staff", dependencies=[Depends(get_current_user)])
-def create_sector_staff(payload: Dict[str, Any]):
+def create_sector_staff(payload: Dict[str, Any], request: Request, current_user: dict = Depends(get_current_user)):
     """
     Crea un sector (requiere usuario autenticado).
     """
@@ -66,7 +66,13 @@ def create_sector_staff(payload: Dict[str, Any]):
     logger.info(f"[create_sector_staff] Recibido payload: {payload}")
     
     try:
-        created = svc.create_staff(payload)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        created = svc.create_staff(payload, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         logger.info(f"[create_sector_staff] Sector creado exitosamente: {created}")
         return created
     except ValueError as e:
