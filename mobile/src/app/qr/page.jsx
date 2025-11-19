@@ -286,26 +286,15 @@ export default function QRScanner() {
             flexDirection: 'column',
             pointerEvents: 'none',
           }}>
-            {/* Barra superior con tiempo y botón de ayuda */}
+            {/* Barra superior con botón de ayuda */}
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               alignItems: 'center',
               padding: '16px 20px',
               paddingTop: '60px',
               pointerEvents: 'auto',
             }}>
-              <div style={{
-                backgroundColor: '#A0522D',
-                color: '#F5E6D3',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '14px',
-                fontWeight: '500',
-              }}>
-                13:34
-              </div>
-              
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
                 style={{
@@ -420,7 +409,10 @@ export default function QRScanner() {
               pointerEvents: 'auto',
             }}>
               <button
-                onClick={stopScanning}
+                onClick={async () => {
+                  await stopScanning();
+                  router.push('/');
+                }}
                 style={{
                   background: 'rgba(62, 39, 35, 0.8)',
                   backdropFilter: 'blur(10px)',
