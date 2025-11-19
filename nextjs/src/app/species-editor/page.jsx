@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
+import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
@@ -118,6 +119,7 @@ export default function SpeciesEditorPage() {
     const [sectorSortOrder, setSectorSortOrder] = useState("asc"); // "asc" | "desc"
 
     const [checkedAuth, setCheckedAuth] = useState(false);
+    const [showPhotoUploader, setShowPhotoUploader] = useState(false);
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -447,6 +449,7 @@ export default function SpeciesEditorPage() {
 
     const handleSelect = (sp) => {
         setSelectedSpecies(sp);
+        setShowPhotoUploader(false);
 
         // Usar tipo_morfología tal cual viene de la base de datos
         let tipoMorfologia = sp.tipo_morfología || "";
@@ -836,7 +839,8 @@ export default function SpeciesEditorPage() {
                     }
                     
                     .species-list {
-                        max-height: 400px !important;
+                        max-height: 600px !important;
+                        min-height: 500px !important;
                         margin-bottom: 24px;
                     }
                     
@@ -855,7 +859,8 @@ export default function SpeciesEditorPage() {
                     }
 
                     .species-list {
-                        max-height: 300px !important;
+                        max-height: 500px !important;
+                        min-height: 400px !important;
                     }
 
                     .species-selector {
@@ -880,6 +885,11 @@ export default function SpeciesEditorPage() {
                     
                     .editor-content {
                         padding: 12px !important;
+                    }
+
+                    .species-list {
+                        max-height: 400px !important;
+                        min-height: 350px !important;
                     }
 
                     .species-selector {
@@ -1290,8 +1300,9 @@ export default function SpeciesEditorPage() {
                             borderRadius: "12px",
                             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                             padding: "clamp(12px, 2vw, 16px)",
-                            maxHeight: "calc(100vh - 150px)",
-                            overflowY: "auto"
+                            maxHeight: "calc(100vh - 100px)",
+                            overflowY: "auto",
+                            minHeight: "600px"
                         }}>
                             <div style={{
                                 padding: "12px 16px",
