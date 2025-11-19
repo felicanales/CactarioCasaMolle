@@ -1673,9 +1673,10 @@ export default function SpeciesEditorPage() {
                                                                     multiple
                                                                     accept="image/*"
                                                                     style={{ display: "none" }}
-                                                                    onChange={(e) => {
+                                                                    onChange={async (e) => {
                                                                         if (e.target.files && e.target.files.length > 0) {
                                                                             setShowPhotoUploader(true);
+                                                                            // Los archivos se manejarán en el PhotoUploader
                                                                         }
                                                                     }}
                                                                 />
