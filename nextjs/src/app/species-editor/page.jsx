@@ -126,8 +126,8 @@ export default function SpeciesEditorPage() {
         }
         if (!authLoading && !checkedAuth) {
             if (!user) {
-            router.replace("/login");
-        }
+                router.replace("/login");
+            }
             setCheckedAuth(true);
         }
     }, [user, authLoading, router, checkedAuth]);
@@ -193,66 +193,66 @@ export default function SpeciesEditorPage() {
 
             // Fallback: implementación local (para compatibilidad)
             const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        };
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
 
-        // Agregar header de ngrok si estamos en un dominio ngrok
-        if (typeof window !== 'undefined' &&
-            (window.location.hostname.includes('ngrok.io') ||
-                window.location.hostname.includes('ngrok-free.dev') ||
-                window.location.hostname.includes('ngrok-free.app') ||
-                window.location.hostname.includes('ngrokapp.com') ||
-                window.location.hostname.includes('ngrok'))) {
-            headers['ngrok-skip-browser-warning'] = 'true';
-        }
+            // Agregar header de ngrok si estamos en un dominio ngrok
+            if (typeof window !== 'undefined' &&
+                (window.location.hostname.includes('ngrok.io') ||
+                    window.location.hostname.includes('ngrok-free.dev') ||
+                    window.location.hostname.includes('ngrok-free.app') ||
+                    window.location.hostname.includes('ngrokapp.com') ||
+                    window.location.hostname.includes('ngrok'))) {
+                headers['ngrok-skip-browser-warning'] = 'true';
+            }
 
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
                 console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
             } else {
                 console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
             }
 
-        try {
-            const response = await fetch(finalUrl, {
-                ...options,
-                headers,
-                credentials: 'include',
-                signal: options.signal
-            });
+            try {
+                const response = await fetch(finalUrl, {
+                    ...options,
+                    headers,
+                    credentials: 'include',
+                    signal: options.signal
+                });
 
-            if (!response.ok) {
-                // Suprimir completamente el error 405 para endpoints de especies
-                if (response.status === 405 && isSpeciesEndpoint) {
-                    return {
-                        ok: false,
-                        status: 405,
-                        json: async () => ({}),
-                        text: async () => '',
-                        headers: response.headers,
-                        statusText: 'Method Not Allowed'
-                    };
+                if (!response.ok) {
+                    // Suprimir completamente el error 405 para endpoints de especies
+                    if (response.status === 405 && isSpeciesEndpoint) {
+                        return {
+                            ok: false,
+                            status: 405,
+                            json: async () => ({}),
+                            text: async () => '',
+                            headers: response.headers,
+                            statusText: 'Method Not Allowed'
+                        };
+                    }
+
+                    const errorText = await response.text().catch(() => '');
+                    const errorMessage = errorText || response.statusText;
+                    throw new Error(`HTTP ${response.status}: ${errorMessage}`);
                 }
 
-                const errorText = await response.text().catch(() => '');
-                const errorMessage = errorText || response.statusText;
-                throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+                return response;
+            } catch (fetchError) {
+                throw fetchError;
             }
-
-            return response;
-        } catch (fetchError) {
-            throw fetchError;
+        } catch (error) {
+            // Si es un error de red, lanzarlo con un mensaje más descriptivo
+            if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
+                throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
+            }
+            throw error;
         }
-    } catch (error) {
-        // Si es un error de red, lanzarlo con un mensaje más descriptivo
-        if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
-            throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
-        }
-        throw error;
-    }
-};
+    };
 
     const fetchSpecies = async () => {
         try {
@@ -448,59 +448,43 @@ export default function SpeciesEditorPage() {
     const handleSelect = (sp) => {
         setSelectedSpecies(sp);
 
-        // Normalizar tipo_morfología: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
-        const morfologiaOptions = ["Columnar", "Redondo", "Agave", "Tallo plano", "Otro"];
-        const morfologiaMap = {
-            "columnar": "Columnar",
-            "redondo": "Redondo",
-            "agave": "Agave",
-            "tallo plano": "Tallo plano",
-            "otro": "Otro"
-        };
+        // Usar tipo_morfología tal cual viene de la base de datos
         let tipoMorfologia = sp.tipo_morfología || "";
-        if (tipoMorfologia) {
-            const normalized = tipoMorfologia.trim().toLowerCase();
-            // Mapear desde minúsculas (BD) a formato UI (mayúscula inicial)
-            if (morfologiaMap[normalized]) {
-                tipoMorfologia = morfologiaMap[normalized];
-            } else if (!morfologiaOptions.includes(tipoMorfologia)) {
-                // Si no está en el formato correcto, buscar coincidencia case-insensitive
-                const match = morfologiaOptions.find(opt =>
-                    opt.toLowerCase() === normalized
-                );
-                if (match) {
-                    tipoMorfologia = match;
-                }
-            }
-        }
 
-        // Normalizar categoría de conservación: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
+        // Normalizar categoría de conservación
         const categoriaOptions = ["No amenazado", "Preocupación menor", "Protegido", "En peligro de extinción"];
-        const categoriaMap = {
-            "no amenazado": "No amenazado",
-            "preocupación menor": "Preocupación menor",
-            "protegido": "Protegido",
-            "en peligro de extinción": "En peligro de extinción"
-        };
         // Obtener el valor desde cualquier campo posible (con y sin tilde)
         let categoriaConservacion = sp.categoría_de_conservación || sp.categoria_conservacion || "";
 
+        // Normalizar y mapear el valor
         if (categoriaConservacion) {
-            const normalized = categoriaConservacion.trim().toLowerCase();
+            const normalized = categoriaConservacion.trim();
+
             // Normalizar espacios múltiples
             const normalizedSpaces = normalized.replace(/\s+/g, ' ');
-            // Mapear desde minúsculas (BD) a formato UI (mayúscula inicial)
-            if (categoriaMap[normalizedSpaces]) {
-                categoriaConservacion = categoriaMap[normalizedSpaces];
+
+            // Buscar coincidencia exacta (case-insensitive, ignorando espacios extra)
+            let matched = categoriaOptions.find(opt => {
+                const optTrimmed = opt.trim();
+                const valTrimmed = normalizedSpaces.trim();
+                return optTrimmed.toLowerCase() === valTrimmed.toLowerCase();
+            });
+
+            if (matched) {
+                categoriaConservacion = matched;
             } else {
-                // Buscar coincidencia case-insensitive
-                const match = categoriaOptions.find(opt =>
-                    opt.toLowerCase().trim() === normalizedSpaces
-                );
-                if (match) {
-                    categoriaConservacion = match;
+                // Buscar coincidencia sin tildes/acentos
+                matched = categoriaOptions.find(opt => {
+                    const optNorm = opt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                    const valNorm = normalizedSpaces.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                    return optNorm === valNorm;
+                });
+
+                if (matched) {
+                    categoriaConservacion = matched;
                 } else {
-                    categoriaConservacion = "";
+                    // Si no hay coincidencia, usar el valor normalizado (sin espacios extra)
+                    categoriaConservacion = normalizedSpaces;
                 }
             }
         } else {
@@ -617,26 +601,12 @@ export default function SpeciesEditorPage() {
                     slug: slug
                 };
 
-                // Normalizar valores de enum a minúsculas antes de enviar al backend
-                // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
-                if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
-                    payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
-                } else {
-                    payload.tipo_morfología = null;
-                }
-                
-                // tipo_planta: normalizar a minúsculas si tiene valor
-                if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
-                    payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
-                } else {
-                    payload.tipo_planta = null;
-                }
-                
                 // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
-                // Normalizar a minúsculas antes de enviar
+                // Solo enviar si tiene un valor (no vacío ni null)
                 if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
-                    payload.categoría_de_conservación = payload.categoria_conservacion.trim().toLowerCase();
+                    payload.categoría_de_conservación = payload.categoria_conservacion.trim();
                 } else {
+                    // Si está vacío, enviar como null o eliminar el campo
                     payload.categoría_de_conservación = null;
                 }
                 delete payload.categoria_conservacion;
