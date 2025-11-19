@@ -23,19 +23,35 @@ export default function QRScanner() {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-          #qr-reader video,
-          #qr-reader__dashboard_section,
-          #qr-reader__camera_selection {
+          /* Contenedor principal */
+          #qr-reader {
+            width: 100% !important;
+            height: 100% !important;
+            position: relative !important;
+            background: transparent !important;
+          }
+          
+          /* Video de la cámara */
+          #qr-reader video {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
+            z-index: 1 !important;
+            background: transparent !important;
           }
           
+          /* Región de escaneo */
           #qr-reader__scan_region {
             background: transparent !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 2 !important;
           }
           
           /* Ocultar el borde/overlay que html5-qrcode agrega */
@@ -44,9 +60,11 @@ export default function QRScanner() {
             display: none !important;
           }
           
-          /* Asegurar que el video se muestre completamente */
+          /* Asegurar que el dashboard no bloquee */
           #qr-reader__dashboard_section {
             background: transparent !important;
+            position: absolute !important;
+            z-index: 3 !important;
           }
           
           /* Ocultar el desenfoque si existe */
@@ -59,11 +77,18 @@ export default function QRScanner() {
           #qr-reader__scan_region video {
             filter: none !important;
             -webkit-filter: none !important;
+            background: transparent !important;
           }
           
           /* Ocultar cualquier elemento de desenfoque */
           #qr-reader__dashboard_section_csr canvas {
             display: none !important;
+          }
+          
+          /* Asegurar que el contenedor de la cámara no tenga fondo */
+          #qr-reader__camera_selection,
+          #qr-reader__dashboard {
+            background: transparent !important;
           }
         `;
         document.head.appendChild(style);
@@ -108,6 +133,7 @@ export default function QRScanner() {
               },
               // Desactivar el estilo predeterminado para tener control total
               rememberLastUsedCamera: true,
+              showTorchButtonIfSupported: false,
             },
             (decodedText) => {
               handleQRCodeScanned(decodedText);
@@ -116,6 +142,20 @@ export default function QRScanner() {
               // Ignorar errores de lectura continuos
             }
           );
+          
+          // Asegurar que el video se muestre después de iniciar
+          setTimeout(() => {
+            const video = document.querySelector('#qr-reader video');
+            if (video) {
+              video.style.position = 'absolute';
+              video.style.top = '0';
+              video.style.left = '0';
+              video.style.width = '100%';
+              video.style.height = '100%';
+              video.style.objectFit = 'cover';
+              video.style.zIndex = '1';
+            }
+          }, 500);
 
           scannerRef.current = html5QrCode;
           setRecognitionError(false);
@@ -194,20 +234,28 @@ export default function QRScanner() {
       display: 'flex', 
       flexDirection: 'column', 
       minHeight: '100vh',
-      backgroundColor: '#4A2C1A',
+      backgroundColor: scanning ? 'transparent' : '#4A2C1A',
       color: '#F5E6D3',
       position: 'relative',
+      overflow: scanning ? 'hidden' : 'visible',
     }}>
-      <Header />
+      {!scanning && <Header />}
       
       {/* Vista principal con cámara */}
       {scanning ? (
         <div style={{
-          position: 'relative',
-          flex: 1,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          backgroundColor: 'transparent',
+          overflow: 'hidden',
+          zIndex: 10,
         }}>
           {/* Contenedor de la cámara - full screen */}
           <div
@@ -221,6 +269,8 @@ export default function QRScanner() {
               width: '100%',
               height: '100%',
               zIndex: 1,
+              backgroundColor: 'transparent',
+              overflow: 'hidden',
             }}
           />
 
@@ -620,7 +670,7 @@ export default function QRScanner() {
         </div>
       )}
 
-      <BottomNavigation />
+      {!scanning && <BottomNavigation />}
     </div>
   );
 }
