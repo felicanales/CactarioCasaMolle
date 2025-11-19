@@ -1568,7 +1568,7 @@ export default function SpeciesEditorPage() {
                                                         Sin portada disponible
                                                     </div>
                                                 )}
-                                                
+
                                                 {/* Galería de Fotos */}
                                                 <div style={{ marginTop: "12px" }}>
                                                     <label style={{
@@ -1630,7 +1630,7 @@ export default function SpeciesEditorPage() {
                                                                             />
                                                                         </div>
                                                                     ))}
-                                                                
+
                                                                 {/* Botón para subir más fotos */}
                                                                 <div
                                                                     onClick={() => setShowPhotoUploader(!showPhotoUploader)}
