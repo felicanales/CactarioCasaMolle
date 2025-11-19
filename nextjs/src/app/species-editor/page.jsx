@@ -448,55 +448,59 @@ export default function SpeciesEditorPage() {
     const handleSelect = (sp) => {
         setSelectedSpecies(sp);
 
-        // Normalizar tipo_morfología para que coincida con las opciones del select
+        // Normalizar tipo_morfología: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
         const morfologiaOptions = ["Columnar", "Redondo", "Agave", "Tallo plano", "Otro"];
+        const morfologiaMap = {
+            "columnar": "Columnar",
+            "redondo": "Redondo",
+            "agave": "Agave",
+            "tallo plano": "Tallo plano",
+            "otro": "Otro"
+        };
         let tipoMorfologia = sp.tipo_morfología || "";
-        // Si el valor existe pero no coincide exactamente, intentar encontrar una coincidencia
-        if (tipoMorfologia && !morfologiaOptions.includes(tipoMorfologia)) {
-            const normalized = tipoMorfologia.trim();
-            // Buscar coincidencia case-insensitive
-            const match = morfologiaOptions.find(opt =>
-                opt.toLowerCase() === normalized.toLowerCase()
-            );
-            if (match) {
-                tipoMorfologia = match;
+        if (tipoMorfologia) {
+            const normalized = tipoMorfologia.trim().toLowerCase();
+            // Mapear desde minúsculas (BD) a formato UI (mayúscula inicial)
+            if (morfologiaMap[normalized]) {
+                tipoMorfologia = morfologiaMap[normalized];
+            } else if (!morfologiaOptions.includes(tipoMorfologia)) {
+                // Si no está en el formato correcto, buscar coincidencia case-insensitive
+                const match = morfologiaOptions.find(opt =>
+                    opt.toLowerCase() === normalized
+                );
+                if (match) {
+                    tipoMorfologia = match;
+                }
             }
         }
 
-        // Normalizar categoría de conservación
+        // Normalizar categoría de conservación: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
         const categoriaOptions = ["No amenazado", "Preocupación menor", "Protegido", "En peligro de extinción"];
+        const categoriaMap = {
+            "no amenazado": "No amenazado",
+            "preocupación menor": "Preocupación menor",
+            "protegido": "Protegido",
+            "en peligro de extinción": "En peligro de extinción"
+        };
         // Obtener el valor desde cualquier campo posible (con y sin tilde)
         let categoriaConservacion = sp.categoría_de_conservación || sp.categoria_conservacion || "";
 
-        // Normalizar y mapear el valor
         if (categoriaConservacion) {
-            const normalized = categoriaConservacion.trim();
-
+            const normalized = categoriaConservacion.trim().toLowerCase();
             // Normalizar espacios múltiples
             const normalizedSpaces = normalized.replace(/\s+/g, ' ');
-
-            // Buscar coincidencia exacta (case-insensitive, ignorando espacios extra)
-            let matched = categoriaOptions.find(opt => {
-                const optTrimmed = opt.trim();
-                const valTrimmed = normalizedSpaces.trim();
-                return optTrimmed.toLowerCase() === valTrimmed.toLowerCase();
-            });
-
-            if (matched) {
-                categoriaConservacion = matched;
+            // Mapear desde minúsculas (BD) a formato UI (mayúscula inicial)
+            if (categoriaMap[normalizedSpaces]) {
+                categoriaConservacion = categoriaMap[normalizedSpaces];
             } else {
-                // Buscar coincidencia sin tildes/acentos
-                matched = categoriaOptions.find(opt => {
-                    const optNorm = opt.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                    const valNorm = normalizedSpaces.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-                    return optNorm === valNorm;
-                });
-
-                if (matched) {
-                    categoriaConservacion = matched;
+                // Buscar coincidencia case-insensitive
+                const match = categoriaOptions.find(opt =>
+                    opt.toLowerCase().trim() === normalizedSpaces
+                );
+                if (match) {
+                    categoriaConservacion = match;
                 } else {
-                    // Si no hay coincidencia, usar el valor normalizado (sin espacios extra)
-                    categoriaConservacion = normalizedSpaces;
+                    categoriaConservacion = "";
                 }
             }
         } else {
@@ -613,12 +617,26 @@ export default function SpeciesEditorPage() {
                     slug: slug
                 };
 
-                // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
-                // Solo enviar si tiene un valor (no vacío ni null)
-                if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
-                    payload.categoría_de_conservación = payload.categoria_conservacion.trim();
+                // Normalizar valores de enum a minúsculas antes de enviar al backend
+                // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
+                if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
+                    payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
                 } else {
-                    // Si está vacío, enviar como null o eliminar el campo
+                    payload.tipo_morfología = null;
+                }
+                
+                // tipo_planta: normalizar a minúsculas si tiene valor
+                if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
+                    payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
+                } else {
+                    payload.tipo_planta = null;
+                }
+                
+                // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
+                // Normalizar a minúsculas antes de enviar
+                if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
+                    payload.categoría_de_conservación = payload.categoria_conservacion.trim().toLowerCase();
+                } else {
                     payload.categoría_de_conservación = null;
                 }
                 delete payload.categoria_conservacion;

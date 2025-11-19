@@ -2,6 +2,25 @@
 from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import get_public
 from app.services import photos_service
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Valores válidos de los enums en minúsculas (como están en Supabase)
+ENUM_TIPO_MORFOLOGIA_VALUES = ["columnar", "redondo", "agave", "tallo plano", "otro"]
+ENUM_TIPO_PLANTA_VALUES = []  # Si hay valores específicos, agregarlos aquí
+ENUM_CATEGORIA_CONSERVACION_VALUES = ["no amenazado", "preocupación menor", "protegido", "en peligro de extinción"]
+
+def normalize_enum_value(value: Optional[str], enum_name: str) -> Optional[str]:
+    """
+    Normaliza un valor de enum a minúsculas.
+    Si el valor no es None y no está vacío, lo convierte a minúsculas.
+    """
+    if value is None or value == "":
+        return None
+    normalized = value.strip().lower()
+    logger.debug(f"[normalize_enum_value] Normalizando {enum_name}: '{value}' → '{normalized}'")
+    return normalized
 
 PUBLIC_SPECIES_FIELDS = [
     "id", "slug", "nombre_común", "scientific_name",
@@ -127,13 +146,13 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[create_staff] Se intentó enviar 'image_url' en el payload, removiéndolo")
         del payload["image_url"]
     
-    # Convertir strings vacíos a None para campos ENUM y opcionales
-    # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
-    enum_fields = ["tipo_morfología", "tipo_planta"]  # Agregar otros campos ENUM si existen
-    for field in enum_fields:
-        if field in payload and payload[field] == "":
-            logger.info(f"[create_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
-            payload[field] = None
+    # Normalizar valores de enum a minúsculas (como están en Supabase)
+    if "tipo_morfología" in payload:
+        payload["tipo_morfología"] = normalize_enum_value(payload["tipo_morfología"], "tipo_morfología")
+    if "tipo_planta" in payload:
+        payload["tipo_planta"] = normalize_enum_value(payload["tipo_planta"], "tipo_planta")
+    if "categoría_de_conservación" in payload:
+        payload["categoría_de_conservación"] = normalize_enum_value(payload["categoría_de_conservación"], "categoría_de_conservación")
     
     # Convertir strings vacíos a None para campos de texto opcionales
     optional_text_fields = ["nombre_común", "nombres_comunes", "habitat", "distribución", 
@@ -208,15 +227,13 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning(f"[update_staff] Removiendo 'morfología_cactus' del payload (no existe en la tabla). Usar 'tipo_morfología'")
         del payload["morfología_cactus"]
     
-    # Convertir strings vacíos a None para campos ENUM y opcionales
-    # Los campos ENUM no aceptan strings vacíos, solo valores válidos o NULL
-    enum_fields = ["tipo_morfología", "tipo_planta"]
-    for field in enum_fields:
-        if field in payload:
-            # Si el valor es string vacío, convertir a None
-            if payload[field] == "":
-                logger.info(f"[update_staff] Convirtiendo string vacío a None para campo ENUM: {field}")
-                payload[field] = None
+    # Normalizar valores de enum a minúsculas (como están en Supabase)
+    if "tipo_morfología" in payload:
+        payload["tipo_morfología"] = normalize_enum_value(payload["tipo_morfología"], "tipo_morfología")
+    if "tipo_planta" in payload:
+        payload["tipo_planta"] = normalize_enum_value(payload["tipo_planta"], "tipo_planta")
+    if "categoría_de_conservación" in payload:
+        payload["categoría_de_conservación"] = normalize_enum_value(payload["categoría_de_conservación"], "categoría_de_conservación")
     
     # Convertir strings vacíos a None para campos de texto opcionales
     optional_text_fields = ["nombre_común", "nombres_comunes", "habitat", "distribución", 
