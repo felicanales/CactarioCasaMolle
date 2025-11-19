@@ -120,6 +120,8 @@ export default function SpeciesEditorPage() {
 
     const [checkedAuth, setCheckedAuth] = useState(false);
     const [showPhotoUploader, setShowPhotoUploader] = useState(false);
+    const [speciesPhotos, setSpeciesPhotos] = useState([]);
+    const [loadingPhotos, setLoadingPhotos] = useState(false);
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -1498,7 +1500,7 @@ export default function SpeciesEditorPage() {
 
                                     <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
                                         <div style={{ display: "flex", flexDirection: "column", gap: "14px", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-                                            {/* Imagen */}
+                                            {/* Imagen de Portada y Galería */}
                                             <div>
                                                 <label style={{
                                                     display: "block", fontSize: "12px",
@@ -1516,7 +1518,8 @@ export default function SpeciesEditorPage() {
                                                             borderRadius: "8px",
                                                             objectFit: "cover",
                                                             border: "1px solid #e5e7eb",
-                                                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+                                                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                                                            marginBottom: "12px"
                                                         }}
                                                     />
                                                 ) : (
@@ -1529,11 +1532,113 @@ export default function SpeciesEditorPage() {
                                                         border: "1px dashed #d1d5db",
                                                         borderRadius: "8px",
                                                         color: "#9ca3af",
-                                                        fontSize: "13px"
+                                                        fontSize: "13px",
+                                                        marginBottom: "12px"
                                                     }}>
                                                         Sin portada disponible
                                                     </div>
                                                 )}
+                                                
+                                                {/* Galería de Fotos */}
+                                                <div style={{ marginTop: "12px" }}>
+                                                    <label style={{
+                                                        display: "block", fontSize: "12px",
+                                                        fontWeight: "500", color: "#111827", marginBottom: "6px"
+                                                    }}>
+                                                        Galería de Fotos
+                                                    </label>
+                                                    <div style={{
+                                                        display: "flex",
+                                                        gap: "8px",
+                                                        overflowX: "auto",
+                                                        paddingBottom: "4px",
+                                                        scrollbarWidth: "thin"
+                                                    }}>
+                                                        {/* Fotos existentes */}
+                                                        {loadingPhotos ? (
+                                                            <div style={{
+                                                                width: "120px",
+                                                                height: "120px",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                backgroundColor: "#f3f4f6",
+                                                                borderRadius: "8px",
+                                                                border: "1px solid #e5e7eb",
+                                                                color: "#9ca3af",
+                                                                fontSize: "12px",
+                                                                flexShrink: 0
+                                                            }}>
+                                                                Cargando...
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                {speciesPhotos
+                                                                    .filter(photo => !photo.is_cover)
+                                                                    .map((photo) => (
+                                                                        <div
+                                                                            key={photo.id}
+                                                                            style={{
+                                                                                width: "120px",
+                                                                                height: "120px",
+                                                                                flexShrink: 0,
+                                                                                position: "relative",
+                                                                                borderRadius: "8px",
+                                                                                overflow: "hidden",
+                                                                                border: "1px solid #e5e7eb",
+                                                                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                                                                            }}
+                                                                        >
+                                                                            <AuthenticatedImage
+                                                                                src={photo.public_url || photo.storage_path}
+                                                                                alt={`Foto ${photo.id}`}
+                                                                                style={{
+                                                                                    width: "100%",
+                                                                                    height: "100%",
+                                                                                    objectFit: "cover"
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    ))}
+                                                                
+                                                                {/* Botón para subir más fotos */}
+                                                                <div
+                                                                    onClick={() => setShowPhotoUploader(!showPhotoUploader)}
+                                                                    style={{
+                                                                        width: "120px",
+                                                                        height: "120px",
+                                                                        flexShrink: 0,
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        backgroundColor: showPhotoUploader ? "#eff6ff" : "#f9fafb",
+                                                                        border: showPhotoUploader ? "2px solid #3b82f6" : "2px dashed #d1d5db",
+                                                                        borderRadius: "8px",
+                                                                        cursor: "pointer",
+                                                                        transition: "all 0.2s",
+                                                                        color: showPhotoUploader ? "#3b82f6" : "#6b7280",
+                                                                        fontSize: "32px",
+                                                                        fontWeight: "300"
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        if (!showPhotoUploader) {
+                                                                            e.currentTarget.style.backgroundColor = "#f3f4f6";
+                                                                            e.currentTarget.style.borderColor = "#9ca3af";
+                                                                        }
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        if (!showPhotoUploader) {
+                                                                            e.currentTarget.style.backgroundColor = "#f9fafb";
+                                                                            e.currentTarget.style.borderColor = "#d1d5db";
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    +
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Información Básica */}
@@ -1884,18 +1989,22 @@ export default function SpeciesEditorPage() {
 
                                             {/* PhotoUploader */}
                                             {showPhotoUploader && selectedSpecies && (
-                                                <PhotoUploader
-                                                    entityType="especie"
-                                                    entityId={selectedSpecies.id}
-                                                    onUploadComplete={() => {
-                                                        setSuccess("Fotos subidas exitosamente");
-                                                        fetchSpecies();
-                                                        setTimeout(() => {
-                                                            setSuccess("");
-                                                        }, 3000);
-                                                    }}
-                                                    maxPhotos={20}
-                                                />
+                                                <div style={{ marginTop: "16px" }}>
+                                                    <PhotoUploader
+                                                        entityType="especie"
+                                                        entityId={selectedSpecies.id}
+                                                        onUploadComplete={() => {
+                                                            setSuccess("Fotos subidas exitosamente");
+                                                            fetchSpecies();
+                                                            fetchSpeciesPhotos(selectedSpecies.id);
+                                                            setTimeout(() => {
+                                                                setSuccess("");
+                                                                setShowPhotoUploader(false);
+                                                            }, 3000);
+                                                        }}
+                                                        maxPhotos={20}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     </form>
