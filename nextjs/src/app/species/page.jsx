@@ -377,16 +377,42 @@ export default function SpeciesPage() {
     const handleEdit = (sp) => {
         setModalMode("edit");
         setSelectedSpecies(sp);
+        
+        // Normalizar tipo_morfología: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
+        const morfologiaMap = {
+            "columnar": "Columnar",
+            "redondo": "Redondo",
+            "agave": "Agave",
+            "tallo plano": "Tallo plano",
+            "otro": "Otro"
+        };
+        let tipoMorfologia = sp.tipo_morfología || "";
+        if (tipoMorfologia && morfologiaMap[tipoMorfologia.toLowerCase()]) {
+            tipoMorfologia = morfologiaMap[tipoMorfologia.toLowerCase()];
+        }
+        
+        // Normalizar categoría de conservación: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
+        const categoriaMap = {
+            "no amenazado": "No amenazado",
+            "preocupación menor": "Preocupación menor",
+            "protegido": "Protegido",
+            "en peligro de extinción": "En peligro de extinción"
+        };
+        let categoriaConservacion = sp.categoría_de_conservación || sp.categoria_conservacion || "";
+        if (categoriaConservacion && categoriaMap[categoriaConservacion.toLowerCase()]) {
+            categoriaConservacion = categoriaMap[categoriaConservacion.toLowerCase()];
+        }
+        
         setFormData({
             scientific_name: sp.scientific_name || "",
             nombre_común: sp.nombre_común || "",
             nombres_comunes: sp.nombres_comunes || "",
             tipo_planta: sp.tipo_planta || "",
-            tipo_morfología: sp.tipo_morfología || "",
+            tipo_morfología: tipoMorfologia,
             habitat: sp.habitat || "",
             distribución: sp.distribución || "",
             estado_conservación: sp.estado_conservación || "",
-            categoria_conservacion: sp.categoria_conservacion || "",
+            categoria_conservacion: categoriaConservacion,
             Endémica: sp.Endémica || false,
             expectativa_vida: sp.expectativa_vida || "",
             floración: sp.floración || "",
