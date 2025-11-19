@@ -1997,38 +1997,6 @@ export default function SpeciesEditorPage() {
                                                 >
                                                     {submitting ? "Guardando..." : "💾 Guardar Cambios"}
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowPhotoUploader(!showPhotoUploader)}
-                                                    style={{
-                                                        padding: "12px 20px",
-                                                        backgroundColor: showPhotoUploader ? "#3b82f6" : "#f3f4f6",
-                                                        color: showPhotoUploader ? "white" : "#374151",
-                                                        border: "1px solid #d1d5db",
-                                                        borderRadius: "8px",
-                                                        fontSize: "14px",
-                                                        fontWeight: "600",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "8px",
-                                                        transition: "all 0.2s",
-                                                        minWidth: "140px",
-                                                        justifyContent: "center"
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!showPhotoUploader) {
-                                                            e.target.style.backgroundColor = "#e5e7eb";
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!showPhotoUploader) {
-                                                            e.target.style.backgroundColor = "#f3f4f6";
-                                                        }
-                                                    }}
-                                                >
-                                                    {showPhotoUploader ? "✕ Cerrar" : "➕ Subir Fotos"}
-                                                </button>
                                             </div>
 
                                             {/* PhotoUploader */}
