@@ -377,42 +377,16 @@ export default function SpeciesPage() {
     const handleEdit = (sp) => {
         setModalMode("edit");
         setSelectedSpecies(sp);
-        
-        // Normalizar tipo_morfología: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
-        const morfologiaMap = {
-            "columnar": "Columnar",
-            "redondo": "Redondo",
-            "agave": "Agave",
-            "tallo plano": "Tallo plano",
-            "otro": "Otro"
-        };
-        let tipoMorfologia = sp.tipo_morfología || "";
-        if (tipoMorfologia && morfologiaMap[tipoMorfologia.toLowerCase()]) {
-            tipoMorfologia = morfologiaMap[tipoMorfologia.toLowerCase()];
-        }
-        
-        // Normalizar categoría de conservación: convertir de minúsculas (BD) a formato con mayúscula inicial (UI)
-        const categoriaMap = {
-            "no amenazado": "No amenazado",
-            "preocupación menor": "Preocupación menor",
-            "protegido": "Protegido",
-            "en peligro de extinción": "En peligro de extinción"
-        };
-        let categoriaConservacion = sp.categoría_de_conservación || sp.categoria_conservacion || "";
-        if (categoriaConservacion && categoriaMap[categoriaConservacion.toLowerCase()]) {
-            categoriaConservacion = categoriaMap[categoriaConservacion.toLowerCase()];
-        }
-        
         setFormData({
             scientific_name: sp.scientific_name || "",
             nombre_común: sp.nombre_común || "",
             nombres_comunes: sp.nombres_comunes || "",
             tipo_planta: sp.tipo_planta || "",
-            tipo_morfología: tipoMorfologia,
+            tipo_morfología: sp.tipo_morfología || "",
             habitat: sp.habitat || "",
             distribución: sp.distribución || "",
             estado_conservación: sp.estado_conservación || "",
-            categoria_conservacion: categoriaConservacion,
+            categoria_conservacion: sp.categoria_conservacion || "",
             Endémica: sp.Endémica || false,
             expectativa_vida: sp.expectativa_vida || "",
             floración: sp.floración || "",
@@ -448,25 +422,9 @@ export default function SpeciesPage() {
                 slug,
             };
 
-            // Normalizar valores de enum a minúsculas antes de enviar al backend
-            // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
-            if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
-                payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
-            } else {
-                payload.tipo_morfología = null;
-            }
-            
-            // tipo_planta: normalizar a minúsculas si tiene valor
-            if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
-                payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
-            } else {
-                payload.tipo_planta = null;
-            }
-            
             // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
-            // Normalizar a minúsculas antes de enviar
             if (payload.categoria_conservacion && payload.categoria_conservacion.trim() !== "") {
-                payload.categoría_de_conservación = payload.categoria_conservacion.trim().toLowerCase();
+                payload.categoría_de_conservación = payload.categoria_conservacion.trim();
             } else {
                 payload.categoría_de_conservación = null;
             }
@@ -479,24 +437,16 @@ export default function SpeciesPage() {
             if (payload.updated_at) delete payload.updated_at;
 
             // Convertir strings vacíos a null para campos ENUM (no aceptan strings vacíos)
-            // Normalizar valores de enum a minúsculas antes de enviar al backend
-            // tipo_morfología: convertir de formato UI (mayúscula inicial) a minúsculas (BD)
-            if (payload.tipo_morfología && payload.tipo_morfología.trim() !== "") {
-                payload.tipo_morfología = payload.tipo_morfología.trim().toLowerCase();
-            } else {
-                payload.tipo_morfología = null;
-            }
-            
-            // tipo_planta: normalizar a minúsculas si tiene valor
-            if (payload.tipo_planta && payload.tipo_planta.trim() !== "") {
-                payload.tipo_planta = payload.tipo_planta.trim().toLowerCase();
-            } else {
-                payload.tipo_planta = null;
-            }
-            
-            // Remover morfología_cactus si existe (no existe en la tabla)
-            if (payload.morfología_cactus) {
-                delete payload.morfología_cactus;
+            const enumFields = ["morfología_cactus", "tipo_morfología", "tipo_planta"];
+            enumFields.forEach(field => {
+                if (payload[field] === "") {
+                    payload[field] = null;
+                }
+            });
+
+            // Mapear tipo_morfología a morfología_cactus si es necesario
+            if (payload.tipo_morfología && !payload.morfología_cactus) {
+                payload.morfología_cactus = payload.tipo_morfología;
             }
 
             let res;

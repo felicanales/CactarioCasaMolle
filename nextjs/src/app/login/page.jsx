@@ -265,7 +265,7 @@ export default function LoginPage() {
       
       // Esperar un momento para que el estado se actualice antes de redirigir
       setTimeout(() => {
-        router.push("/staff");
+      router.push("/staff");
       }, 300);
     } catch (err) {
       setError(err.message || "Código inválido");
