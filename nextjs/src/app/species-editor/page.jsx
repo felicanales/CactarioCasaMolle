@@ -193,66 +193,66 @@ export default function SpeciesEditorPage() {
 
             // Fallback: implementación local (para compatibilidad)
             const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            };
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
 
-            // Agregar header de ngrok si estamos en un dominio ngrok
-            if (typeof window !== 'undefined' &&
-                (window.location.hostname.includes('ngrok.io') ||
-                    window.location.hostname.includes('ngrok-free.dev') ||
-                    window.location.hostname.includes('ngrok-free.app') ||
-                    window.location.hostname.includes('ngrokapp.com') ||
-                    window.location.hostname.includes('ngrok'))) {
-                headers['ngrok-skip-browser-warning'] = 'true';
-            }
+        // Agregar header de ngrok si estamos en un dominio ngrok
+        if (typeof window !== 'undefined' &&
+            (window.location.hostname.includes('ngrok.io') ||
+                window.location.hostname.includes('ngrok-free.dev') ||
+                window.location.hostname.includes('ngrok-free.app') ||
+                window.location.hostname.includes('ngrokapp.com') ||
+                window.location.hostname.includes('ngrok'))) {
+            headers['ngrok-skip-browser-warning'] = 'true';
+        }
 
-            if (accessToken) {
-                headers['Authorization'] = `Bearer ${accessToken}`;
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
                 console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
             } else {
                 console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
             }
 
-            try {
-                const response = await fetch(finalUrl, {
-                    ...options,
-                    headers,
-                    credentials: 'include',
-                    signal: options.signal
-                });
+        try {
+            const response = await fetch(finalUrl, {
+                ...options,
+                headers,
+                credentials: 'include',
+                signal: options.signal
+            });
 
-                if (!response.ok) {
-                    // Suprimir completamente el error 405 para endpoints de especies
-                    if (response.status === 405 && isSpeciesEndpoint) {
-                        return {
-                            ok: false,
-                            status: 405,
-                            json: async () => ({}),
-                            text: async () => '',
-                            headers: response.headers,
-                            statusText: 'Method Not Allowed'
-                        };
-                    }
-
-                    const errorText = await response.text().catch(() => '');
-                    const errorMessage = errorText || response.statusText;
-                    throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+            if (!response.ok) {
+                // Suprimir completamente el error 405 para endpoints de especies
+                if (response.status === 405 && isSpeciesEndpoint) {
+                    return {
+                        ok: false,
+                        status: 405,
+                        json: async () => ({}),
+                        text: async () => '',
+                        headers: response.headers,
+                        statusText: 'Method Not Allowed'
+                    };
                 }
 
-                return response;
-            } catch (fetchError) {
-                throw fetchError;
+                const errorText = await response.text().catch(() => '');
+                const errorMessage = errorText || response.statusText;
+                throw new Error(`HTTP ${response.status}: ${errorMessage}`);
             }
-        } catch (error) {
-            // Si es un error de red, lanzarlo con un mensaje más descriptivo
-            if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
-                throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
-            }
-            throw error;
+
+            return response;
+        } catch (fetchError) {
+            throw fetchError;
         }
-    };
+    } catch (error) {
+        // Si es un error de red, lanzarlo con un mensaje más descriptivo
+        if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
+            throw new Error('Error de conexión. Verifica tu conexión a internet o intenta más tarde.');
+        }
+        throw error;
+    }
+};
 
     const fetchSpecies = async () => {
         try {
@@ -591,7 +591,27 @@ export default function SpeciesEditorPage() {
             if (editorMode === "species" && selectedSpecies) {
                 const slug = formData.scientific_name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
                 // Construir payload y mapear campos al nombre correcto de Supabase
-                const payload = { ...formData, slug };
+                // IMPORTANTE: Crear payload solo con los campos permitidos, NO usar spread de formData
+                // para evitar copiar campos no deseados como morfología_cactus
+                const payload = {
+                    scientific_name: formData.scientific_name,
+                    nombre_común: formData.nombre_común,
+                    nombres_comunes: formData.nombres_comunes,
+                    tipo_planta: formData.tipo_planta,
+                    tipo_morfología: formData.tipo_morfología,
+                    habitat: formData.habitat,
+                    distribución: formData.distribución,
+                    estado_conservación: formData.estado_conservación,
+                    categoria_conservacion: formData.categoria_conservacion,
+                    Endémica: formData.Endémica,
+                    expectativa_vida: formData.expectativa_vida,
+                    floración: formData.floración,
+                    cuidado: formData.cuidado,
+                    usos: formData.usos,
+                    historia_nombre: formData.historia_nombre,
+                    historia_y_leyendas: formData.historia_y_leyendas,
+                    slug: slug
+                };
 
                 // Mapear categoria_conservacion → categoría_de_conservación (nombre real en Supabase)
                 // Solo enviar si tiene un valor (no vacío ni null)
