@@ -239,9 +239,17 @@ def update_staff(species_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         del payload["morfología_cactus"]
         logger.warning(f"[update_staff] Removido morfología_cactus del payload como medida de seguridad final")
     
+    # IMPORTANTE: Establecer explícitamente morfología_cactus = NULL en el UPDATE
+    # Esto es necesario porque Supabase valida el valor existente del enum durante el UPDATE
+    # Si el valor existente es inválido (como "Agave" con mayúscula cuando el enum solo acepta "agave"),
+    # el UPDATE fallará a menos que establezcamos explícitamente NULL
+    # El frontend solo usa tipo_morfología, así que morfología_cactus debe ser NULL
+    payload["morfología_cactus"] = None
+    logger.info(f"[update_staff] Estableciendo morfología_cactus = NULL explícitamente en el UPDATE para evitar errores de enum")
+    
     try:
         logger.info(f"[update_staff] Enviando UPDATE a Supabase con payload final: {list(payload.keys())}")
-        logger.info(f"[update_staff] Verificación: morfología_cactus NO debe estar en el payload: {'morfología_cactus' not in payload}")
+        logger.info(f"[update_staff] Valor de morfología_cactus en payload: {payload.get('morfología_cactus')}")
         res = sb.table("especies").update(payload).eq("id", species_id).execute()
         if not res.data:
             raise LookupError("Especie no encontrada")
