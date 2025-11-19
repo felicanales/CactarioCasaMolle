@@ -633,14 +633,29 @@ export default function SpeciesEditorPage() {
                     Object.entries(payload).filter(([_, v]) => v !== undefined)
                 );
 
+                console.log('[SpeciesEditor] Enviando actualización de especie:', {
+                    speciesId: selectedSpecies.id,
+                    payloadKeys: Object.keys(cleanPayload),
+                    payload: cleanPayload
+                });
+
                 const res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
                     method: "PUT",
                     body: JSON.stringify(cleanPayload)
                 }, accessToken);
 
+                console.log('[SpeciesEditor] Respuesta del servidor:', {
+                    status: res.status,
+                    ok: res.ok
+                });
+
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({}));
-                    throw new Error(errorData.detail || `Error al guardar (${res.status})`);
+                    console.error('[SpeciesEditor] Error al guardar:', {
+                        status: res.status,
+                        errorData: errorData
+                    });
+                    throw new Error(errorData.detail || errorData.message || `Error al guardar (${res.status})`);
                 }
 
                 setSuccess("Cambios guardados correctamente");
