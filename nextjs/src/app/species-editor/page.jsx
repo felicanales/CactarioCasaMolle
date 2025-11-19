@@ -1832,7 +1832,7 @@ export default function SpeciesEditorPage() {
                                             </div>
 
                                             {/* Botones */}
-                                            <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                                            <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
                                                 <button
                                                     type="submit"
                                                     disabled={submitting}
@@ -1842,12 +1842,61 @@ export default function SpeciesEditorPage() {
                                                         border: "none", borderRadius: "8px",
                                                         fontSize: "14px", fontWeight: "600",
                                                         cursor: submitting ? "not-allowed" : "pointer",
-                                                        opacity: submitting ? 0.6 : 1
+                                                        opacity: submitting ? 0.6 : 1,
+                                                        minWidth: "200px"
                                                     }}
                                                 >
                                                     {submitting ? "Guardando..." : "💾 Guardar Cambios"}
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPhotoUploader(!showPhotoUploader)}
+                                                    style={{
+                                                        padding: "12px 20px",
+                                                        backgroundColor: showPhotoUploader ? "#3b82f6" : "#f3f4f6",
+                                                        color: showPhotoUploader ? "white" : "#374151",
+                                                        border: "1px solid #d1d5db",
+                                                        borderRadius: "8px",
+                                                        fontSize: "14px",
+                                                        fontWeight: "600",
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "8px",
+                                                        transition: "all 0.2s",
+                                                        minWidth: "140px",
+                                                        justifyContent: "center"
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!showPhotoUploader) {
+                                                            e.target.style.backgroundColor = "#e5e7eb";
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!showPhotoUploader) {
+                                                            e.target.style.backgroundColor = "#f3f4f6";
+                                                        }
+                                                    }}
+                                                >
+                                                    {showPhotoUploader ? "✕ Cerrar" : "➕ Subir Fotos"}
+                                                </button>
                                             </div>
+
+                                            {/* PhotoUploader */}
+                                            {showPhotoUploader && selectedSpecies && (
+                                                <PhotoUploader
+                                                    entityType="especie"
+                                                    entityId={selectedSpecies.id}
+                                                    onUploadComplete={() => {
+                                                        setSuccess("Fotos subidas exitosamente");
+                                                        fetchSpecies();
+                                                        setTimeout(() => {
+                                                            setSuccess("");
+                                                        }, 3000);
+                                                    }}
+                                                    maxPhotos={20}
+                                                />
+                                            )}
                                         </div>
                                     </form>
                                 </>
