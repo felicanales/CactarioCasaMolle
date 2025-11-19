@@ -55,7 +55,7 @@ const getAccessToken = () => {
     let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
     if (match && match[2]) {
       console.log('[AuthContext] Using token from cookies (regex)');
-      return match[2];
+    return match[2];
     }
     
     // Método 2: Buscar en todas las cookies (para cross-domain)
@@ -93,32 +93,32 @@ export function AuthProvider({ children }) {
     // Prioridad 2: Token de cookies
     let token = accessToken || getAccessToken();
 
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
 
-    // Add CSRF token for state-changing operations
+  // Add CSRF token for state-changing operations
     if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method) && currentCsrfToken) {
       headers['X-CSRF-Token'] = currentCsrfToken;
       console.log('[AuthContext] Adding CSRF token to:', options.method, url);
     } else if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
       console.warn('[AuthContext] ⚠️ No CSRF token available for:', options.method, url);
-    }
+  }
 
-    // Add Authorization header if token is available
+  // Add Authorization header if token is available
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('[AuthContext] Adding Authorization header to request:', url);
-    } else {
-      console.log('[AuthContext] No access token available for request:', url);
-    }
+    console.log('[AuthContext] Adding Authorization header to request:', url);
+  } else {
+    console.log('[AuthContext] No access token available for request:', url);
+  }
 
-    return fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include', // Always include cookies
-    });
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include', // Always include cookies
+  });
   }, [accessToken, csrfToken]);
 
   // Función para verificar si el token está expirando pronto
