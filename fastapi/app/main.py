@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
-from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos
+from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos, routes_audit
 from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
