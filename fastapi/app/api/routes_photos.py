@@ -119,3 +119,27 @@ def delete_photo(
     except LookupError as e:
         raise HTTPException(404, str(e))
 
+
+
+@router.delete("/{photo_id}", status_code=204, dependencies=[Depends(get_current_user)])
+def delete_photo(
+    request: Request,
+    photo_id: int = Path(..., ge=1),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Elimina una foto (del storage y de la base de datos).
+    Requiere autenticación.
+    """
+    try:
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        svc.delete_photo(photo_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
+        return
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+

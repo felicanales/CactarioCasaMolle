@@ -405,3 +405,78 @@ def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optio
         except Exception as audit_error:
             logger.warning(f"[delete_photo] Error al registrar auditoría: {str(audit_error)}")
 
+
+    if caption is not None:
+        update_data["caption"] = caption
+    
+    if update_data:
+        result = sb.table("fotos").update(update_data).eq("id", photo_id).execute()
+        if not result.data:
+            raise LookupError("No se pudo actualizar la foto")
+        
+        updated_photo = result.data[0]
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='fotos',
+                    record_id=photo_id,
+                    action='UPDATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=old_values,
+                    new_values=updated_photo,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[update_photo] Error al registrar auditoría: {str(audit_error)}")
+        
+        return updated_photo
+    
+    return photo_data
+
+
+def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> None:
+    """
+    Elimina una foto (del storage y de la BD).
+    """
+    sb = get_service()
+    
+    # Obtener la foto antes de eliminarla para auditoría
+    photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
+    if not photo.data:
+        raise LookupError("Foto no encontrada")
+    
+    old_values = photo.data[0]
+    storage_path = old_values["storage_path"]
+    
+    try:
+        sb.storage.from_(BUCKET_NAME).remove([storage_path])
+    except Exception as e:
+        logger.warning(f"No se pudo eliminar del storage: {str(e)}")
+    
+    sb.table("fotos").delete().eq("id", photo_id).execute()
+    
+    # Registrar en auditoría
+    if user_id or user_email:
+        try:
+            from app.services.audit_service import log_change
+            log_change(
+                table_name='fotos',
+                record_id=photo_id,
+                action='DELETE',
+                user_id=user_id,
+                user_email=user_email,
+                user_name=user_name,
+                old_values=old_values,
+                new_values=None,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        except Exception as audit_error:
+            logger.warning(f"[delete_photo] Error al registrar auditoría: {str(audit_error)}")
+

@@ -78,12 +78,18 @@ def update_species_staff(species_id: int, payload: Dict[str, Any], request: Requ
     """
     Actualiza especie (requiere usuario autenticado).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         user_id = current_user.get('id')
         user_email = current_user.get('email')
         user_name = current_user.get('full_name') or current_user.get('username')
         ip_address = request.client.host if request.client else None
         user_agent = request.headers.get('user-agent')
+        
+        logger.info(f"[update_species_staff] Usuario: id={user_id}, email={user_email}, name={user_name}")
+        logger.info(f"[update_species_staff] Request info: ip={ip_address}, user_agent={user_agent}")
         
         updated = svc.update_staff(species_id, payload, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return updated
@@ -100,6 +106,12 @@ def delete_species_admin(species_id: int, request: Request, current_user: dict =
     user_id = current_user.get('id')
     user_email = current_user.get('email')
     user_name = current_user.get('full_name') or current_user.get('username')
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get('user-agent')
+    
+    svc.delete_admin(species_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
+    return
+
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get('user-agent')
     

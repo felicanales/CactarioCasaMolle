@@ -512,3 +512,57 @@ def update_sector_species_staff(sector_id: int, especie_ids: List[int], user_id:
     
     # Retornar las especies actualizadas para confirmar
     return get_sector_species_staff(sector_id)
+
+    
+    # Validar que las especies existan (si hay IDs)
+    if especie_ids:
+        especies_check = sb.table("especies").select("id").in_("id", especie_ids).execute()
+        found_ids = {e["id"] for e in (especies_check.data or [])}
+        invalid_ids = set(especie_ids) - found_ids
+        if invalid_ids:
+            raise ValueError(f"Especies con IDs {invalid_ids} no existen")
+    
+    # Obtener relaciones anteriores para auditoría
+    old_relations_res = sb.table("sectores_especies").select("*").eq("sector_id", sector_id).execute()
+    old_relations = old_relations_res.data or []
+    old_especie_ids = [r["especie_id"] for r in old_relations]
+    
+    # Eliminar relaciones existentes para este sector
+    delete_result = sb.table("sectores_especies").delete().eq("sector_id", sector_id).execute()
+    
+    # Crear nuevas relaciones en la tabla sectores_especies
+    if especie_ids:
+        # Eliminar duplicados y asegurar que son enteros
+        unique_ids = list(set(int(eid) for eid in especie_ids if eid is not None))
+        new_relations = [{"sector_id": int(sector_id), "especie_id": int(eid)} for eid in unique_ids]
+        
+        # Insertar en la tabla sectores_especies
+        insert_result = sb.table("sectores_especies").insert(new_relations).execute()
+        
+        if not insert_result.data:
+            raise ValueError("Error al insertar relaciones en sectores_especies")
+    
+    # Registrar en auditoría (registrar como UPDATE en la tabla sectores_especies)
+    if user_id or user_email:
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            from app.services.audit_service import log_change
+            # Registrar como UPDATE del sector (cambios en especies asociadas)
+            log_change(
+                table_name='sectores_especies',
+                record_id=sector_id,  # Usar sector_id como identificador
+                action='UPDATE',
+                user_id=user_id,
+                user_email=user_email,
+                user_name=user_name,
+                old_values={'especie_ids': old_especie_ids},
+                new_values={'especie_ids': especie_ids},
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        except Exception as audit_error:
+            logger.warning(f"[update_sector_species_staff] Error al registrar auditoría: {str(audit_error)}")
+    
+    # Retornar las especies actualizadas para confirmar
+    return get_sector_species_staff(sector_id)

@@ -98,3 +98,21 @@ def delete_ejemplar_staff(ejemplar_id: int, request: Request, current_user: dict
     svc.delete_staff(ejemplar_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
     return
 
+
+    except Exception as e:
+        raise HTTPException(500, f"Error al actualizar ejemplar: {str(e)}")
+
+@router.delete("/staff/{ejemplar_id}", status_code=204, dependencies=[Depends(get_current_user)])
+def delete_ejemplar_staff(ejemplar_id: int, request: Request, current_user: dict = Depends(get_current_user)):
+    """
+    Elimina un ejemplar.
+    """
+    user_id = current_user.get('id')
+    user_email = current_user.get('email')
+    user_name = current_user.get('full_name') or current_user.get('username')
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get('user-agent')
+    
+    svc.delete_staff(ejemplar_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
+    return
+

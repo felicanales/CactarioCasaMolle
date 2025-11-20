@@ -36,8 +36,16 @@ def log_change(
         user_agent: User agent del cliente
     """
     try:
+        logger.info(f"[Audit] ========== INICIO log_change ==========")
+        logger.info(f"[Audit] Parámetros recibidos: table={table_name}, record_id={record_id}, action={action}, user_id={user_id}, user_email={user_email}")
+        
         # Usar service client para bypass RLS y asegurar que siempre se puedan insertar logs
-        sb = get_service()
+        try:
+            sb = get_service()
+            logger.info(f"[Audit] ✅ Cliente Supabase service obtenido correctamente")
+        except Exception as sb_error:
+            logger.error(f"[Audit] ❌ Error al obtener cliente Supabase service: {str(sb_error)}", exc_info=True)
+            raise
         
         # Para UPDATE, detectar solo los campos que cambiaron
         changes_detected = None
@@ -66,26 +74,45 @@ def log_change(
             'user_agent': user_agent
         }
         
+        logger.info(f"[Audit] Datos preparados para insertar (sin campos grandes): tabla={table_name}, registro_id={record_id}, accion={action}, usuario_id={user_id}, usuario_email={user_email}")
+        
         # Insertar en la tabla de auditoría
-        logger.info(f"[Audit] Intentando registrar: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
-        logger.debug(f"[Audit] Datos a insertar: {audit_data}")
+        try:
+            logger.info(f"[Audit] Ejecutando insert en tabla 'auditoria_cambios'...")
+            result = sb.table('auditoria_cambios').insert(audit_data).execute()
+            logger.info(f"[Audit] Insert ejecutado. Resultado recibido: {type(result)}")
+            
+            if result.data:
+                log_id = result.data[0].get('id') if result.data else None
+                logger.info(f"[Audit] ✅ Cambio registrado exitosamente: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
+                logger.info(f"[Audit] ID del log creado: {log_id}")
+            else:
+                logger.warning(f"[Audit] ⚠️ Insert ejecutado pero result.data está vacío o es None")
+                logger.warning(f"[Audit] result completo: {result}")
+        except Exception as insert_error:
+            logger.error(f"[Audit] ❌ Error al ejecutar insert: {str(insert_error)}", exc_info=True)
+            logger.error(f"[Audit] Tipo de error: {type(insert_error).__name__}")
+            if hasattr(insert_error, 'message'):
+                logger.error(f"[Audit] Mensaje de error: {insert_error.message}")
+            if hasattr(insert_error, 'details'):
+                logger.error(f"[Audit] Detalles: {insert_error.details}")
+            if hasattr(insert_error, 'code'):
+                logger.error(f"[Audit] Código de error: {insert_error.code}")
+            raise
         
-        result = sb.table('auditoria_cambios').insert(audit_data).execute()
-        
-        if result.data:
-            logger.info(f"[Audit] ✅ Cambio registrado exitosamente: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
-            logger.info(f"[Audit] ID del log creado: {result.data[0].get('id') if result.data else 'N/A'}")
-        else:
-            logger.warning(f"[Audit] ⚠️ Insert ejecutado pero no se retornaron datos")
+        logger.info(f"[Audit] ========== FIN log_change (éxito) ==========")
         
     except Exception as e:
         # No fallar la operación principal si la auditoría falla
+        logger.error(f"[Audit] ========== FIN log_change (ERROR) ==========")
         logger.error(f"[Audit] ❌ Error al registrar cambio: {str(e)}", exc_info=True)
         logger.error(f"[Audit] Tipo de error: {type(e).__name__}")
         if hasattr(e, 'message'):
             logger.error(f"[Audit] Mensaje de error: {e.message}")
         if hasattr(e, 'details'):
             logger.error(f"[Audit] Detalles: {e.details}")
+        if hasattr(e, 'code'):
+            logger.error(f"[Audit] Código de error: {e.code}")
 
 def get_audit_log(
     table_name: Optional[str] = None,
@@ -150,4 +177,3 @@ def get_audit_log(
     except Exception as e:
         logger.error(f"[Audit] Error al obtener historial: {str(e)}", exc_info=True)
         return []
-
