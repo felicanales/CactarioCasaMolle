@@ -28,7 +28,7 @@ const getAccessToken = () => {
     
     // Fallback a localStorage (para compatibilidad)
     try {
-        return localStorage.getItem('access_token');
+    return localStorage.getItem('access_token');
     } catch (error) {
         console.warn('[PhotoGallery] Error reading localStorage:', error);
     }
@@ -74,8 +74,8 @@ export default function PhotoGallery({
             } else {
                 if (response.status === 401) {
                     setError('No estás autenticado. Por favor, inicia sesión.');
-                } else {
-                    setError(data.detail || 'Error al cargar fotos');
+            } else {
+                setError(data.detail || 'Error al cargar fotos');
                 }
             }
         } catch (err) {
