@@ -250,56 +250,84 @@ export default function AuditPage() {
                                     Historial de cambios en especies y sectores
                                 </p>
                             </div>
-                            <button
-                                onClick={handleRefresh}
-                                disabled={loading}
-                                style={{
-                                    padding: "8px 16px",
-                                    borderRadius: "6px",
-                                    border: "1px solid #d1d5db",
-                                    backgroundColor: loading ? "#f3f4f6" : "white",
-                                    color: loading ? "#9ca3af" : "#374151",
-                                    fontSize: "13px",
-                                    fontWeight: "500",
-                                    cursor: loading ? "not-allowed" : "pointer",
-                                    transition: "all 0.2s",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    flexShrink: 0
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!loading) {
+                            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                                <button
+                                    onClick={testAuditTable}
+                                    style={{
+                                        padding: "8px 16px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #d1d5db",
+                                        backgroundColor: "white",
+                                        color: "#374151",
+                                        fontSize: "13px",
+                                        fontWeight: "500",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                    onMouseEnter={(e) => {
                                         e.target.style.backgroundColor = "#f9fafb";
                                         e.target.style.borderColor = "#9ca3af";
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!loading) {
+                                    }}
+                                    onMouseLeave={(e) => {
                                         e.target.style.backgroundColor = "white";
                                         e.target.style.borderColor = "#d1d5db";
-                                    }
-                                }}
-                            >
-                                {loading ? (
-                                    <>
-                                        <span style={{
-                                            display: "inline-block",
-                                            width: "12px",
-                                            height: "12px",
-                                            border: "2px solid #9ca3af",
-                                            borderTop: "2px solid transparent",
-                                            borderRadius: "50%",
-                                            animation: "spin 1s linear infinite"
-                                        }}></span>
-                                        Cargando...
-                                    </>
-                                ) : (
-                                    <>
-                                        🔄 Refrescar
-                                    </>
-                                )}
-                            </button>
+                                    }}
+                                >
+                                    🔍 Probar Tabla
+                                </button>
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={loading}
+                                    style={{
+                                        padding: "8px 16px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #d1d5db",
+                                        backgroundColor: loading ? "#f3f4f6" : "white",
+                                        color: loading ? "#9ca3af" : "#374151",
+                                        fontSize: "13px",
+                                        fontWeight: "500",
+                                        cursor: loading ? "not-allowed" : "pointer",
+                                        transition: "all 0.2s",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!loading) {
+                                            e.target.style.backgroundColor = "#f9fafb";
+                                            e.target.style.borderColor = "#9ca3af";
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!loading) {
+                                            e.target.style.backgroundColor = "white";
+                                            e.target.style.borderColor = "#d1d5db";
+                                        }
+                                    }}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <span style={{
+                                                display: "inline-block",
+                                                width: "12px",
+                                                height: "12px",
+                                                border: "2px solid #9ca3af",
+                                                borderTop: "2px solid transparent",
+                                                borderRadius: "50%",
+                                                animation: "spin 1s linear infinite"
+                                            }}></span>
+                                            Cargando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            🔄 Refrescar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </header>
