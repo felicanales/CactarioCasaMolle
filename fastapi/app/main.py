@@ -170,6 +170,8 @@ except Exception as e:
     logger.error(traceback.format_exc())
 app.include_router(routes_debug.router, prefix="/debug", tags=["Debug"])
 logger.info("   ✅ /debug/* - Rutas de debug")
+app.include_router(routes_audit.router, prefix="", tags=["Audit"])
+logger.info("   ✅ /audit - Rutas de auditoría")
 
 @app.get("/")
 def root():

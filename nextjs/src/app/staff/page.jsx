@@ -99,6 +99,14 @@ export default function StaffPage() {
       bgColor: "#ede9fe"
     },
     {
+      title: "Logs de Auditoría",
+      description: "Historial de cambios y modificaciones",
+      icon: "📋",
+      href: "/audit",
+      color: "#6366f1",
+      bgColor: "#e0e7ff"
+    },
+    {
       title: "Editor de la información",
       description: "Edita información para la app de escaneo QR",
       icon: "📱",
