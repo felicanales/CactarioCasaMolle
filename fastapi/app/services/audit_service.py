@@ -67,13 +67,25 @@ def log_change(
         }
         
         # Insertar en la tabla de auditoría
+        logger.info(f"[Audit] Intentando registrar: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
+        logger.debug(f"[Audit] Datos a insertar: {audit_data}")
+        
         result = sb.table('auditoria_cambios').insert(audit_data).execute()
         
-        logger.info(f"[Audit] Cambio registrado: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
+        if result.data:
+            logger.info(f"[Audit] ✅ Cambio registrado exitosamente: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
+            logger.info(f"[Audit] ID del log creado: {result.data[0].get('id') if result.data else 'N/A'}")
+        else:
+            logger.warning(f"[Audit] ⚠️ Insert ejecutado pero no se retornaron datos")
         
     except Exception as e:
         # No fallar la operación principal si la auditoría falla
-        logger.error(f"[Audit] Error al registrar cambio: {str(e)}", exc_info=True)
+        logger.error(f"[Audit] ❌ Error al registrar cambio: {str(e)}", exc_info=True)
+        logger.error(f"[Audit] Tipo de error: {type(e).__name__}")
+        if hasattr(e, 'message'):
+            logger.error(f"[Audit] Mensaje de error: {e.message}")
+        if hasattr(e, 'details'):
+            logger.error(f"[Audit] Detalles: {e.details}")
 
 def get_audit_log(
     table_name: Optional[str] = None,

@@ -58,11 +58,16 @@ export default function AuditPage() {
             params.append("offset", pagination.offset.toString());
 
             const url = `${API}/audit?${params.toString()}`;
+            console.log("[AuditPage] Haciendo petición a:", url);
+            
             const res = await authApiRequest(url, { method: "GET" });
+            
+            console.log("[AuditPage] Respuesta recibida - Status:", res.status, res.statusText);
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al cargar logs");
+                console.error("[AuditPage] Error en respuesta:", errorData);
+                throw new Error(errorData.detail || `Error al cargar logs (${res.status})`);
             }
 
             const data = await res.json();
@@ -111,7 +116,23 @@ export default function AuditPage() {
 
     // Función para refrescar manualmente
     const handleRefresh = () => {
+        console.log("[AuditPage] Refrescar manualmente");
         fetchLogs();
+    };
+    
+    // Función para probar la tabla de auditoría
+    const testAuditTable = async () => {
+        try {
+            const url = `${API}/audit/test`;
+            console.log("[AuditPage] Probando tabla de auditoría:", url);
+            const res = await authApiRequest(url, { method: "GET" });
+            const data = await res.json();
+            console.log("[AuditPage] Resultado del test:", data);
+            alert(`Tabla de auditoría: ${data.total_records || 0} registros\n${data.message || data.error || 'OK'}`);
+        } catch (err) {
+            console.error("[AuditPage] Error en test:", err);
+            alert(`Error al probar tabla: ${err.message}`);
+        }
     };
 
     const formatDate = (dateString) => {
