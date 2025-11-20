@@ -12,14 +12,22 @@ async def upload_photos(
     entity_type: str = Path(..., description="Tipo de entidad: especie, sector, ejemplar, etc."),
     entity_id: int = Path(..., ge=1),
     files: List[UploadFile] = File(...),
-    is_cover_photo_id: Optional[int] = Form(None, description="ID de foto específica que será portada")
+    is_cover_photo_id: Optional[int] = Form(None, description="ID de foto específica que será portada"),
+    request: Request,
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Sube fotos para cualquier entidad.
     Requiere autenticación.
     """
     try:
-        uploaded = await svc.upload_photos(entity_type, entity_id, files, is_cover_photo_id)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        uploaded = await svc.upload_photos(entity_type, entity_id, files, is_cover_photo_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return {
             "photos": uploaded, 
             "message": f"{len(uploaded)} fotos subidas exitosamente",
@@ -67,14 +75,22 @@ def update_photo(
     photo_id: int = Path(..., ge=1),
     is_cover: Optional[bool] = Form(None, description="Marcar como foto de portada"),
     order_index: Optional[int] = Form(None, description="Cambiar orden de la foto"),
-    caption: Optional[str] = Form(None, description="Descripción de la foto")
+    caption: Optional[str] = Form(None, description="Descripción de la foto"),
+    request: Request,
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Actualiza una foto (marcar como portada, cambiar orden, agregar descripción).
     Requiere autenticación.
     """
     try:
-        updated = svc.update_photo(photo_id, is_cover, order_index, caption)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        updated = svc.update_photo(photo_id, is_cover, order_index, caption, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return updated
     except LookupError as e:
         raise HTTPException(404, str(e))
@@ -83,14 +99,22 @@ def update_photo(
 
 @router.delete("/{photo_id}", status_code=204, dependencies=[Depends(get_current_user)])
 def delete_photo(
-    photo_id: int = Path(..., ge=1)
+    photo_id: int = Path(..., ge=1),
+    request: Request,
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Elimina una foto (del storage y de la base de datos).
     Requiere autenticación.
     """
     try:
-        svc.delete_photo(photo_id)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        svc.delete_photo(photo_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return
     except LookupError as e:
         raise HTTPException(404, str(e))

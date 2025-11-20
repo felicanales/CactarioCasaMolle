@@ -94,7 +94,7 @@ def get_sector_species_staff(sector_id: int = Path(..., ge=1)):
     return svc.get_sector_species_staff(sector_id)
 
 @router.put("/staff/{sector_id}/species", dependencies=[Depends(get_current_user)])
-def update_sector_species_staff(sector_id: int, payload: Dict[str, Any]):
+def update_sector_species_staff(sector_id: int, payload: Dict[str, Any], request: Request, current_user: dict = Depends(get_current_user)):
     """
     Actualiza las especies asociadas a un sector.
     Espera un payload con: {"especie_ids": [1, 2, 3, ...]}
@@ -106,7 +106,13 @@ def update_sector_species_staff(sector_id: int, payload: Dict[str, Any]):
         raise HTTPException(400, "'especie_ids' debe ser una lista")
     
     try:
-        updated = svc.update_sector_species_staff(sector_id, especie_ids)
+        user_id = current_user.get('id')
+        user_email = current_user.get('email')
+        user_name = current_user.get('full_name') or current_user.get('username')
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        
+        updated = svc.update_sector_species_staff(sector_id, especie_ids, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
         return updated
     except Exception as e:
         raise HTTPException(500, f"Error al actualizar especies del sector: {str(e)}")
@@ -141,9 +147,15 @@ def update_sector_staff(sector_id: int, payload: Dict[str, Any], request: Reques
         raise HTTPException(400, str(e))
 
 @router.delete("/staff/{sector_id}", status_code=204, dependencies=[Depends(get_current_user)])
-def delete_sector_admin(sector_id: int):
+def delete_sector_admin(sector_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     """
     Elimina un sector (requiere usuario autenticado).
     """
-    svc.delete_admin(sector_id)
+    user_id = current_user.get('id')
+    user_email = current_user.get('email')
+    user_name = current_user.get('full_name') or current_user.get('username')
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get('user-agent')
+    
+    svc.delete_admin(sector_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
     return

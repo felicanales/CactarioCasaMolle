@@ -224,7 +224,7 @@ def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
         logger.error(f"[get_staff] Error al obtener ejemplar: {str(e)}")
         return None
 
-def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Crea un nuevo ejemplar.
     """
@@ -277,12 +277,34 @@ def create_staff(payload: Dict[str, Any]) -> Dict[str, Any]:
         sector_id = clean_payload["sector_id"]
         _ensure_sector_species_relation(sector_id, species_id)
         
-        return res.data[0]
+        created_ejemplar = res.data[0]
+        ejemplar_id = created_ejemplar.get('id')
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='ejemplar',
+                    record_id=ejemplar_id,
+                    action='CREATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=None,
+                    new_values=created_ejemplar,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[create_staff] Error al registrar auditoría: {str(audit_error)}")
+        
+        return created_ejemplar
     except Exception as e:
         logger.error(f"[create_staff] Error al crear ejemplar: {str(e)}")
         raise
 
-def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Actualiza un ejemplar existente.
     """
@@ -291,10 +313,14 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
     
     sb = get_public()
     
-    # Obtener el ejemplar actual para verificar si cambió species_id o sector_id
-    current_ejemplar = sb.table("ejemplar").select("species_id, sector_id").eq("id", ejemplar_id).limit(1).execute()
-    old_species_id = current_ejemplar.data[0].get("species_id") if current_ejemplar.data else None
-    old_sector_id = current_ejemplar.data[0].get("sector_id") if current_ejemplar.data else None
+    # Obtener el ejemplar actual completo para auditoría
+    current_ejemplar_res = sb.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
+    if not current_ejemplar_res.data:
+        raise LookupError("Ejemplar no encontrado")
+    
+    old_values = current_ejemplar_res.data[0]
+    old_species_id = old_values.get("species_id")
+    old_sector_id = old_values.get("sector_id")
     
     # Limpiar payload
     clean_payload = {k: v for k, v in payload.items() 
@@ -335,15 +361,63 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
             if (new_species_id != old_species_id or new_sector_id != old_sector_id) or not old_species_id:
                 _ensure_sector_species_relation(new_sector_id, new_species_id)
         
-        return res.data[0]
+        updated_ejemplar = res.data[0]
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='ejemplar',
+                    record_id=ejemplar_id,
+                    action='UPDATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=old_values,
+                    new_values=updated_ejemplar,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[update_staff] Error al registrar auditoría: {str(audit_error)}")
+        
+        return updated_ejemplar
     except Exception as e:
         logger.error(f"[update_staff] Error al actualizar ejemplar: {str(e)}")
         raise
 
-def delete_staff(ejemplar_id: int) -> None:
+def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> None:
     """
     Elimina un ejemplar.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sb = get_public()
+    
+    # Obtener el ejemplar antes de eliminarlo para auditoría
+    old_ejemplar_res = sb.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
+    old_values = old_ejemplar_res.data[0] if old_ejemplar_res.data else None
+    
     sb.table("ejemplar").delete().eq("id", ejemplar_id).execute()
+    
+    # Registrar en auditoría
+    if (user_id or user_email) and old_values:
+        try:
+            from app.services.audit_service import log_change
+            log_change(
+                table_name='ejemplar',
+                record_id=ejemplar_id,
+                action='DELETE',
+                user_id=user_id,
+                user_email=user_email,
+                user_name=user_name,
+                old_values=old_values,
+                new_values=None,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        except Exception as audit_error:
+            logger.warning(f"[delete_staff] Error al registrar auditoría: {str(audit_error)}")
 

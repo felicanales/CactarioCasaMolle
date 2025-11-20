@@ -38,7 +38,12 @@ async def upload_photos(
     entity_type: str,
     entity_id: int,
     files: List[UploadFile],
-    is_cover_photo_id: Optional[int] = None
+    is_cover_photo_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    user_email: Optional[str] = None,
+    user_name: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Sube múltiples fotos para cualquier entidad.
@@ -120,14 +125,35 @@ async def upload_photos(
             result = sb.table("fotos").insert(photo_data).execute()
             
             if result.data:
+                photo_record = result.data[0]
+                photo_id = photo_record["id"]
                 public_url = sb.storage.from_(BUCKET_NAME).get_public_url(unique_filename)
                 uploaded_photos.append({
-                    "id": result.data[0]["id"],
+                    "id": photo_id,
                     "storage_path": unique_filename,
                     "public_url": public_url,
                     "is_cover": is_cover,
                     "order_index": photo_data["order_index"]
                 })
+                
+                # Registrar en auditoría
+                if user_id or user_email:
+                    try:
+                        from app.services.audit_service import log_change
+                        log_change(
+                            table_name='fotos',
+                            record_id=photo_id,
+                            action='CREATE',
+                            user_id=user_id,
+                            user_email=user_email,
+                            user_name=user_name,
+                            old_values=None,
+                            new_values=photo_record,
+                            ip_address=ip_address,
+                            user_agent=user_agent
+                        )
+                    except Exception as audit_error:
+                        logger.warning(f"[upload_photos] Error al registrar auditoría para foto {photo_id}: {str(audit_error)}")
         
         except Exception as e:
             logger.error(f"Error al subir foto {file.filename}: {str(e)}")
@@ -257,19 +283,25 @@ def update_photo(
     photo_id: int,
     is_cover: Optional[bool] = None,
     order_index: Optional[int] = None,
-    caption: Optional[str] = None
+    caption: Optional[str] = None,
+    user_id: Optional[int] = None,
+    user_email: Optional[str] = None,
+    user_name: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Actualiza una foto.
     """
     sb = get_public()
     
-    # Obtener la foto para saber qué entidad es
+    # Obtener la foto completa antes de actualizar para auditoría
     photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
     if not photo.data:
         raise LookupError("Foto no encontrada")
     
-    photo_data = photo.data[0]
+    old_values = photo.data[0]
+    photo_data = old_values.copy()
     update_data = {}
     
     # Determinar qué columna usar según qué foreign key tiene valor
@@ -306,22 +338,46 @@ def update_photo(
         result = sb.table("fotos").update(update_data).eq("id", photo_id).execute()
         if not result.data:
             raise LookupError("No se pudo actualizar la foto")
-        return result.data[0]
+        
+        updated_photo = result.data[0]
+        
+        # Registrar en auditoría
+        if user_id or user_email:
+            try:
+                from app.services.audit_service import log_change
+                log_change(
+                    table_name='fotos',
+                    record_id=photo_id,
+                    action='UPDATE',
+                    user_id=user_id,
+                    user_email=user_email,
+                    user_name=user_name,
+                    old_values=old_values,
+                    new_values=updated_photo,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+            except Exception as audit_error:
+                logger.warning(f"[update_photo] Error al registrar auditoría: {str(audit_error)}")
+        
+        return updated_photo
     
     return photo_data
 
 
-def delete_photo(photo_id: int) -> None:
+def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> None:
     """
     Elimina una foto (del storage y de la BD).
     """
     sb = get_service()
     
+    # Obtener la foto antes de eliminarla para auditoría
     photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
     if not photo.data:
         raise LookupError("Foto no encontrada")
     
-    storage_path = photo.data[0]["storage_path"]
+    old_values = photo.data[0]
+    storage_path = old_values["storage_path"]
     
     try:
         sb.storage.from_(BUCKET_NAME).remove([storage_path])
@@ -329,4 +385,23 @@ def delete_photo(photo_id: int) -> None:
         logger.warning(f"No se pudo eliminar del storage: {str(e)}")
     
     sb.table("fotos").delete().eq("id", photo_id).execute()
+    
+    # Registrar en auditoría
+    if user_id or user_email:
+        try:
+            from app.services.audit_service import log_change
+            log_change(
+                table_name='fotos',
+                record_id=photo_id,
+                action='DELETE',
+                user_id=user_id,
+                user_email=user_email,
+                user_name=user_name,
+                old_values=old_values,
+                new_values=None,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        except Exception as audit_error:
+            logger.warning(f"[delete_photo] Error al registrar auditoría: {str(audit_error)}")
 
