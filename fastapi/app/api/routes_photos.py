@@ -9,11 +9,11 @@ router = APIRouter()
 
 @router.post("/{entity_type}/{entity_id}", dependencies=[Depends(get_current_user)])
 async def upload_photos(
+    request: Request,
     entity_type: str = Path(..., description="Tipo de entidad: especie, sector, ejemplar, etc."),
     entity_id: int = Path(..., ge=1),
     files: List[UploadFile] = File(...),
     is_cover_photo_id: Optional[int] = Form(None, description="ID de foto específica que será portada"),
-    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -72,11 +72,11 @@ def get_cover_photo(
 
 @router.put("/{photo_id}", dependencies=[Depends(get_current_user)])
 def update_photo(
+    request: Request,
     photo_id: int = Path(..., ge=1),
     is_cover: Optional[bool] = Form(None, description="Marcar como foto de portada"),
     order_index: Optional[int] = Form(None, description="Cambiar orden de la foto"),
     caption: Optional[str] = Form(None, description="Descripción de la foto"),
-    request: Request,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -99,8 +99,8 @@ def update_photo(
 
 @router.delete("/{photo_id}", status_code=204, dependencies=[Depends(get_current_user)])
 def delete_photo(
-    photo_id: int = Path(..., ge=1),
     request: Request,
+    photo_id: int = Path(..., ge=1),
     current_user: dict = Depends(get_current_user)
 ):
     """
