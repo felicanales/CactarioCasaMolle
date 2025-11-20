@@ -4,7 +4,7 @@ Servicio de auditoría para registrar cambios en la base de datos
 import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
-from app.core.supabase_auth import get_public
+from app.core.supabase_auth import get_public, get_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,8 @@ def log_change(
         user_agent: User agent del cliente
     """
     try:
-        sb = get_public()
+        # Usar service client para bypass RLS y asegurar que siempre se puedan insertar logs
+        sb = get_service()
         
         # Para UPDATE, detectar solo los campos que cambiaron
         changes_detected = None
@@ -95,7 +96,26 @@ def get_audit_log(
         Lista de registros de auditoría
     """
     try:
-        sb = get_public()
+        # Usar service client para bypass RLS y poder leer todos los logs
+        sb = get_service()
+        
+        # Primero verificar si la tabla existe y tiene datos
+        count_query = sb.table('auditoria_cambios').select('id', count='exact')
+        if table_name:
+            count_query = count_query.eq('tabla_afectada', table_name)
+        if record_id:
+            count_query = count_query.eq('registro_id', record_id)
+        if user_id:
+            count_query = count_query.eq('usuario_id', user_id)
+        
+        try:
+            count_result = count_query.execute()
+            total_count = count_result.count if hasattr(count_result, 'count') else len(count_result.data or [])
+            logger.info(f"[Audit] Total de registros disponibles: {total_count}")
+        except Exception as count_error:
+            logger.warning(f"[Audit] No se pudo obtener el conteo total: {str(count_error)}")
+        
+        # Obtener los logs
         query = sb.table('auditoria_cambios').select('*')
         
         if table_name:
@@ -112,8 +132,10 @@ def get_audit_log(
         logger.info(f"[Audit] Obtenidos {len(logs)} logs (limit={limit}, offset={offset})")
         if logs:
             logger.info(f"[Audit] Primer log: tabla={logs[0].get('tabla_afectada')}, acción={logs[0].get('accion')}, usuario={logs[0].get('usuario_email')}, fecha={logs[0].get('created_at')}")
+        else:
+            logger.warning(f"[Audit] No se encontraron logs con los filtros aplicados")
         return logs
     except Exception as e:
-        logger.error(f"[Audit] Error al obtener historial: {str(e)}")
+        logger.error(f"[Audit] Error al obtener historial: {str(e)}", exc_info=True)
         return []
 

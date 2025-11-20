@@ -66,11 +66,21 @@ export default function AuditPage() {
             }
 
             const data = await res.json();
+            console.log("[AuditPage] Respuesta completa del servidor:", data);
             console.log("[AuditPage] Logs recibidos:", data.logs?.length || 0, "registros");
-            console.log("[AuditPage] Datos completos:", data);
+            
+            if (!data.logs) {
+                console.warn("[AuditPage] ⚠️ La respuesta no contiene 'logs'");
+                console.warn("[AuditPage] Estructura de datos recibida:", Object.keys(data));
+            }
+            
             if (data.logs && data.logs.length > 0) {
                 console.log("[AuditPage] Primer log:", data.logs[0]);
+                console.log("[AuditPage] Último log:", data.logs[data.logs.length - 1]);
+            } else {
+                console.warn("[AuditPage] ⚠️ No hay logs en la respuesta");
             }
+            
             setLogs(data.logs || []);
         } catch (err) {
             console.error("[AuditPage] Error:", err);
