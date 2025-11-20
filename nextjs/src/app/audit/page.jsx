@@ -24,7 +24,7 @@ export default function AuditPage() {
         user_id: ""
     });
     const [pagination, setPagination] = useState({
-        limit: 50,
+        limit: 100,
         offset: 0
     });
 
@@ -66,6 +66,7 @@ export default function AuditPage() {
             }
 
             const data = await res.json();
+            console.log("[AuditPage] Logs recibidos:", data.logs?.length || 0, "registros");
             setLogs(data.logs || []);
         } catch (err) {
             console.error("[AuditPage] Error:", err);
@@ -80,6 +81,11 @@ export default function AuditPage() {
             fetchLogs();
         }
     }, [checkedAuth, filters, pagination]);
+
+    // Función para refrescar manualmente
+    const handleRefresh = () => {
+        fetchLogs();
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
@@ -253,6 +259,9 @@ export default function AuditPage() {
                                     <option value="">Todas las tablas</option>
                                     <option value="especies">Especies</option>
                                     <option value="sectores">Sectores</option>
+                                    <option value="ejemplar">Ejemplares</option>
+                                    <option value="fotos">Fotos</option>
+                                    <option value="sectores_especies">Relaciones Sector-Especie</option>
                                 </select>
                             </div>
                             <div>

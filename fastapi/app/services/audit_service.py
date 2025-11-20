@@ -108,7 +108,9 @@ def get_audit_log(
         query = query.order('created_at', desc=True).range(offset, offset + limit - 1)
         result = query.execute()
         
-        return result.data or []
+        logs = result.data or []
+        logger.info(f"[Audit] Obtenidos {len(logs)} logs (limit={limit}, offset={offset})")
+        return logs
     except Exception as e:
         logger.error(f"[Audit] Error al obtener historial: {str(e)}")
         return []
