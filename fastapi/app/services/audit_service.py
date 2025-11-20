@@ -110,6 +110,8 @@ def get_audit_log(
         
         logs = result.data or []
         logger.info(f"[Audit] Obtenidos {len(logs)} logs (limit={limit}, offset={offset})")
+        if logs:
+            logger.info(f"[Audit] Primer log: tabla={logs[0].get('tabla_afectada')}, acción={logs[0].get('accion')}, usuario={logs[0].get('usuario_email')}, fecha={logs[0].get('created_at')}")
         return logs
     except Exception as e:
         logger.error(f"[Audit] Error al obtener historial: {str(e)}")

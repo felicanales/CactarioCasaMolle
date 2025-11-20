@@ -24,7 +24,7 @@ export default function AuditPage() {
         user_id: ""
     });
     const [pagination, setPagination] = useState({
-        limit: 100,
+        limit: 200,
         offset: 0
     });
 
@@ -67,6 +67,10 @@ export default function AuditPage() {
 
             const data = await res.json();
             console.log("[AuditPage] Logs recibidos:", data.logs?.length || 0, "registros");
+            console.log("[AuditPage] Datos completos:", data);
+            if (data.logs && data.logs.length > 0) {
+                console.log("[AuditPage] Primer log:", data.logs[0]);
+            }
             setLogs(data.logs || []);
         } catch (err) {
             console.error("[AuditPage] Error:", err);
@@ -78,8 +82,21 @@ export default function AuditPage() {
 
     useEffect(() => {
         if (checkedAuth || BYPASS_AUTH) {
+            console.log("[AuditPage] Cargando logs con filtros:", filters, "paginación:", pagination);
             fetchLogs();
         }
+    }, [checkedAuth, filters, pagination]);
+    
+    // Refrescar automáticamente cada 30 segundos
+    useEffect(() => {
+        if (!checkedAuth && !BYPASS_AUTH) return;
+        
+        const interval = setInterval(() => {
+            console.log("[AuditPage] Auto-refresh de logs");
+            fetchLogs();
+        }, 30000); // 30 segundos
+        
+        return () => clearInterval(interval);
     }, [checkedAuth, filters, pagination]);
 
     // Función para refrescar manualmente
@@ -188,7 +205,7 @@ export default function AuditPage() {
                             }}>
                                 ←
                             </Link>
-                            <div style={{ minWidth: 0 }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                                 <h1 style={{
                                     fontSize: "clamp(16px, 4vw, 20px)",
                                     fontWeight: "700", color: "#111827", margin: 0
@@ -202,6 +219,56 @@ export default function AuditPage() {
                                     Historial de cambios en especies y sectores
                                 </p>
                             </div>
+                            <button
+                                onClick={handleRefresh}
+                                disabled={loading}
+                                style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #d1d5db",
+                                    backgroundColor: loading ? "#f3f4f6" : "white",
+                                    color: loading ? "#9ca3af" : "#374151",
+                                    fontSize: "13px",
+                                    fontWeight: "500",
+                                    cursor: loading ? "not-allowed" : "pointer",
+                                    transition: "all 0.2s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    flexShrink: 0
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!loading) {
+                                        e.target.style.backgroundColor = "#f9fafb";
+                                        e.target.style.borderColor = "#9ca3af";
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!loading) {
+                                        e.target.style.backgroundColor = "white";
+                                        e.target.style.borderColor = "#d1d5db";
+                                    }
+                                }}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span style={{
+                                            display: "inline-block",
+                                            width: "12px",
+                                            height: "12px",
+                                            border: "2px solid #9ca3af",
+                                            borderTop: "2px solid transparent",
+                                            borderRadius: "50%",
+                                            animation: "spin 1s linear infinite"
+                                        }}></span>
+                                        Cargando...
+                                    </>
+                                ) : (
+                                    <>
+                                        🔄 Refrescar
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </header>
