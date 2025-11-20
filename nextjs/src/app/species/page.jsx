@@ -2274,9 +2274,3 @@ export default function SpeciesPage() {
 }
 
 
-
-        </>
-    );
-}
-
-

@@ -421,46 +421,6 @@ def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Op
         except Exception as audit_error:
             logger.warning(f"[delete_staff] Error al registrar auditoría: {str(audit_error)}")
 
-
-        res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
-        if not res.data:
-            raise LookupError("Ejemplar no encontrado")
-        
-        # Si se actualizó species_id o sector_id, asegurar la relación en sectores_especies
-        new_species_id = clean_payload.get("species_id", old_species_id)
-        new_sector_id = clean_payload.get("sector_id", old_sector_id)
-        
-        if new_species_id and new_sector_id:
-            # Si cambió la especie o el sector, crear la nueva relación
-            if (new_species_id != old_species_id or new_sector_id != old_sector_id) or not old_species_id:
-                _ensure_sector_species_relation(new_sector_id, new_species_id)
-        
-        updated_ejemplar = res.data[0]
-        
-        # Registrar en auditoría
-        if user_id or user_email:
-            try:
-                from app.services.audit_service import log_change
-                log_change(
-                    table_name='ejemplar',
-                    record_id=ejemplar_id,
-                    action='UPDATE',
-                    user_id=user_id,
-                    user_email=user_email,
-                    user_name=user_name,
-                    old_values=old_values,
-                    new_values=updated_ejemplar,
-                    ip_address=ip_address,
-                    user_agent=user_agent
-                )
-            except Exception as audit_error:
-                logger.warning(f"[update_staff] Error al registrar auditoría: {str(audit_error)}")
-        
-        return updated_ejemplar
-    except Exception as e:
-        logger.error(f"[update_staff] Error al actualizar ejemplar: {str(e)}")
-        raise
-
 def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> None:
     """
     Elimina un ejemplar.
