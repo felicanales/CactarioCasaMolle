@@ -1886,7 +1886,6 @@ export default function SpeciesEditorPage() {
                                                                 <option value="Agave">Agave</option>
                                                                 <option value="Tallo plano">Tallo plano</option>
                                                                 <option value="Otro">Otro</option>
-                                                                <option value="Otro">Otro</option>
                                                             </select>
                                                         </div>
                                                     </div>
