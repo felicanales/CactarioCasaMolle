@@ -1872,11 +1872,12 @@ export default function SpeciesEditorPage() {
                                                                 Tipo de Morfología
                                                             </label>
                                                             <select
-                                                                value={formData.tipo_morfología}
-                                                                onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value })}
+                                                                value={formData.tipo_morfología || ""}
+                                                                onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value || null })}
                                                                 style={{
                                                                     width: "100%", padding: "6px 10px",
-                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px",
+                                                                    backgroundColor: "white"
                                                                 }}
                                                             >
                                                                 <option value="">Seleccionar...</option>
@@ -1884,6 +1885,7 @@ export default function SpeciesEditorPage() {
                                                                 <option value="Redondo">Redondo</option>
                                                                 <option value="Agave">Agave</option>
                                                                 <option value="Tallo plano">Tallo plano</option>
+                                                                <option value="Otro">Otro</option>
                                                                 <option value="Otro">Otro</option>
                                                             </select>
                                                         </div>

@@ -437,16 +437,16 @@ export default function SpeciesPage() {
             if (payload.updated_at) delete payload.updated_at;
 
             // Convertir strings vacíos a null para campos ENUM (no aceptan strings vacíos)
-            const enumFields = ["morfología_cactus", "tipo_morfología", "tipo_planta"];
+            const enumFields = ["tipo_morfología", "tipo_planta"];
             enumFields.forEach(field => {
                 if (payload[field] === "") {
                     payload[field] = null;
                 }
             });
 
-            // Mapear tipo_morfología a morfología_cactus si es necesario
-            if (payload.tipo_morfología && !payload.morfología_cactus) {
-                payload.morfología_cactus = payload.tipo_morfología;
+            // Eliminar morfología_cactus si existe (no existe en la tabla)
+            if (payload.morfología_cactus) {
+                delete payload.morfología_cactus;
             }
 
             let res;
@@ -1780,20 +1780,26 @@ export default function SpeciesPage() {
                                             }}>
                                                 Tipo de Morfología
                                             </label>
-                                            <input
-                                                type="text"
-                                                value={formData.tipo_morfología}
-                                                onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value })}
-                                                placeholder="Ej: Columnar, Espinoso"
+                                            <select
+                                                value={formData.tipo_morfología || ""}
+                                                onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value || null })}
                                                 style={{
                                                     width: "100%",
                                                     padding: "8px 12px",
                                                     border: "1px solid #d1d5db",
                                                     borderRadius: "6px",
                                                     fontSize: "14px",
-                                                    boxSizing: "border-box"
+                                                    boxSizing: "border-box",
+                                                    backgroundColor: "white"
                                                 }}
-                                            />
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                <option value="Columnar">Columnar</option>
+                                                <option value="Redondo">Redondo</option>
+                                                <option value="Agave">Agave</option>
+                                                <option value="Tallo plano">Tallo plano</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
                                         </div>
                                     </div>
 
