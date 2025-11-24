@@ -176,6 +176,15 @@ export default function InventoryPage() {
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     
+    // Estados para modal de venta (selección de ejemplares)
+    const [availableEjemplares, setAvailableEjemplares] = useState([]); // Ejemplares disponibles para venta
+    const [saleSelectedIds, setSaleSelectedIds] = useState(new Set()); // IDs seleccionados para venta
+    const [saleFilters, setSaleFilters] = useState({
+        species: "",
+        sector: "",
+        search: ""
+    });
+    
     // Función para cargar ejemplares disponibles para venta (sin sale_date)
     const fetchAvailableEjemplares = async () => {
         try {
@@ -197,14 +206,6 @@ export default function InventoryPage() {
     
     // Selección masiva para eliminación
     const [selectedIds, setSelectedIds] = useState(new Set());
-    
-    // Estados para modal de venta (selección de ejemplares)
-    const [saleSelectedIds, setSaleSelectedIds] = useState(new Set()); // IDs seleccionados para venta
-    const [saleFilters, setSaleFilters] = useState({
-        species: "",
-        sector: "",
-        search: ""
-    });
     
     // Función para filtrar ejemplares disponibles según los filtros
     const getFilteredEjemplares = () => {
@@ -1974,7 +1975,7 @@ export default function InventoryPage() {
                                 </div>
                                 
                                 {/* Edad (meses o años) */}
-                                <div>
+                                <div style={{ gridColumn: "span 1", minWidth: "280px" }}>
                                     <label style={{
                                         fontSize: "12px",
                                         fontWeight: "600",
@@ -1986,19 +1987,26 @@ export default function InventoryPage() {
                                     }}>
                                         Edad
                                     </label>
-                                    <div style={{ display: "flex", gap: "8px" }}>
+                                    <div style={{ 
+                                        display: "flex", 
+                                        gap: "8px",
+                                        width: "100%",
+                                        alignItems: "stretch"
+                                    }}>
                                         <input
                                             type="number"
                                             min="0"
                                             value={formData.age_months}
                                             onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
                                             style={{
-                                                flex: 1,
+                                                flex: "1 1 0",
+                                                minWidth: "80px",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none"
+                                                outline: "none",
+                                                boxSizing: "border-box"
                                             }}
                                             placeholder="0"
                                         />
@@ -2006,12 +2014,15 @@ export default function InventoryPage() {
                                             value={formData.age_unit}
                                             onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
                                             style={{
+                                                flex: "0 0 auto",
+                                                minWidth: "110px",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
                                                 outline: "none",
-                                                minWidth: "100px"
+                                                boxSizing: "border-box",
+                                                whiteSpace: "nowrap"
                                             }}
                                         >
                                             <option value="months">Meses</option>
