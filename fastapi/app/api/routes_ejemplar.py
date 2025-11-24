@@ -1,6 +1,8 @@
 # app/api/routes_ejemplar.py
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from typing import Optional, Dict, Any
+
+from pydantic import OnErrorOmit
 from app.middleware.auth_middleware import get_current_user
 from app.services import ejemplar_service as svc
 
@@ -66,6 +68,10 @@ def create_ejemplar_staff(payload: Dict[str, Any], request: Request, current_use
         raise HTTPException(400, str(e))
     except Exception as e:
         raise HTTPException(500, f"Error al crear ejemplar: {str(e)}")
+    except OnErrorOmit as e:
+        print(e)
+        return None
+
 
 @router.put("/staff/{ejemplar_id}", dependencies=[Depends(get_current_user)])
 def update_ejemplar_staff(ejemplar_id: int, payload: Dict[str, Any], request: Request, current_user: dict = Depends(get_current_user)):

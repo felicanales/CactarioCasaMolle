@@ -148,6 +148,52 @@ function Modal({ isOpen, onClose, title, children }) {
 export default function InventoryPage() {
     const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
+    
+    // Funciones helper para formatear números con separadores de miles (1.000.000)
+    const formatNumber = (value) => {
+        if (!value && value !== 0) return "";
+        // Remover puntos y comas existentes, luego formatear
+        const numStr = String(value).replace(/\./g, "").replace(/,/g, "");
+        const num = parseFloat(numStr);
+        if (isNaN(num)) return "";
+        // Separar parte entera y decimal
+        const parts = num.toString().split(".");
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
+        // Agregar puntos cada 3 dígitos desde la derecha en la parte entera
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        // Si hay decimales, agregarlos con punto
+        if (decimalPart) {
+            return `${formattedInteger}.${decimalPart}`;
+        }
+        return formattedInteger;
+    };
+    
+    const parseNumber = (value) => {
+        if (!value) return "";
+        // Contar puntos: si hay más de uno, el último es decimal, los demás son separadores de miles
+        const pointCount = (value.match(/\./g) || []).length;
+        if (pointCount > 1) {
+            // Hay separadores de miles y decimales
+            // Remover todos los puntos excepto el último
+            const lastPointIndex = value.lastIndexOf(".");
+            const beforeLastPoint = value.substring(0, lastPointIndex).replace(/\./g, "");
+            const afterLastPoint = value.substring(lastPointIndex + 1);
+            return `${beforeLastPoint}.${afterLastPoint}`;
+        } else if (pointCount === 1) {
+            // Solo un punto: verificar si es decimal o separador de miles
+            const pointIndex = value.indexOf(".");
+            const afterPoint = value.substring(pointIndex + 1);
+            // Si después del punto hay más de 2 dígitos, es separador de miles
+            if (afterPoint.length > 2) {
+                return value.replace(/\./g, "");
+            }
+            // Si hay 1-2 dígitos después, es decimal
+            return value;
+        }
+        // Sin puntos, solo números
+        return value;
+    };
 
     const [ejemplares, setEjemplares] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -329,6 +375,61 @@ export default function InventoryPage() {
         has_offshoots: 0, // Cantidad de retoños/hijos (número)
         cantidad: 1 // Cantidad de ejemplares a crear
     });
+    
+    // Items de compra (múltiples especies)
+    const [purchaseItems, setPurchaseItems] = useState([
+        { id: 1, species_id: "", quantity: 1, price: "" }
+    ]);
+    
+    // Funciones para manejar items de compra
+    const addPurchaseItem = () => {
+        setPurchaseItems([...purchaseItems, { 
+            id: purchaseItems.length > 0 ? Math.max(...purchaseItems.map(i => i.id)) + 1 : 1, 
+            species_id: "", 
+            quantity: 1, 
+            price: "" 
+        }]);
+    };
+    
+    const removePurchaseItem = (id) => {
+        if (purchaseItems.length > 1) {
+            setPurchaseItems(purchaseItems.filter(item => item.id !== id));
+        }
+    };
+    
+    const updatePurchaseItem = (id, field, value) => {
+        setPurchaseItems(purchaseItems.map(item => 
+            item.id === id ? { ...item, [field]: value } : item
+        ));
+    };
+    
+    // Items de compra múltiple (para compras con múltiples especies)
+    const [purchaseItems, setPurchaseItems] = useState([
+        { id: 1, species_id: "", quantity: 1, price: "" }
+    ]);
+    let nextPurchaseItemId = 2;
+    
+    // Funciones para manejar items de compra
+    const addPurchaseItem = () => {
+        setPurchaseItems([...purchaseItems, { 
+            id: nextPurchaseItemId++, 
+            species_id: "", 
+            quantity: 1, 
+            price: "" 
+        }]);
+    };
+    
+    const removePurchaseItem = (id) => {
+        if (purchaseItems.length > 1) {
+            setPurchaseItems(purchaseItems.filter(item => item.id !== id));
+        }
+    };
+    
+    const updatePurchaseItem = (id, field, value) => {
+        setPurchaseItems(purchaseItems.map(item => 
+            item.id === id ? { ...item, [field]: value } : item
+        ));
+    };
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -581,6 +682,7 @@ export default function InventoryPage() {
             setError("");
             const payload = { ...formData };
             delete payload.cantidad;
+            delete payload.age_unit; // Remover age_unit (solo se usa en frontend para conversión)
 
             // Limpiar según modo
             if (modalMode === "compra") {
@@ -629,120 +731,170 @@ export default function InventoryPage() {
     const handleCreate = async (e) => {
         e.preventDefault();
         
-        // Validar campos obligatorios
-        if (!formData.species_id || !formData.sector_id) {
-            setError("La especie y el sector son obligatorios");
+        // Validar campos obligatorios comunes
+        if (!formData.sector_id) {
+            setError("El sector es obligatorio");
             return;
         }
         
-        // Validar cantidad
-        const cantidad = parseInt(formData.cantidad) || 1;
-        if (cantidad < 1) {
-            setError("La cantidad debe ser al menos 1");
-            return;
-        }
-        if (cantidad > 100) {
-            setError("La cantidad máxima permitida es 100 ejemplares por operación");
-            return;
+        // Validar campos según el modo
+        if (modalMode === "compra") {
+            if (!formData.purchase_date) {
+                setError("La fecha de compra es obligatoria");
+                return;
+            }
+            
+            // Validar items de compra
+            const validItems = purchaseItems.filter(item => item.species_id && item.quantity > 0);
+            if (validItems.length === 0) {
+                setError("Debes agregar al menos una especie con cantidad mayor a 0");
+                return;
+            }
+            
+            // Validar que no haya más de 100 ejemplares en total
+            const totalQuantity = validItems.reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
+            if (totalQuantity > 100) {
+                setError("La cantidad máxima total permitida es 100 ejemplares por operación");
+                return;
+            }
+        } else if (modalMode === "venta") {
+            if (!formData.sale_date) {
+                setError("La fecha de venta es obligatoria");
+                return;
+            }
+            if (!formData.species_id) {
+                setError("La especie es obligatoria");
+                return;
+            }
         }
         
         try {
             setSubmitting(true);
             setError("");
             
-            // Preparar payload base (sin cantidad)
-            const basePayload = { ...formData };
-            delete basePayload.cantidad; // Remover cantidad del payload
-            
-            // Validar campos según el modo
-            if (modalMode === "compra" && !formData.purchase_date) {
-                setError("La fecha de compra es obligatoria");
-                setSubmitting(false);
-                return;
-            }
-            if (modalMode === "venta" && !formData.sale_date) {
-                setError("La fecha de venta es obligatoria");
-                setSubmitting(false);
-                return;
-            }
-            
-            // Limpiar campos según el modo
-            if (modalMode === "compra") {
-                // En compra, limpiar campos de venta
-                basePayload.sale_date = null;
-                basePayload.sale_price = null;
-            } else if (modalMode === "venta") {
-                // En venta, limpiar campos de compra
-                basePayload.purchase_date = null;
-                basePayload.purchase_price = null;
-                basePayload.nursery = null;
-            }
-            
-            // Convertir IDs a números
-            basePayload.species_id = parseInt(formData.species_id);
-            basePayload.sector_id = parseInt(formData.sector_id);
-            
-            // Convertir age_months a número si existe, considerando la unidad (meses o años)
-            if (basePayload.age_months) {
-                let ageValue = parseInt(basePayload.age_months);
-                // Si la unidad es años, convertir a meses
-                if (formData.age_unit === "years") {
-                    ageValue = ageValue * 12;
-                }
-                basePayload.age_months = ageValue;
-            }
-            
-            // Convertir precios a números si existen (precio unitario)
-            if (basePayload.purchase_price) {
-                basePayload.purchase_price = parseFloat(basePayload.purchase_price);
-            }
-            if (basePayload.sale_price) {
-                basePayload.sale_price = parseFloat(basePayload.sale_price);
-            }
-            
-            // Convertir has_offshoots a número (cantidad de retoños)
-            if (basePayload.has_offshoots !== undefined && basePayload.has_offshoots !== null) {
-                basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
-            }
-            
-            // IMPORTANTE: Eliminar campo 'tamaño' completamente del payload
-            // La columna no existe en la BD todavía, así que siempre la removemos
-            if ("tamaño" in basePayload) {
-                delete basePayload.tamaño;
-            }
-            
-            // Crear múltiples ejemplares
             let created = 0;
             let failed = 0;
             const errors = [];
             
-            for (let i = 0; i < cantidad; i++) {
-                try {
-                    const res = await apiRequest(`${API}/ejemplar/staff`, {
-                        method: "POST",
-                        body: JSON.stringify(basePayload)
-                    }, accessToken);
+            if (modalMode === "compra") {
+                // Procesar múltiples items de compra
+                const validItems = purchaseItems.filter(item => item.species_id && item.quantity > 0);
+                
+                for (const item of validItems) {
+                    const quantity = parseInt(item.quantity) || 1;
+                    const price = item.price ? parseFloat(parseNumber(item.price)) : null;
                     
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        throw new Error(errorData.detail || "Error al crear el ejemplar");
+                    // Preparar payload base para este item
+                    const basePayload = {
+                        species_id: parseInt(item.species_id),
+                        sector_id: parseInt(formData.sector_id),
+                        purchase_date: formData.purchase_date,
+                        sale_date: null,
+                        nursery: formData.nursery || null,
+                        invoice_number: formData.invoice_number || null,
+                        age_months: formData.age_months ? (() => {
+                            let ageValue = parseInt(formData.age_months);
+                            if (formData.age_unit === "years") {
+                                ageValue = ageValue * 12;
+                            }
+                            return ageValue;
+                        })() : null,
+                        health_status: formData.health_status || null,
+                        location: formData.location || null,
+                        purchase_price: price,
+                        sale_price: null,
+                        has_offshoots: formData.has_offshoots || 0
+                    };
+                    
+                    // Crear la cantidad de ejemplares para este item
+                    for (let i = 0; i < quantity; i++) {
+                        try {
+                            const res = await apiRequest(`${API}/ejemplar/staff`, {
+                                method: "POST",
+                                body: JSON.stringify(basePayload)
+                            }, accessToken);
+                            
+                            if (!res.ok) {
+                                const errorData = await res.json().catch(() => ({}));
+                                throw new Error(errorData.detail || "Error al crear el ejemplar");
+                            }
+                            
+                            created++;
+                        } catch (err) {
+                            failed++;
+                            const speciesName = speciesList.find(s => s.id === parseInt(item.species_id))?.scientific_name || "especie";
+                            errors.push(`${speciesName} (${i + 1}/${quantity}): ${err.message}`);
+                        }
                     }
-                    
-                    created++;
-                } catch (err) {
-                    failed++;
-                    errors.push(`Ejemplar ${i + 1}: ${err.message}`);
-                    // Continuar con los siguientes ejemplares incluso si uno falla
+                }
+            } else {
+                // Modo venta: usar el formulario tradicional (una especie)
+                const cantidad = parseInt(formData.cantidad) || 1;
+                
+                // Preparar payload base (sin cantidad y sin age_unit)
+                const basePayload = { ...formData };
+                delete basePayload.cantidad;
+                delete basePayload.age_unit;
+                
+                // Limpiar campos de compra
+                basePayload.purchase_date = null;
+                basePayload.purchase_price = null;
+                basePayload.nursery = null;
+                
+                // Convertir IDs a números
+                basePayload.species_id = parseInt(formData.species_id);
+                basePayload.sector_id = parseInt(formData.sector_id);
+                
+                // Convertir age_months a número si existe
+                if (basePayload.age_months) {
+                    let ageValue = parseInt(basePayload.age_months);
+                    if (formData.age_unit === "years") {
+                        ageValue = ageValue * 12;
+                    }
+                    basePayload.age_months = ageValue;
+                }
+                
+                // Convertir precios a números
+                if (basePayload.sale_price) {
+                    basePayload.sale_price = parseFloat(parseNumber(basePayload.sale_price));
+                }
+                
+                // Convertir has_offshoots
+                if (basePayload.has_offshoots !== undefined && basePayload.has_offshoots !== null) {
+                    basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
+                }
+                
+                // Eliminar campo 'tamaño'
+                if ("tamaño" in basePayload) {
+                    delete basePayload.tamaño;
+                }
+                
+                // Crear múltiples ejemplares
+                for (let i = 0; i < cantidad; i++) {
+                    try {
+                        const res = await apiRequest(`${API}/ejemplar/staff`, {
+                            method: "POST",
+                            body: JSON.stringify(basePayload)
+                        }, accessToken);
+                        
+                        if (!res.ok) {
+                            const errorData = await res.json().catch(() => ({}));
+                            throw new Error(errorData.detail || "Error al crear el ejemplar");
+                        }
+                        
+                        created++;
+                    } catch (err) {
+                        failed++;
+                        errors.push(`Ejemplar ${i + 1}: ${err.message}`);
+                    }
                 }
             }
             
             // Mostrar resultado
             if (created > 0) {
-                // Recargar lista y cerrar modal solo si al menos uno se creó
                 await fetchEjemplares();
                 
                 if (failed === 0) {
-                    // Todos exitosos
                     setShowModal(false);
                     setFormData({
                         species_id: "",
@@ -761,12 +913,11 @@ export default function InventoryPage() {
                         has_offshoots: 0,
                         cantidad: 1
                     });
+                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
                 } else {
-                    // Algunos fallaron
-                    setError(`Se crearon ${created} de ${cantidad} ejemplares. Errores: ${errors.join('; ')}`);
+                    setError(`Se crearon ${created} ejemplares. ${failed} fallaron: ${errors.join('; ')}`);
                 }
             } else {
-                // Todos fallaron
                 throw new Error(`No se pudo crear ningún ejemplar. Errores: ${errors.join('; ')}`);
             }
         } catch (err) {
@@ -963,23 +1114,25 @@ export default function InventoryPage() {
                             <button
                                 onClick={() => {
                                     setModalMode("compra");
-                    setFormData({
-                        species_id: "",
-                        sector_id: "",
-                        purchase_date: "",
-                        sale_date: "",
-                        nursery: "",
-                        invoice_number: "",
-                        age_months: "",
-                        age_unit: "months",
-                        tamaño: "",
-                        health_status: "",
-                        location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        has_offshoots: 0,
-                        cantidad: 1
-                    });
+                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                                    nextPurchaseItemId = 2;
+                                    setFormData({
+                                        species_id: "",
+                                        sector_id: "",
+                                        purchase_date: "",
+                                        sale_date: "",
+                                        nursery: "",
+                                        invoice_number: "",
+                                        age_months: "",
+                                        age_unit: "months",
+                                        tamaño: "",
+                                        health_status: "",
+                                        location: "",
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
+                                    });
                                     setShowModal(true);
                                 }}
                                 style={{
@@ -1766,23 +1919,26 @@ export default function InventoryPage() {
                     setShowModal(false);
                     setError("");
                     if (modalMode === "compra" || modalMode === "venta") {
-                    setFormData({
-                        species_id: "",
-                        sector_id: "",
-                        purchase_date: "",
-                        sale_date: "",
-                        nursery: "",
-                        invoice_number: "",
-                        age_months: "",
-                        age_unit: "months",
-                        tamaño: "",
-                        health_status: "",
-                        location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        has_offshoots: 0,
-                        cantidad: 1
-                    });
+                        setFormData({
+                            species_id: "",
+                            sector_id: "",
+                            purchase_date: "",
+                            sale_date: "",
+                            nursery: "",
+                            invoice_number: "",
+                            age_months: "",
+                            age_unit: "months",
+                            tamaño: "",
+                            health_status: "",
+                            location: "",
+                            purchase_price: "",
+                            sale_price: "",
+                            has_offshoots: 0,
+                            cantidad: 1
+                        });
+                        if (modalMode === "compra") {
+                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                        }
                     }
                 }}
                 title={
@@ -1808,233 +1964,483 @@ export default function InventoryPage() {
                         )}
                         
                         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                            {/* Cantidad de ejemplares */}
+                            {/* Información común de la compra */}
                             <div style={{
-                                padding: "12px 16px",
-                                backgroundColor: "#eff6ff",
-                                border: "1px solid #bfdbfe",
-                                borderRadius: "8px",
-                                marginBottom: "8px"
+                                padding: "16px",
+                                backgroundColor: "#f0f9ff",
+                                border: "1px solid #bae6fd",
+                                borderRadius: "8px"
                             }}>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#1e40af",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Cantidad de Ejemplares
-                                </label>
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="100"
-                                        value={formData.cantidad}
-                                        onChange={(e) => {
-                                            const value = Math.max(1, Math.min(100, parseInt(e.target.value) || 1));
-                                            setFormData({ ...formData, cantidad: value });
-                                        }}
-                                        style={{
-                                            width: "120px",
-                                            padding: "10px 12px",
-                                            border: "1px solid #93c5fd",
-                                            borderRadius: "8px",
-                                            fontSize: "16px",
+                                <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "600", color: "#0369a1" }}>
+                                    Información de la Compra
+                                </h3>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
                                             fontWeight: "600",
-                                            outline: "none",
-                                            textAlign: "center"
-                                        }}
-                                    />
-                                    <span style={{
-                                        fontSize: "14px",
-                                        color: "#1e40af",
-                                        fontWeight: "500"
-                                    }}>
-                                        {formData.cantidad === 1 
-                                            ? "ejemplar" 
-                                            : `${formData.cantidad} ejemplares`} se crearán con los mismos datos
-                                    </span>
-                                </div>
-                                <p style={{
-                                    margin: "8px 0 0",
-                                    fontSize: "12px",
-                                    color: "#3b82f6",
-                                    fontStyle: "italic"
-                                }}>
-                                    Perfecto para compras masivas. Todos los ejemplares tendrán la misma información excepto el ID.
-                                </p>
-                            </div>
-                            
-                            {/* Especie (obligatorio) */}
-                            <div>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#6b7280",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Especie <span style={{ color: "#dc2626" }}>*</span>
-                                </label>
-                                <select
-                                    required
-                                    value={formData.species_id}
-                                    onChange={(e) => setFormData({ ...formData, species_id: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                >
-                                    <option value="">Seleccionar especie...</option>
-                                    {speciesList.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.scientific_name} {s.nombre_común ? `(${s.nombre_común})` : ""}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            {/* Sector (obligatorio) */}
-                            <div>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#6b7280",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Sector <span style={{ color: "#dc2626" }}>*</span>
-                                </label>
-                                <select
-                                    required
-                                    value={formData.sector_id}
-                                    onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                >
-                                    <option value="">Seleccionar sector...</option>
-                                    {sectorsList.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                {/* Tamaño */}
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Tamaño
-                                    </label>
-                                    <select
-                                        value={formData.tamaño}
-                                        onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="XS">XS</option>
-                                        <option value="S">S</option>
-                                        <option value="M">M</option>
-                                        <option value="L">L</option>
-                                        <option value="XL">XL</option>
-                                        <option value="XXL">XXL</option>
-                                    </select>
-                                </div>
-                                
-                                {/* Edad (meses o años) - Ocupa más espacio para evitar solapamiento */}
-                                <div style={{ 
-                                    gridColumn: "span 1",
-                                    minWidth: "240px"
-                                }}>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Edad
-                                    </label>
-                                    <div style={{ 
-                                        display: "grid",
-                                        gridTemplateColumns: "1fr 100px",
-                                        gap: "8px",
-                                        width: "100%"
-                                    }}>
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Fecha de Compra <span style={{ color: "#dc2626" }}>*</span>
+                                        </label>
                                         <input
-                                            type="number"
-                                            min="0"
-                                            value={formData.age_months}
-                                            onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
+                                            type="date"
+                                            required
+                                            value={formData.purchase_date}
+                                            onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                                             style={{
                                                 width: "100%",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none",
-                                                boxSizing: "border-box"
+                                                outline: "none"
                                             }}
-                                            placeholder="0"
                                         />
+                                    </div>
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Sector <span style={{ color: "#dc2626" }}>*</span>
+                                        </label>
                                         <select
-                                            value={formData.age_unit}
-                                            onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
+                                            required
+                                            value={formData.sector_id}
+                                            onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
                                             style={{
                                                 width: "100%",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none",
-                                                boxSizing: "border-box",
-                                                whiteSpace: "nowrap"
+                                                outline: "none"
                                             }}
                                         >
-                                            <option value="months">Meses</option>
-                                            <option value="years">Años</option>
+                                            <option value="">Seleccionar sector...</option>
+                                            {sectorsList.map(s => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Vivero
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.nursery}
+                                            onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
+                                            placeholder="Nombre del vivero o proveedor"
+                                            style={{
+                                                width: "100%",
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none"
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Número de Factura
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.invoice_number}
+                                            onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                                            placeholder="Ej: FAC-001234"
+                                            style={{
+                                                width: "100%",
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none"
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Items de compra (múltiples especies) */}
+                            <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+                                        Especies de la Compra
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={addPurchaseItem}
+                                        style={{
+                                            padding: "8px 16px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            backgroundColor: "#10b981",
+                                            color: "white",
+                                            fontSize: "14px",
+                                            fontWeight: "600",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "6px"
+                                        }}
+                                    >
+                                        <span>+</span>
+                                        <span>Agregar Especie</span>
+                                    </button>
+                                </div>
+                                
+                                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                    {purchaseItems.map((item, index) => (
+                                        <div
+                                            key={item.id}
+                                            style={{
+                                                padding: "16px",
+                                                border: "1px solid #e5e7eb",
+                                                borderRadius: "8px",
+                                                backgroundColor: "#f9fafb"
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                                                <span style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+                                                    Item {index + 1}
+                                                </span>
+                                                {purchaseItems.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removePurchaseItem(item.id)}
+                                                        style={{
+                                                            padding: "6px 12px",
+                                                            borderRadius: "6px",
+                                                            border: "1px solid #ef4444",
+                                                            backgroundColor: "white",
+                                                            color: "#ef4444",
+                                                            fontSize: "12px",
+                                                            fontWeight: "600",
+                                                            cursor: "pointer"
+                                                        }}
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "12px" }}>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Especie <span style={{ color: "#dc2626" }}>*</span>
+                                                    </label>
+                                                    <select
+                                                        required
+                                                        value={item.species_id}
+                                                        onChange={(e) => updatePurchaseItem(item.id, "species_id", e.target.value)}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "10px 12px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "8px",
+                                                            fontSize: "14px",
+                                                            outline: "none"
+                                                        }}
+                                                    >
+                                                        <option value="">Seleccionar especie...</option>
+                                                        {speciesList.map(s => (
+                                                            <option key={s.id} value={s.id}>
+                                                                {s.scientific_name} {s.nombre_común ? `(${s.nombre_común})` : ""}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Cantidad <span style={{ color: "#dc2626" }}>*</span>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={item.quantity}
+                                                        onChange={(e) => updatePurchaseItem(item.id, "quantity", Math.max(1, parseInt(e.target.value) || 1))}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "10px 12px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "8px",
+                                                            fontSize: "14px",
+                                                            outline: "none"
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Precio Unitario
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={formatNumber(item.price)}
+                                                        onChange={(e) => {
+                                                            const parsed = parseNumber(e.target.value);
+                                                            updatePurchaseItem(item.id, "price", parsed);
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const parsed = parseNumber(e.target.value);
+                                                            if (parsed && !isNaN(parseFloat(parsed))) {
+                                                                updatePurchaseItem(item.id, "price", parsed);
+                                                            }
+                                                        }}
+                                                        placeholder="0"
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "10px 12px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "8px",
+                                                            fontSize: "14px",
+                                                            outline: "none"
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div style={{
+                                    marginTop: "12px",
+                                    padding: "12px",
+                                    backgroundColor: "#f0f9ff",
+                                    border: "1px solid #bae6fd",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    color: "#0369a1"
+                                }}>
+                                    <strong>Total:</strong> {purchaseItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0)} ejemplar{purchaseItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0) !== 1 ? 'es' : ''} en {purchaseItems.filter(item => item.species_id).length} especie{purchaseItems.filter(item => item.species_id).length !== 1 ? 's' : ''}
+                                </div>
+                            </div>
+                            
+                            {/* Campos comunes que se aplican a todos los ejemplares */}
+                            <div style={{
+                                padding: "16px",
+                                backgroundColor: "#f9fafb",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "8px"
+                            }}>
+                                <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+                                    Información Común (se aplica a todos los ejemplares)
+                                </h3>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                                    {/* Tamaño */}
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Tamaño
+                                        </label>
+                                        <select
+                                            value={formData.tamaño}
+                                            onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
+                                            style={{
+                                                width: "100%",
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none"
+                                            }}
+                                        >
+                                            <option value="">Seleccionar...</option>
+                                            <option value="XS">XS</option>
+                                            <option value="S">S</option>
+                                            <option value="M">M</option>
+                                            <option value="L">L</option>
+                                            <option value="XL">XL</option>
+                                            <option value="XXL">XXL</option>
+                                        </select>
+                                    </div>
+                                    
+                                    {/* Edad (meses o años) */}
+                                    <div style={{ 
+                                        gridColumn: "span 1",
+                                        minWidth: "240px"
+                                    }}>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Edad
+                                        </label>
+                                        <div style={{ 
+                                            display: "grid",
+                                            gridTemplateColumns: "1fr 100px",
+                                            gap: "8px",
+                                            width: "100%"
+                                        }}>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formData.age_months}
+                                                onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "10px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    outline: "none",
+                                                    boxSizing: "border-box"
+                                                }}
+                                                placeholder="0"
+                                            />
+                                            <select
+                                                value={formData.age_unit}
+                                                onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "10px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    outline: "none",
+                                                    boxSizing: "border-box",
+                                                    whiteSpace: "nowrap"
+                                                }}
+                                            >
+                                                <option value="months">Meses</option>
+                                                <option value="years">Años</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Estado de Salud */}
+                                    <div>
+                                        <label style={{
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            color: "#6b7280",
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.05em",
+                                            marginBottom: "6px",
+                                            display: "block"
+                                        }}>
+                                            Estado de Salud
+                                        </label>
+                                        <select
+                                            value={formData.health_status}
+                                            onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
+                                            style={{
+                                                width: "100%",
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none"
+                                            }}
+                                        >
+                                            <option value="">Seleccionar...</option>
+                                            <option value="muy bien">Muy bien</option>
+                                            <option value="estable">Estable</option>
+                                            <option value="leve enfermo">Leve enfermo</option>
+                                            <option value="enfermo">Enfermo</option>
+                                            <option value="crítico">Crítico</option>
                                         </select>
                                     </div>
                                 </div>
                                 
+                                {/* Ubicación Específica */}
+                                <div style={{ marginTop: "16px" }}>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Ubicación Específica
+                                    </label>
+                                    <textarea
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                        placeholder="Descripción detallada de la ubicación dentro del sector"
+                                        rows={3}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none",
+                                            resize: "vertical",
+                                            fontFamily: "inherit"
+                                        }}
+                                    />
+                                </div>
                                 
-                                {/* Estado de Salud */}
-                                <div>
+                                {/* Cantidad de Retoños/Hijos */}
+                                <div style={{ marginTop: "16px" }}>
                                     <label style={{
                                         fontSize: "12px",
                                         fontWeight: "600",
@@ -2044,219 +2450,17 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Estado de Salud
-                                    </label>
-                                    <select
-                                        value={formData.health_status}
-                                        onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="muy bien">Muy bien</option>
-                                        <option value="estable">Estable</option>
-                                        <option value="leve enfermo">Leve enfermo</option>
-                                        <option value="enfermo">Enfermo</option>
-                                        <option value="crítico">Crítico</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            {/* Nota sobre el campo de edad para pantallas pequeñas */}
-                            <div style={{
-                                display: "none",
-                                padding: "8px 12px",
-                                backgroundColor: "#f0f9ff",
-                                border: "1px solid #bae6fd",
-                                borderRadius: "6px",
-                                fontSize: "12px",
-                                color: "#0369a1",
-                                marginTop: "-8px"
-                            }}>
-                                💡 Si el campo de edad se ve solapado, prueba a hacer la ventana más ancha o usar una pantalla más grande.
-                            </div>
-                            
-                            {/* Fecha según el modo */}
-                            {modalMode === "compra" && (
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Fecha de Compra *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={formData.purchase_date}
-                                        onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
-                            )}
-                            
-                            {modalMode === "venta" && (
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Fecha de Venta *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={formData.sale_date}
-                                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
-                            )}
-                            
-                            {/* Vivero - solo para compras */}
-                            {modalMode === "compra" && (
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Vivero
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.nursery}
-                                        onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
-                                        placeholder="Nombre del vivero o proveedor"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
-                            )}
-                            
-                            {/* Número de Factura - solo para compras */}
-                            {modalMode === "compra" && (
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Número de Factura
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.invoice_number}
-                                        onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                                        placeholder="Ej: FAC-001234"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
-                            )}
-                            
-                            {/* Ubicación Específica */}
-                            <div>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#6b7280",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Ubicación Específica
-                                </label>
-                                <textarea
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder="Descripción detallada de la ubicación dentro del sector"
-                                    rows={3}
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none",
-                                        resize: "vertical",
-                                        fontFamily: "inherit"
-                                    }}
-                                />
-                            </div>
-                            
-                            {/* Precio según el modo */}
-                            {modalMode === "compra" && (
-                                <div>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Precio de Compra (Unitario)
+                                        Cantidad de Retoños/Hijos (por ejemplar)
                                     </label>
                                     <input
                                         type="number"
                                         min="0"
-                                        step="0.01"
-                                        value={formData.purchase_price}
-                                        onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
-                                        placeholder="0.00"
+                                        value={formData.has_offshoots}
+                                        onChange={(e) => {
+                                            const value = Math.max(0, parseInt(e.target.value) || 0);
+                                            setFormData({ ...formData, has_offshoots: value });
+                                        }}
+                                        placeholder="0"
                                         style={{
                                             width: "100%",
                                             padding: "10px 12px",
@@ -2267,7 +2471,7 @@ export default function InventoryPage() {
                                         }}
                                     />
                                 </div>
-                            )}
+                            </div>
                             
                             {modalMode === "venta" && (
                                 <div>
@@ -2283,12 +2487,20 @@ export default function InventoryPage() {
                                         Precio de Venta (Unitario)
                                     </label>
                                     <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.sale_price}
-                                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
-                                        placeholder="0.00"
+                                        type="text"
+                                        value={formatNumber(formData.sale_price)}
+                                        onChange={(e) => {
+                                            const parsed = parseNumber(e.target.value);
+                                            setFormData({ ...formData, sale_price: parsed });
+                                        }}
+                                        onBlur={(e) => {
+                                            // Asegurar formato correcto al perder el foco
+                                            const parsed = parseNumber(e.target.value);
+                                            if (parsed && !isNaN(parseFloat(parsed))) {
+                                                setFormData({ ...formData, sale_price: parsed });
+                                            }
+                                        }}
+                                        placeholder="0"
                                         style={{
                                             width: "100%",
                                             padding: "10px 12px",
@@ -2349,23 +2561,23 @@ export default function InventoryPage() {
                                     onClick={() => {
                                         setShowModal(false);
                                         setError("");
-                    setFormData({
-                        species_id: "",
-                        sector_id: "",
-                        purchase_date: "",
-                        sale_date: "",
-                        nursery: "",
+                                        setFormData({
+                                            species_id: "",
+                                            sector_id: "",
+                                            purchase_date: "",
+                                            sale_date: "",
+                                            nursery: "",
                         invoice_number: "",
-                        age_months: "",
+                                            age_months: "",
                         age_unit: "months",
-                        tamaño: "",
-                        health_status: "",
-                        location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        has_offshoots: 0,
-                        cantidad: 1
-                    });
+                                            tamaño: "",
+                                            health_status: "",
+                                            location: "",
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
+                                        });
                                     }}
                                     style={{
                                         padding: "10px 20px",
