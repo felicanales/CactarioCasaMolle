@@ -160,6 +160,9 @@ export default function InventoryPage() {
     const [filterMorfologia, setFilterMorfologia] = useState("");
     const [filterNombreComun, setFilterNombreComun] = useState("");
     const [filterTamaño, setFilterTamaño] = useState("");
+    const [filterSector, setFilterSector] = useState("");
+    const [filterHealth, setFilterHealth] = useState("");
+    const [filterPurchaseDate, setFilterPurchaseDate] = useState("");
     const [sortBy, setSortBy] = useState("scientific_name");
     const [sortOrder, setSortOrder] = useState("asc");
     
@@ -173,8 +176,139 @@ export default function InventoryPage() {
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     
+    // Función para cargar ejemplares disponibles para venta (sin sale_date)
+    const fetchAvailableEjemplares = async () => {
+        try {
+            const params = new URLSearchParams();
+            // Filtrar solo ejemplares sin fecha de venta
+            // El backend debería soportar esto, pero por ahora filtramos en el frontend
+            const res = await apiRequest(`${API}/ejemplar/staff?${params.toString()}`, {}, accessToken);
+            if (res.ok) {
+                const data = await res.json();
+                // Filtrar solo los que no tienen sale_date
+                const available = Array.isArray(data) ? data.filter(ej => !ej.sale_date) : [];
+                setAvailableEjemplares(available);
+            }
+        } catch (err) {
+            console.error('Error loading available ejemplares:', err);
+            setAvailableEjemplares([]);
+        }
+    };
+    
     // Selección masiva para eliminación
     const [selectedIds, setSelectedIds] = useState(new Set());
+    
+    // Estados para modal de venta (selección de ejemplares)
+    const [saleSelectedIds, setSaleSelectedIds] = useState(new Set()); // IDs seleccionados para venta
+    const [saleFilters, setSaleFilters] = useState({
+        species: "",
+        sector: "",
+        search: ""
+    });
+    
+    // Función para filtrar ejemplares disponibles según los filtros
+    const getFilteredEjemplares = () => {
+        let filtered = [...availableEjemplares];
+        
+        if (saleFilters.species) {
+            filtered = filtered.filter(ej => ej.species_id === parseInt(saleFilters.species));
+        }
+        
+        if (saleFilters.sector) {
+            filtered = filtered.filter(ej => ej.sector_id === parseInt(saleFilters.sector));
+        }
+        
+        if (saleFilters.search) {
+            const searchLower = saleFilters.search.toLowerCase();
+            filtered = filtered.filter(ej => {
+                const especie = ej.especies || {};
+                const sector = ej.sectores || {};
+                const searchText = (
+                    `${ej.id} ` +
+                    `${especie.scientific_name || ''} ` +
+                    `${especie.nombre_común || ''} ` +
+                    `${sector.name || ''}`
+                ).toLowerCase();
+                return searchText.includes(searchLower);
+            });
+        }
+        
+        return filtered;
+    };
+    
+    // Función para procesar la venta de ejemplares seleccionados
+    const handleSaleSubmit = async () => {
+        if (saleSelectedIds.size === 0) {
+            setError("Debes seleccionar al menos un ejemplar");
+            return;
+        }
+        
+        if (!formData.sale_date) {
+            setError("La fecha de venta es obligatoria");
+            return;
+        }
+        
+        try {
+            setSubmitting(true);
+            setError("");
+            
+            const saleDate = formData.sale_date;
+            const salePrice = formData.sale_price ? parseFloat(formData.sale_price) : null;
+            
+            let updated = 0;
+            let failed = 0;
+            const errors = [];
+            
+            for (const id of saleSelectedIds) {
+                try {
+                    const payload = {
+                        sale_date: saleDate,
+                        sale_price: salePrice
+                    };
+                    
+                    const res = await apiRequest(`${API}/ejemplar/staff/${id}`, {
+                        method: "PUT",
+                        body: JSON.stringify(payload)
+                    }, accessToken);
+                    
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        throw new Error(errorData.detail || "Error al actualizar el ejemplar");
+                    }
+                    
+                    updated++;
+                } catch (err) {
+                    failed++;
+                    errors.push(`Ejemplar ${id}: ${err.message}`);
+                }
+            }
+            
+            if (updated > 0) {
+                await fetchEjemplares();
+                await fetchAvailableEjemplares(); // Recargar lista de disponibles
+                
+                if (failed === 0) {
+                    setShowModal(false);
+                    setSaleSelectedIds(new Set());
+                    setSaleFilters({ species: "", sector: "", search: "" });
+                    setFormData({
+                        ...formData,
+                        sale_date: "",
+                        sale_price: ""
+                    });
+                } else {
+                    setError(`Se actualizaron ${updated} de ${saleSelectedIds.size} ejemplares. Errores: ${errors.join('; ')}`);
+                }
+            } else {
+                throw new Error(`No se pudo actualizar ningún ejemplar. Errores: ${errors.join('; ')}`);
+            }
+        } catch (err) {
+            console.error('[InventoryPage] Error processing sale:', err);
+            setError(err.message || "Error al procesar la venta");
+        } finally {
+            setSubmitting(false);
+        }
+    };
     
     // Form data para crear nuevo ejemplar
     const [formData, setFormData] = useState({
@@ -183,7 +317,9 @@ export default function InventoryPage() {
         purchase_date: "",
         sale_date: "",
         nursery: "",
+        invoice_number: "", // Número de factura
         age_months: "",
+        age_unit: "months", // "months" o "years"
         tamaño: "",
         health_status: "",
         location: "",
@@ -280,6 +416,9 @@ export default function InventoryPage() {
             if (filterMorfologia) params.append('morfologia', filterMorfologia);
             if (filterNombreComun) params.append('nombre_comun', filterNombreComun);
             if (filterTamaño) params.append('tamaño', filterTamaño);
+            if (filterSector) params.append('sector_id', filterSector);
+            if (filterHealth) params.append('health_status', filterHealth);
+            if (filterPurchaseDate) params.append('purchase_date', filterPurchaseDate);
             params.append('sort_by', sortBy);
             params.append('sort_order', sortOrder);
             
@@ -319,7 +458,7 @@ export default function InventoryPage() {
         if (user && checkedAuth) {
             fetchEjemplares();
         }
-    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterTamaño, sortBy, sortOrder]);
+    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterTamaño, filterSector, filterHealth, filterPurchaseDate, sortBy, sortOrder]);
 
     const handleView = (ej) => {
         setModalMode("view");
@@ -337,7 +476,9 @@ export default function InventoryPage() {
             purchase_date: ej.purchase_date || "",
             sale_date: ej.sale_date || "",
             nursery: ej.nursery || "",
+            invoice_number: ej.invoice_number || "",
             age_months: ej.age_months != null ? String(ej.age_months) : "",
+            age_unit: "months", // Al editar, mostrar en meses (lo que está en BD)
             tamaño: "",
             health_status: ej.health_status || "",
             location: ej.location || "",
@@ -453,7 +594,15 @@ export default function InventoryPage() {
             // Tipos
             payload.species_id = parseInt(payload.species_id);
             payload.sector_id = parseInt(payload.sector_id);
-            if (payload.age_months) payload.age_months = parseInt(payload.age_months);
+            // Convertir age_months considerando la unidad (meses o años)
+            if (payload.age_months) {
+                let ageValue = parseInt(payload.age_months);
+                // Si la unidad es años, convertir a meses
+                if (formData.age_unit === "years") {
+                    ageValue = ageValue * 12;
+                }
+                payload.age_months = ageValue;
+            }
             if (payload.purchase_price) payload.purchase_price = parseFloat(payload.purchase_price);
             if (payload.sale_price) payload.sale_price = parseFloat(payload.sale_price);
             if (payload.has_offshoots !== undefined && payload.has_offshoots !== null) payload.has_offshoots = parseInt(payload.has_offshoots) || 0;
@@ -532,9 +681,14 @@ export default function InventoryPage() {
             basePayload.species_id = parseInt(formData.species_id);
             basePayload.sector_id = parseInt(formData.sector_id);
             
-            // Convertir age_months a número si existe
+            // Convertir age_months a número si existe, considerando la unidad (meses o años)
             if (basePayload.age_months) {
-                basePayload.age_months = parseInt(basePayload.age_months);
+                let ageValue = parseInt(basePayload.age_months);
+                // Si la unidad es años, convertir a meses
+                if (formData.age_unit === "years") {
+                    ageValue = ageValue * 12;
+                }
+                basePayload.age_months = ageValue;
             }
             
             // Convertir precios a números si existen (precio unitario)
@@ -595,14 +749,16 @@ export default function InventoryPage() {
                         purchase_date: "",
                         sale_date: "",
                         nursery: "",
+                        invoice_number: "",
                         age_months: "",
+                        age_unit: "months",
                         tamaño: "",
                         health_status: "",
                         location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
+                        purchase_price: "",
+                        sale_price: "",
+                        has_offshoots: 0,
+                        cantidad: 1
                     });
                 } else {
                     // Algunos fallaron
@@ -806,21 +962,23 @@ export default function InventoryPage() {
                             <button
                                 onClick={() => {
                                     setModalMode("compra");
-                                    setFormData({
-                                        species_id: "",
-                                        sector_id: "",
-                                        purchase_date: "",
-                                        sale_date: "",
-                                        nursery: "",
-                                        age_months: "",
-                                        tamaño: "",
-                                        health_status: "",
-                                        location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
-                                    });
+                    setFormData({
+                        species_id: "",
+                        sector_id: "",
+                        purchase_date: "",
+                        sale_date: "",
+                        nursery: "",
+                        invoice_number: "",
+                        age_months: "",
+                        age_unit: "months",
+                        tamaño: "",
+                        health_status: "",
+                        location: "",
+                        purchase_price: "",
+                        sale_price: "",
+                        has_offshoots: 0,
+                        cantidad: 1
+                    });
                                     setShowModal(true);
                                 }}
                                 style={{
@@ -843,15 +1001,19 @@ export default function InventoryPage() {
                                 <span>Ingresar Compra</span>
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     setModalMode("venta");
+                                    setSaleSelectedIds(new Set());
+                                    setSaleFilters({ species: "", sector: "", search: "" });
                                     setFormData({
                                         species_id: "",
                                         sector_id: "",
                                         purchase_date: "",
                                         sale_date: "",
                                         nursery: "",
+                                        invoice_number: "",
                                         age_months: "",
+                                        age_unit: "months",
                                         tamaño: "",
                                         health_status: "",
                                         location: "",
@@ -861,6 +1023,8 @@ export default function InventoryPage() {
                                         cantidad: 1
                                     });
                                     setShowModal(true);
+                                    // Cargar ejemplares disponibles cuando se abre el modal
+                                    await fetchAvailableEjemplares();
                                 }}
                                 style={{
                                     padding: "8px 16px",
@@ -1106,6 +1270,58 @@ export default function InventoryPage() {
                                 <option value="XXL">XXL</option>
                             </select>
                             
+                            <select
+                                value={filterSector}
+                                onChange={(e) => setFilterSector(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            >
+                                <option value="">Todos los sectores</option>
+                                {sectorsList.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name}
+                                    </option>
+                                ))}
+                            </select>
+                            
+                            <select
+                                value={filterHealth}
+                                onChange={(e) => setFilterHealth(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            >
+                                <option value="">Todos los estados de salud</option>
+                                <option value="muy bien">Muy bien</option>
+                                <option value="estable">Estable</option>
+                                <option value="leve enfermo">Leve enfermo</option>
+                                <option value="enfermo">Enfermo</option>
+                                <option value="crítico">Crítico</option>
+                            </select>
+                            
+                            <input
+                                type="date"
+                                placeholder="Fecha de compra..."
+                                value={filterPurchaseDate}
+                                onChange={(e) => setFilterPurchaseDate(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            />
+                            
                             <div style={{ display: "flex", gap: "8px" }}>
                                 <select
                                     value={sortBy}
@@ -1148,7 +1364,7 @@ export default function InventoryPage() {
                             </div>
                         </div>
                         
-                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño) && (
+                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterPurchaseDate) && (
                             <button
                                 onClick={() => {
                                     setSearchQuery("");
@@ -1156,6 +1372,9 @@ export default function InventoryPage() {
                                     setFilterMorfologia("");
                                     setFilterNombreComun("");
                                     setFilterTamaño("");
+                                    setFilterSector("");
+                                    setFilterHealth("");
+                                    setFilterPurchaseDate("");
                                 }}
                                 style={{
                                     padding: "8px 16px",
@@ -1546,21 +1765,23 @@ export default function InventoryPage() {
                     setShowModal(false);
                     setError("");
                     if (modalMode === "compra" || modalMode === "venta") {
-                        setFormData({
-                            species_id: "",
-                            sector_id: "",
-                            purchase_date: "",
-                            sale_date: "",
-                            nursery: "",
-                            age_months: "",
-                            tamaño: "",
-                            health_status: "",
-                            location: "",
-                            purchase_price: "",
-                            sale_price: "",
-                            has_offshoots: 0,
-                            cantidad: 1
-                        });
+                    setFormData({
+                        species_id: "",
+                        sector_id: "",
+                        purchase_date: "",
+                        sale_date: "",
+                        nursery: "",
+                        invoice_number: "",
+                        age_months: "",
+                        age_unit: "months",
+                        tamaño: "",
+                        health_status: "",
+                        location: "",
+                        purchase_price: "",
+                        sale_price: "",
+                        has_offshoots: 0,
+                        cantidad: 1
+                    });
                     }
                 }}
                 title={
@@ -1569,7 +1790,7 @@ export default function InventoryPage() {
                     "Detalle del Ejemplar"
                 }
             >
-                {modalMode === "compra" || modalMode === "venta" ? (
+                {modalMode === "compra" ? (
                     <form onSubmit={selectedEjemplar ? handleUpdate : handleCreate}>
                         {error && (
                             <div style={{
@@ -1752,7 +1973,7 @@ export default function InventoryPage() {
                                     </select>
                                 </div>
                                 
-                                {/* Edad (meses) */}
+                                {/* Edad (meses o años) */}
                                 <div>
                                     <label style={{
                                         fontSize: "12px",
@@ -1763,22 +1984,40 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Edad (meses)
+                                        Edad
                                     </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.age_months}
-                                        onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={formData.age_months}
+                                            onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
+                                            style={{
+                                                flex: 1,
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none"
+                                            }}
+                                            placeholder="0"
+                                        />
+                                        <select
+                                            value={formData.age_unit}
+                                            onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
+                                            style={{
+                                                padding: "10px 12px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                outline: "none",
+                                                minWidth: "100px"
+                                            }}
+                                        >
+                                            <option value="months">Meses</option>
+                                            <option value="years">Años</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 
                                 {/* Estado de Salud */}
@@ -1896,6 +2135,37 @@ export default function InventoryPage() {
                                         value={formData.nursery}
                                         onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
                                         placeholder="Nombre del vivero o proveedor"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                            )}
+                            
+                            {/* Número de Factura - solo para compras */}
+                            {modalMode === "compra" && (
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Número de Factura
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.invoice_number}
+                                        onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                                        placeholder="Ej: FAC-001234"
                                         style={{
                                             width: "100%",
                                             padding: "10px 12px",
@@ -2052,21 +2322,23 @@ export default function InventoryPage() {
                                     onClick={() => {
                                         setShowModal(false);
                                         setError("");
-                                        setFormData({
-                                            species_id: "",
-                                            sector_id: "",
-                                            purchase_date: "",
-                                            sale_date: "",
-                                            nursery: "",
-                                            age_months: "",
-                                            tamaño: "",
-                                            health_status: "",
-                                            location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
-                                        });
+                    setFormData({
+                        species_id: "",
+                        sector_id: "",
+                        purchase_date: "",
+                        sale_date: "",
+                        nursery: "",
+                        invoice_number: "",
+                        age_months: "",
+                        age_unit: "months",
+                        tamaño: "",
+                        health_status: "",
+                        location: "",
+                        purchase_price: "",
+                        sale_price: "",
+                        has_offshoots: 0,
+                        cantidad: 1
+                    });
                                     }}
                                     style={{
                                         padding: "10px 20px",
@@ -2105,6 +2377,374 @@ export default function InventoryPage() {
                             </div>
                         </div>
                     </form>
+                ) : modalMode === "venta" ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        {error && (
+                            <div style={{
+                                padding: "12px",
+                                backgroundColor: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                borderRadius: "8px",
+                                color: "#dc2626",
+                                marginBottom: "20px",
+                                fontSize: "14px"
+                            }}>
+                                {error}
+                            </div>
+                        )}
+                        
+                        {/* Información de la venta */}
+                        <div style={{
+                            padding: "16px",
+                            backgroundColor: "#fef3c7",
+                            border: "1px solid #fcd34d",
+                            borderRadius: "8px",
+                            marginBottom: "16px"
+                        }}>
+                            <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", fontWeight: "600", color: "#92400e" }}>
+                                Información de la Venta
+                            </h3>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Fecha de Venta *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.sale_date}
+                                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
+                                        Precio de Venta (Unitario)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.sale_price}
+                                        onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
+                                        placeholder="0.00"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Filtros */}
+                        <div style={{
+                            padding: "16px",
+                            backgroundColor: "#f9fafb",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px"
+                        }}>
+                            <h3 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+                                Filtrar Ejemplares Disponibles
+                            </h3>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: "12px" }}>
+                                <select
+                                    value={saleFilters.species}
+                                    onChange={(e) => setSaleFilters({ ...saleFilters, species: e.target.value })}
+                                    style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                >
+                                    <option value="">Todas las especies</option>
+                                    {speciesList.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.scientific_name}
+                                        </option>
+                                    ))}
+                                </select>
+                                
+                                <select
+                                    value={saleFilters.sector}
+                                    onChange={(e) => setSaleFilters({ ...saleFilters, sector: e.target.value })}
+                                    style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                >
+                                    <option value="">Todos los sectores</option>
+                                    {sectorsList.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nombre científico, común, ID..."
+                                    value={saleFilters.search}
+                                    onChange={(e) => setSaleFilters({ ...saleFilters, search: e.target.value })}
+                                    style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* Lista de ejemplares disponibles */}
+                        <div style={{
+                            maxHeight: "400px",
+                            overflowY: "auto",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px"
+                        }}>
+                            {getFilteredEjemplares().length === 0 ? (
+                                <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>
+                                    <p>No hay ejemplares disponibles para venta</p>
+                                    <p style={{ fontSize: "12px", marginTop: "8px" }}>
+                                        Los ejemplares ya vendidos no aparecen en esta lista
+                                    </p>
+                                </div>
+                            ) : (
+                                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#f9fafb", zIndex: 10 }}>
+                                        <tr>
+                                            <th style={{
+                                                padding: "12px",
+                                                textAlign: "left",
+                                                borderBottom: "2px solid #e5e7eb",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase"
+                                            }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={getFilteredEjemplares().length > 0 && saleSelectedIds.size === getFilteredEjemplares().length && getFilteredEjemplares().every(ej => saleSelectedIds.has(ej.id))}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            const filtered = getFilteredEjemplares();
+                                                            const newSelected = new Set(saleSelectedIds);
+                                                            filtered.forEach(ej => newSelected.add(ej.id));
+                                                            setSaleSelectedIds(newSelected);
+                                                        } else {
+                                                            const filtered = getFilteredEjemplares();
+                                                            const newSelected = new Set(saleSelectedIds);
+                                                            filtered.forEach(ej => newSelected.delete(ej.id));
+                                                            setSaleSelectedIds(newSelected);
+                                                        }
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{
+                                                padding: "12px",
+                                                textAlign: "left",
+                                                borderBottom: "2px solid #e5e7eb",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase"
+                                            }}>ID</th>
+                                            <th style={{
+                                                padding: "12px",
+                                                textAlign: "left",
+                                                borderBottom: "2px solid #e5e7eb",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase"
+                                            }}>Especie</th>
+                                            <th style={{
+                                                padding: "12px",
+                                                textAlign: "left",
+                                                borderBottom: "2px solid #e5e7eb",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase"
+                                            }}>Sector</th>
+                                            <th style={{
+                                                padding: "12px",
+                                                textAlign: "left",
+                                                borderBottom: "2px solid #e5e7eb",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase"
+                                            }}>Salud</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {getFilteredEjemplares().map(ej => {
+                                            const especie = ej.especies || {};
+                                            const sector = ej.sectores || {};
+                                            const isSelected = saleSelectedIds.has(ej.id);
+                                            return (
+                                                <tr
+                                                    key={ej.id}
+                                                    style={{
+                                                        backgroundColor: isSelected ? "#dbeafe" : "white",
+                                                        cursor: "pointer",
+                                                        transition: "background-color 0.2s"
+                                                    }}
+                                                    onClick={() => {
+                                                        const newSelected = new Set(saleSelectedIds);
+                                                        if (isSelected) {
+                                                            newSelected.delete(ej.id);
+                                                        } else {
+                                                            newSelected.add(ej.id);
+                                                        }
+                                                        setSaleSelectedIds(newSelected);
+                                                    }}
+                                                >
+                                                    <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => {}}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </td>
+                                                    <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
+                                                        #{ej.id}
+                                                    </td>
+                                                    <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: "600", fontStyle: "italic" }}>
+                                                                {especie.scientific_name || "-"}
+                                                            </div>
+                                                            {especie.nombre_común && (
+                                                                <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                                                                    {especie.nombre_común}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
+                                                        {sector.name || "-"}
+                                                    </td>
+                                                    <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
+                                                        <span style={{
+                                                            padding: "4px 8px",
+                                                            borderRadius: "4px",
+                                                            fontSize: "12px",
+                                                            backgroundColor: ej.health_status === "muy bien" ? "#d1fae5" :
+                                                                ej.health_status === "estable" ? "#dbeafe" :
+                                                                ej.health_status === "leve enfermo" ? "#fef3c7" :
+                                                                ej.health_status === "enfermo" ? "#fee2e2" :
+                                                                ej.health_status === "crítico" ? "#fee2e2" : "#f3f4f6",
+                                                            color: ej.health_status === "muy bien" ? "#065f46" :
+                                                                ej.health_status === "leve enfermo" ? "#92400e" :
+                                                                ej.health_status === "enfermo" ? "#dc2626" :
+                                                                ej.health_status === "crítico" ? "#991b1b" : "#6b7280"
+                                                        }}>
+                                                            {ej.health_status || "-"}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                        
+                        <div style={{
+                            padding: "12px",
+                            backgroundColor: "#f0f9ff",
+                            border: "1px solid #bae6fd",
+                            borderRadius: "8px",
+                            fontSize: "14px",
+                            color: "#0369a1"
+                        }}>
+                            <strong>{saleSelectedIds.size}</strong> ejemplar{saleSelectedIds.size !== 1 ? 'es' : ''} seleccionado{saleSelectedIds.size !== 1 ? 's' : ''}
+                        </div>
+                        
+                        {/* Botones */}
+                        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowModal(false);
+                                    setError("");
+                                    setSaleSelectedIds(new Set());
+                                    setSaleFilters({ species: "", sector: "", search: "" });
+                                }}
+                                style={{
+                                    padding: "10px 20px",
+                                    borderRadius: "8px",
+                                    border: "1px solid #d1d5db",
+                                    backgroundColor: "white",
+                                    color: "#374151",
+                                    fontSize: "14px",
+                                    fontWeight: "500",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                                disabled={submitting}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaleSubmit}
+                                style={{
+                                    padding: "10px 20px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    backgroundColor: submitting ? "#9ca3af" : "#f59e0b",
+                                    color: "white",
+                                    fontSize: "14px",
+                                    fontWeight: "600",
+                                    cursor: submitting ? "not-allowed" : "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                                disabled={submitting || saleSelectedIds.size === 0 || !formData.sale_date}
+                            >
+                                {submitting 
+                                    ? `Procesando ${saleSelectedIds.size} ejemplar${saleSelectedIds.size > 1 ? 'es' : ''}...` 
+                                    : `Vender ${saleSelectedIds.size} Ejemplar${saleSelectedIds.size > 1 ? 'es' : ''}`}
+                            </button>
+                        </div>
+                    </div>
                 ) : selectedEjemplar && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         {(() => {

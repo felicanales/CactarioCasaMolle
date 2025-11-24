@@ -14,6 +14,8 @@ def list_ejemplares_staff(
     tamaño: Optional[str] = Query(None, description="Filtrar por tamaño (XS, S, M, L, XL, XXL)"),
     morfologia: Optional[str] = Query(None, description="Filtrar por morfología"),
     nombre_comun: Optional[str] = Query(None, description="Filtrar por nombre común"),
+    health_status: Optional[str] = Query(None, description="Filtrar por estado de salud"),
+    purchase_date: Optional[str] = Query(None, description="Filtrar por fecha de compra (YYYY-MM-DD)"),
     sort_by: str = Query("scientific_name", description="Campo por el cual ordenar"),
     sort_order: str = Query("asc", description="Orden: 'asc' o 'desc'")
 ):
@@ -28,6 +30,8 @@ def list_ejemplares_staff(
             tamaño=tamaño,
             morfologia=morfologia,
             nombre_comun=nombre_comun,
+            health_status=health_status,
+            purchase_date=purchase_date,
             sort_by=sort_by,
             sort_order=sort_order
         )

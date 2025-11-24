@@ -38,6 +38,8 @@ def list_staff(
     tamaño: Optional[str] = None,
     morfologia: Optional[str] = None,
     nombre_comun: Optional[str] = None,
+    health_status: Optional[str] = None,
+    purchase_date: Optional[str] = None,
     sort_by: str = "scientific_name",
     sort_order: str = "asc"
 ) -> List[Dict[str, Any]]:
@@ -63,6 +65,12 @@ def list_staff(
         
         if tamaño:
             query = query.eq("tamaño", tamaño)
+        
+        if health_status:
+            query = query.eq("health_status", health_status)
+        
+        if purchase_date:
+            query = query.eq("purchase_date", purchase_date)
         
         # Ejecutar la consulta
         res = query.execute()

@@ -56,7 +56,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -228,8 +227,6 @@ pip-log.txt
 # --- IDEs / OS ---
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db
 
 # --- Env / Secrets ---
 .env.local
@@ -240,3 +237,55 @@ Thumbs.db
 # --- Logs ---
 logs/
 *.log
+
+# --- Editor / IDE temporary files ---
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+.*.un~
+
+# Emacs
+\#*\#
+.\#*
+
+# VS Code (additional settings - .vscode/ already ignored above)
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs (additional files - .idea/ already ignored above)
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# --- OS files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Temporary / Backup files ---
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.cache
+
+# --- Accidental files ---
+tatus
+*.diff
+*.patch
