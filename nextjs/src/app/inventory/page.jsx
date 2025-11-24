@@ -1974,8 +1974,11 @@ export default function InventoryPage() {
                                     </select>
                                 </div>
                                 
-                                {/* Edad (meses o años) */}
-                                <div style={{ gridColumn: "span 1", minWidth: "280px" }}>
+                                {/* Edad (meses o años) - Ocupa más espacio para evitar solapamiento */}
+                                <div style={{ 
+                                    gridColumn: "span 1",
+                                    minWidth: "240px"
+                                }}>
                                     <label style={{
                                         fontSize: "12px",
                                         fontWeight: "600",
@@ -1988,10 +1991,10 @@ export default function InventoryPage() {
                                         Edad
                                     </label>
                                     <div style={{ 
-                                        display: "flex", 
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 100px",
                                         gap: "8px",
-                                        width: "100%",
-                                        alignItems: "stretch"
+                                        width: "100%"
                                     }}>
                                         <input
                                             type="number"
@@ -1999,8 +2002,7 @@ export default function InventoryPage() {
                                             value={formData.age_months}
                                             onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
                                             style={{
-                                                flex: "1 1 0",
-                                                minWidth: "80px",
+                                                width: "100%",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
@@ -2014,8 +2016,7 @@ export default function InventoryPage() {
                                             value={formData.age_unit}
                                             onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
                                             style={{
-                                                flex: "0 0 auto",
-                                                minWidth: "110px",
+                                                width: "100%",
                                                 padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
@@ -2030,6 +2031,7 @@ export default function InventoryPage() {
                                         </select>
                                     </div>
                                 </div>
+                                
                                 
                                 {/* Estado de Salud */}
                                 <div>
@@ -2064,6 +2066,20 @@ export default function InventoryPage() {
                                         <option value="crítico">Crítico</option>
                                     </select>
                                 </div>
+                            </div>
+                            
+                            {/* Nota sobre el campo de edad para pantallas pequeñas */}
+                            <div style={{
+                                display: "none",
+                                padding: "8px 12px",
+                                backgroundColor: "#f0f9ff",
+                                border: "1px solid #bae6fd",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                color: "#0369a1",
+                                marginTop: "-8px"
+                            }}>
+                                💡 Si el campo de edad se ve solapado, prueba a hacer la ventana más ancha o usar una pantalla más grande.
                             </div>
                             
                             {/* Fecha según el modo */}
