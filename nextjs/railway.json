@@ -2,7 +2,7 @@
     "$schema": "https://railway.app/railway.schema.json",
     "build": {
         "builder": "NIXPACKS",
-        "buildCommand": "npm install && npm run build && echo 'Build completed, checking standalone...' && (test -d .next/standalone && echo '✅ Standalone directory exists' || echo '❌ Standalone directory missing') && node copy-assets.js"
+        "buildCommand": "npm run build:nextjs && cd nextjs && echo 'Build completed, checking standalone...' && (test -d .next/standalone && echo '✅ Standalone directory exists' || echo '❌ Standalone directory missing') && node copy-assets.js"
     },
     "deploy": {
         "startCommand": "node start-server.js",
