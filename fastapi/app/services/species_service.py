@@ -1,6 +1,6 @@
 # app/services/species_service.py
 from typing import List, Optional, Dict, Any
-from app.core.supabase_auth import get_public
+from app.core.supabase_auth import get_public, get_public_clean
 from app.services import photos_service
 
 PUBLIC_SPECIES_FIELDS = [
@@ -26,7 +26,8 @@ def _cover_photo_map(species_ids: List[int]) -> Dict[int, Optional[str]]:
 # ----------------- PÚBLICO -----------------
 
 def list_public(q: Optional[str] = None, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     query = sb.table("especies").select(",".join(PUBLIC_SPECIES_FIELDS))
     if q:
         # Busca por nombre común o científico
@@ -40,7 +41,8 @@ def list_public(q: Optional[str] = None, limit: int = 50, offset: int = 0) -> Li
     return out
 
 def get_public_by_slug(slug: str) -> Optional[Dict[str, Any]]:
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     res = sb.table("especies").select(",".join(PUBLIC_SPECIES_FIELDS)).eq("slug", slug).limit(1).execute()
     if not res.data:
         return None

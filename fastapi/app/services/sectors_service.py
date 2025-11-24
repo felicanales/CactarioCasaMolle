@@ -1,13 +1,14 @@
 # app/services/sectors_service.py
 from typing import List, Optional, Dict, Any, Set
-from app.core.supabase_auth import get_public
+from app.core.supabase_auth import get_public, get_public_clean
 from app.services import photos_service
 
 PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "qr_code"]
 STAFF_SECTOR_FIELDS = PUBLIC_SECTOR_FIELDS + ["created_at", "updated_at"]
 
 def list_public(q: Optional[str] = None) -> List[Dict[str, Any]]:
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     query = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS))
     if q:
         query = query.ilike("name", f"%{q}%")
@@ -18,7 +19,8 @@ def get_public_by_qr(qr_code: str) -> Optional[Dict[str, Any]]:
     import logging
     logger = logging.getLogger(__name__)
     
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     # Normalizar qr_code: remover espacios y convertir a string
     qr_code_normalized = str(qr_code).strip() if qr_code else None
     
@@ -76,7 +78,8 @@ def _get_sector_id_by_qr(qr_code: str) -> Optional[int]:
     import logging
     logger = logging.getLogger(__name__)
     
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     qr_code_normalized = str(qr_code).strip() if qr_code else None
     
     if not qr_code_normalized:
@@ -111,7 +114,8 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
     import logging
     logger = logging.getLogger(__name__)
     
-    sb = get_public()
+    # Usar cliente limpio sin sesión para consultas públicas
+    sb = get_public_clean()
     sector_id = _get_sector_id_by_qr(qr_code)
     
     if not sector_id:
