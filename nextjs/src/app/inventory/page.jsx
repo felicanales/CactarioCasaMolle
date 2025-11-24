@@ -1199,6 +1199,28 @@ export default function InventoryPage() {
                                 <span>+</span>
                                 <span>Ingresar Venta</span>
                             </button>
+                            <Link
+                                href="/transactions"
+                                style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    backgroundColor: "#6366f1",
+                                    color: "white",
+                                    fontSize: "clamp(12px, 3vw, 14px)",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    whiteSpace: "nowrap",
+                                    textDecoration: "none"
+                                }}
+                            >
+                                <span>📊</span>
+                                <span>Compras y Ventas</span>
+                            </Link>
                             <button
                                 onClick={logout}
                                 style={{
