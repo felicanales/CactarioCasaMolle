@@ -148,7 +148,7 @@ function Modal({ isOpen, onClose, title, children }) {
 export default function InventoryPage() {
     const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
     const router = useRouter();
-    
+
     // Funciones helper para formatear números con separadores de miles (1.000.000)
     const formatNumber = (value) => {
         if (!value && value !== 0) return "";
@@ -713,14 +713,14 @@ export default function InventoryPage() {
         if (modalMode === "compra") {
             if (!formData.purchase_date) {
                 setError("La fecha de compra es obligatoria");
-                return;
-            }
+            return;
+        }
             
             // Validar items de compra
             const validItems = purchaseItems.filter(item => item.species_id && item.quantity > 0);
             if (validItems.length === 0) {
                 setError("Debes agregar al menos una especie con cantidad mayor a 0");
-                return;
+            return;
             }
             
             // Validar que no haya más de 100 ejemplares en total
@@ -812,52 +812,52 @@ export default function InventoryPage() {
                 basePayload.purchase_date = null;
                 basePayload.purchase_price = null;
                 basePayload.nursery = null;
-                
-                // Convertir IDs a números
-                basePayload.species_id = parseInt(formData.species_id);
-                basePayload.sector_id = parseInt(formData.sector_id);
-                
-                // Convertir age_months a número si existe
-                if (basePayload.age_months) {
+            
+            // Convertir IDs a números
+            basePayload.species_id = parseInt(formData.species_id);
+            basePayload.sector_id = parseInt(formData.sector_id);
+            
+            // Convertir age_months a número si existe
+            if (basePayload.age_months) {
                     let ageValue = parseInt(basePayload.age_months);
                     if (formData.age_unit === "years") {
                         ageValue = ageValue * 12;
-                    }
+            }
                     basePayload.age_months = ageValue;
-                }
+            }
                 
                 // Convertir precios a números
-                if (basePayload.sale_price) {
+            if (basePayload.sale_price) {
                     basePayload.sale_price = parseFloat(parseNumber(basePayload.sale_price));
-                }
-                
+            }
+            
                 // Convertir has_offshoots
-                if (basePayload.has_offshoots !== undefined && basePayload.has_offshoots !== null) {
-                    basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
-                }
-                
+            if (basePayload.has_offshoots !== undefined && basePayload.has_offshoots !== null) {
+                basePayload.has_offshoots = parseInt(basePayload.has_offshoots) || 0;
+            }
+            
                 // Eliminar campo 'tamaño'
-                if ("tamaño" in basePayload) {
-                    delete basePayload.tamaño;
-                }
-                
-                // Crear múltiples ejemplares
-                for (let i = 0; i < cantidad; i++) {
-                    try {
-                        const res = await apiRequest(`${API}/ejemplar/staff`, {
-                            method: "POST",
-                            body: JSON.stringify(basePayload)
-                        }, accessToken);
-                        
-                        if (!res.ok) {
-                            const errorData = await res.json().catch(() => ({}));
-                            throw new Error(errorData.detail || "Error al crear el ejemplar");
-                        }
-                        
-                        created++;
-                    } catch (err) {
-                        failed++;
-                        errors.push(`Ejemplar ${i + 1}: ${err.message}`);
+            if ("tamaño" in basePayload) {
+                delete basePayload.tamaño;
+            }
+            
+            // Crear múltiples ejemplares
+            for (let i = 0; i < cantidad; i++) {
+                try {
+                    const res = await apiRequest(`${API}/ejemplar/staff`, {
+                        method: "POST",
+                        body: JSON.stringify(basePayload)
+                    }, accessToken);
+                    
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        throw new Error(errorData.detail || "Error al crear el ejemplar");
+                    }
+                    
+                    created++;
+                } catch (err) {
+                    failed++;
+                    errors.push(`Ejemplar ${i + 1}: ${err.message}`);
                     }
                 }
             }
@@ -880,10 +880,10 @@ export default function InventoryPage() {
                         tamaño: "",
                         health_status: "",
                         location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        has_offshoots: 0,
-                        cantidad: 1
+                                        purchase_price: "",
+                                        sale_price: "",
+                                        has_offshoots: 0,
+                                        cantidad: 1
                     });
                     setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
                 } else {
@@ -1087,7 +1087,6 @@ export default function InventoryPage() {
                                 onClick={() => {
                                     setModalMode("compra");
                                     setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
-                                    nextPurchaseItemId = 2;
                                     setFormData({
                                         species_id: "",
                                         sector_id: "",
@@ -1970,89 +1969,89 @@ export default function InventoryPage() {
                                 </h3>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                                     <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
                                             color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
                                             Fecha de Compra <span style={{ color: "#dc2626" }}>*</span>
-                                        </label>
-                                        <input
+                                </label>
+                                    <input
                                             type="date"
                                             required
                                             value={formData.purchase_date}
                                             onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                                            style={{
+                                        style={{
                                                 width: "100%",
-                                                padding: "10px 12px",
+                                            padding: "10px 12px",
                                                 border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
+                                            borderRadius: "8px",
                                                 fontSize: "14px",
                                                 outline: "none"
                                             }}
                                         />
-                                    </div>
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
+                                </div>
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
                                             Sector <span style={{ color: "#dc2626" }}>*</span>
-                                        </label>
-                                        <select
-                                            required
+                                </label>
+                                <select
+                                    required
                                             value={formData.sector_id}
                                             onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
-                                        >
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                >
                                             <option value="">Seleccionar sector...</option>
                                             {sectorsList.map(s => (
-                                                <option key={s.id} value={s.id}>
+                                        <option key={s.id} value={s.id}>
                                                     {s.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
                                             Vivero
-                                        </label>
+                                </label>
                                         <input
                                             type="text"
                                             value={formData.nursery}
                                             onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
                                             placeholder="Nombre del vivero o proveedor"
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                             }}
                                         />
                                     </div>
@@ -2112,8 +2111,8 @@ export default function InventoryPage() {
                                         <span>+</span>
                                         <span>Agregar Especie</span>
                                     </button>
-                                </div>
-                                
+                            </div>
+                            
                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                     {purchaseItems.map((item, index) => (
                                         <div
@@ -2149,78 +2148,78 @@ export default function InventoryPage() {
                                                 )}
                                             </div>
                                             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "12px" }}>
-                                                <div>
-                                                    <label style={{
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        color: "#6b7280",
-                                                        textTransform: "uppercase",
-                                                        letterSpacing: "0.05em",
-                                                        marginBottom: "6px",
-                                                        display: "block"
-                                                    }}>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
                                                         Especie <span style={{ color: "#dc2626" }}>*</span>
-                                                    </label>
-                                                    <select
+                                    </label>
+                                    <select
                                                         required
                                                         value={item.species_id}
                                                         onChange={(e) => updatePurchaseItem(item.id, "species_id", e.target.value)}
-                                                        style={{
-                                                            width: "100%",
-                                                            padding: "10px 12px",
-                                                            border: "1px solid #d1d5db",
-                                                            borderRadius: "8px",
-                                                            fontSize: "14px",
-                                                            outline: "none"
-                                                        }}
-                                                    >
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    >
                                                         <option value="">Seleccionar especie...</option>
                                                         {speciesList.map(s => (
                                                             <option key={s.id} value={s.id}>
                                                                 {s.scientific_name} {s.nombre_común ? `(${s.nombre_común})` : ""}
                                                             </option>
                                                         ))}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label style={{
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        color: "#6b7280",
-                                                        textTransform: "uppercase",
-                                                        letterSpacing: "0.05em",
-                                                        marginBottom: "6px",
-                                                        display: "block"
-                                                    }}>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
                                                         Cantidad <span style={{ color: "#dc2626" }}>*</span>
-                                                    </label>
-                                                    <input
-                                                        type="number"
+                                    </label>
+                                    <input
+                                        type="number"
                                                         min="1"
                                                         value={item.quantity}
                                                         onChange={(e) => updatePurchaseItem(item.id, "quantity", Math.max(1, parseInt(e.target.value) || 1))}
-                                                        style={{
-                                                            width: "100%",
-                                                            padding: "10px 12px",
-                                                            border: "1px solid #d1d5db",
-                                                            borderRadius: "8px",
-                                                            fontSize: "14px",
-                                                            outline: "none"
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label style={{
-                                                        fontSize: "12px",
-                                                        fontWeight: "600",
-                                                        color: "#6b7280",
-                                                        textTransform: "uppercase",
-                                                        letterSpacing: "0.05em",
-                                                        marginBottom: "6px",
-                                                        display: "block"
-                                                    }}>
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
                                                         Precio Unitario
-                                                    </label>
+                                    </label>
                                                     <input
                                                         type="text"
                                                         value={formatNumber(item.price)}
@@ -2235,21 +2234,21 @@ export default function InventoryPage() {
                                                             }
                                                         }}
                                                         placeholder="0"
-                                                        style={{
-                                                            width: "100%",
-                                                            padding: "10px 12px",
-                                                            border: "1px solid #d1d5db",
-                                                            borderRadius: "8px",
-                                                            fontSize: "14px",
-                                                            outline: "none"
-                                                        }}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
                                                     />
-                                                </div>
+                                </div>
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-                                
+                            </div>
+                            
                                 <div style={{
                                     marginTop: "12px",
                                     padding: "12px",
@@ -2275,29 +2274,29 @@ export default function InventoryPage() {
                                 </h3>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
                                     {/* Tamaño */}
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
+                                <div>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
                                             Tamaño
-                                        </label>
+                                    </label>
                                         <select
                                             value={formData.tamaño}
                                             onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            outline: "none"
+                                        }}
                                         >
                                             <option value="">Seleccionar...</option>
                                             <option value="XS">XS</option>
@@ -2307,41 +2306,41 @@ export default function InventoryPage() {
                                             <option value="XL">XL</option>
                                             <option value="XXL">XXL</option>
                                         </select>
-                                    </div>
+                                </div>
                                     
                                     {/* Edad (meses o años) */}
                                     <div style={{ 
                                         gridColumn: "span 1",
                                         minWidth: "240px"
                                     }}>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
+                                    <label style={{
+                                        fontSize: "12px",
+                                        fontWeight: "600",
+                                        color: "#6b7280",
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        marginBottom: "6px",
+                                        display: "block"
+                                    }}>
                                             Edad
-                                        </label>
+                                    </label>
                                         <div style={{ 
                                             display: "grid",
                                             gridTemplateColumns: "1fr 100px",
                                             gap: "8px",
                                             width: "100%"
                                         }}>
-                                            <input
+                                    <input
                                                 type="number"
                                                 min="0"
                                                 value={formData.age_months}
                                                 onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: "10px 12px",
-                                                    border: "1px solid #d1d5db",
-                                                    borderRadius: "8px",
-                                                    fontSize: "14px",
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
                                                     outline: "none",
                                                     boxSizing: "border-box"
                                                 }}
@@ -2364,46 +2363,11 @@ export default function InventoryPage() {
                                                 <option value="months">Meses</option>
                                                 <option value="years">Años</option>
                                             </select>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Estado de Salud */}
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
-                                            Estado de Salud
-                                        </label>
-                                        <select
-                                            value={formData.health_status}
-                                            onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            <option value="muy bien">Muy bien</option>
-                                            <option value="estable">Estable</option>
-                                            <option value="leve enfermo">Leve enfermo</option>
-                                            <option value="enfermo">Enfermo</option>
-                                            <option value="crítico">Crítico</option>
-                                        </select>
-                                    </div>
                                 </div>
-                                
-                                {/* Ubicación Específica */}
-                                <div style={{ marginTop: "16px" }}>
+                                    </div>
+                            
+                                    {/* Estado de Salud */}
+                                <div>
                                     <label style={{
                                         fontSize: "12px",
                                         fontWeight: "600",
@@ -2413,26 +2377,61 @@ export default function InventoryPage() {
                                         marginBottom: "6px",
                                         display: "block"
                                     }}>
-                                        Ubicación Específica
+                                            Estado de Salud
                                     </label>
-                                    <textarea
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="Descripción detallada de la ubicación dentro del sector"
-                                        rows={3}
+                                        <select
+                                            value={formData.health_status}
+                                            onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
                                         style={{
                                             width: "100%",
                                             padding: "10px 12px",
                                             border: "1px solid #d1d5db",
                                             borderRadius: "8px",
                                             fontSize: "14px",
-                                            outline: "none",
-                                            resize: "vertical",
-                                            fontFamily: "inherit"
+                                            outline: "none"
                                         }}
-                                    />
+                                        >
+                                            <option value="">Seleccionar...</option>
+                                            <option value="muy bien">Muy bien</option>
+                                            <option value="estable">Estable</option>
+                                            <option value="leve enfermo">Leve enfermo</option>
+                                            <option value="enfermo">Enfermo</option>
+                                            <option value="crítico">Crítico</option>
+                                        </select>
                                 </div>
-                                
+                                </div>
+                            
+                            {/* Ubicación Específica */}
+                                <div style={{ marginTop: "16px" }}>
+                                <label style={{
+                                    fontSize: "12px",
+                                    fontWeight: "600",
+                                    color: "#6b7280",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    marginBottom: "6px",
+                                    display: "block"
+                                }}>
+                                    Ubicación Específica
+                                </label>
+                                <textarea
+                                    value={formData.location}
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    placeholder="Descripción detallada de la ubicación dentro del sector"
+                                    rows={3}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none",
+                                        resize: "vertical",
+                                        fontFamily: "inherit"
+                                    }}
+                                />
+                            </div>
+                            
                                 {/* Cantidad de Retoños/Hijos */}
                                 <div style={{ marginTop: "16px" }}>
                                     <label style={{

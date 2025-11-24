@@ -91,6 +91,14 @@ export default function StaffPage() {
       bgColor: "#fef3c7"
     },
     {
+      title: "Compras y Ventas",
+      description: "Historial de transacciones y movimientos",
+      icon: "💰",
+      href: "/transactions",
+      color: "#06b6d4",
+      bgColor: "#cffafe"
+    },
+    {
       title: "Reportes",
       description: "Estadísticas y reportes del sistema",
       icon: "📊",

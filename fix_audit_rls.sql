@@ -60,3 +60,4 @@ GRANT ALL ON public.auditoria_cambios TO service_role;
 
 
 
+

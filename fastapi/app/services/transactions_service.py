@@ -1,14 +1,20 @@
 # app/services/transactions_service.py
 from typing import List, Dict, Any, Optional
-from app.core.supabase_auth import get_public
+from app.core.supabase_auth import get_public, get_service
+from app.core.security import get_token_from_request
+from fastapi import Request
 from datetime import datetime
+import logging
 
-def get_purchases_grouped() -> List[Dict[str, Any]]:
+logger = logging.getLogger(__name__)
+
+def get_purchases_grouped(request: Optional[Request] = None) -> List[Dict[str, Any]]:
     """
     Obtiene todas las compras agrupadas por fecha, factura y vivero.
     Calcula el monto total y la cantidad de ejemplares por compra.
     """
-    sb = get_public()
+    # Usar service role para evitar problemas con RLS
+    sb = get_service()
     
     try:
         # Obtener todos los ejemplares con purchase_date
@@ -97,18 +103,17 @@ def get_purchases_grouped() -> List[Dict[str, Any]]:
         return purchases
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"[get_purchases_grouped] Error: {str(e)}")
+        logger.error(f"[get_purchases_grouped] Error: {str(e)}", exc_info=True)
         raise
 
 
-def get_sales_grouped() -> List[Dict[str, Any]]:
+def get_sales_grouped(request: Optional[Request] = None) -> List[Dict[str, Any]]:
     """
     Obtiene todas las ventas agrupadas por fecha.
     Calcula el monto total y la cantidad de ejemplares por venta.
     """
-    sb = get_public()
+    # Usar service role para evitar problemas con RLS
+    sb = get_service()
     
     try:
         # Obtener todos los ejemplares con sale_date
@@ -193,8 +198,6 @@ def get_sales_grouped() -> List[Dict[str, Any]]:
         return sales
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"[get_sales_grouped] Error: {str(e)}")
+        logger.error(f"[get_sales_grouped] Error: {str(e)}", exc_info=True)
         raise
 
