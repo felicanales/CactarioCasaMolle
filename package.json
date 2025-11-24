@@ -21,9 +21,6 @@
         "install:fastapi": "cd fastapi && pip install -r requirements.txt",
         "install:all": "npm run install:nextjs && npm run install:mobile && npm run install:fastapi"
     },
-    "workspaces": [
-        "nextjs"
-    ],
     "engines": {
         "node": ">=18.0.0",
         "python": ">=3.9.0"
