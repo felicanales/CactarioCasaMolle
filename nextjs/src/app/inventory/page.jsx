@@ -402,34 +402,6 @@ export default function InventoryPage() {
             item.id === id ? { ...item, [field]: value } : item
         ));
     };
-    
-    // Items de compra múltiple (para compras con múltiples especies)
-    const [purchaseItems, setPurchaseItems] = useState([
-        { id: 1, species_id: "", quantity: 1, price: "" }
-    ]);
-    let nextPurchaseItemId = 2;
-    
-    // Funciones para manejar items de compra
-    const addPurchaseItem = () => {
-        setPurchaseItems([...purchaseItems, { 
-            id: nextPurchaseItemId++, 
-            species_id: "", 
-            quantity: 1, 
-            price: "" 
-        }]);
-    };
-    
-    const removePurchaseItem = (id) => {
-        if (purchaseItems.length > 1) {
-            setPurchaseItems(purchaseItems.filter(item => item.id !== id));
-        }
-    };
-    
-    const updatePurchaseItem = (id, field, value) => {
-        setPurchaseItems(purchaseItems.map(item => 
-            item.id === id ? { ...item, [field]: value } : item
-        ));
-    };
 
     useEffect(() => {
         if (BYPASS_AUTH) {
