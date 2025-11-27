@@ -8,6 +8,7 @@
         "healthcheckTimeout": 60
     },
     "build": {
-        "builder": "DOCKERFILE"
-    }
+        "builder": "NIXPACKS"
+    },
+    "$comment": "Using NIXPACKS instead of DOCKERFILE to avoid path issues. If you prefer Dockerfile, change builder to 'DOCKERFILE' and ensure Root Directory = 'fastapi/' in Railway settings."
 }
