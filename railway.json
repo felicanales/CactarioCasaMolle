@@ -7,5 +7,6 @@
         "startCommand": "cd nextjs && node start-server.js",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 3
-    }
+    },
+    "$comment": "This config is for deploying from root. For separate services, configure Railway to use nextjs/ as root directory and use nextjs/railway.json instead."
 }
