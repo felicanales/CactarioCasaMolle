@@ -17,26 +17,46 @@ export default function BottomNavigation() {
     router.push(path);
   };
 
+  const navItems = [
+    {
+      path: '/',
+      label: 'Home',
+      icon: '🏠',
+      shortLabel: 'Inicio'
+    },
+    {
+      path: '/qr',
+      label: 'QR lector',
+      icon: '📷',
+      shortLabel: 'QR'
+    },
+    {
+      path: '/sectores',
+      label: 'Sectores de cactus',
+      icon: '🌵',
+      shortLabel: 'Sectores'
+    },
+  ];
+
   return (
     <nav className="bottom-nav">
-      <button
-        className={`nav-button ${isActive('/') ? 'active' : ''}`}
-        onClick={() => navigateTo('/')}
-      >
-        Home
-      </button>
-      <button
-        className={`nav-button ${isActive('/qr') ? 'active' : ''}`}
-        onClick={() => navigateTo('/qr')}
-      >
-        QR lector
-      </button>
-      <button
-        className={`nav-button ${isActive('/sectores') ? 'active' : ''}`}
-        onClick={() => navigateTo('/sectores')}
-      >
-        Sectores<br />de cactus
-      </button>
+      {navItems.map((item) => {
+        const active = isActive(item.path);
+        return (
+          <button
+            key={item.path}
+            className={`nav-button ${active ? 'active' : ''}`}
+            onClick={() => navigateTo(item.path)}
+            aria-label={item.label}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-label">
+              <span className="nav-label-full">{item.label}</span>
+              <span className="nav-label-short">{item.shortLabel}</span>
+            </span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
