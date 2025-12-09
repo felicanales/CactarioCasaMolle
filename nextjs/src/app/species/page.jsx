@@ -199,6 +199,9 @@ export default function SpeciesPage() {
         image_url: "", // URL de la imagen de la especie
     });
     const [submitting, setSubmitting] = useState(false);
+    // Estados para manejar fotos en creación
+    const [pendingPhotos, setPendingPhotos] = useState([]); // Fotos seleccionadas antes de crear
+    const [newlyCreatedSpeciesId, setNewlyCreatedSpeciesId] = useState(null); // ID de especie recién creada
 
     // Helper para requests autenticadas
     // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
@@ -371,6 +374,8 @@ export default function SpeciesPage() {
             historia_y_leyendas: "",
             image_url: "",
         });
+        setPendingPhotos([]); // Limpiar fotos pendientes
+        setNewlyCreatedSpeciesId(null);
         setShowModal(true);
     };
 
@@ -450,16 +455,25 @@ export default function SpeciesPage() {
             }
 
             let res;
+            let createdSpeciesId = null;
             if (modalMode === "create") {
                 res = await apiRequest(`${API}/species/staff`, {
                     method: "POST",
                     body: JSON.stringify(payload),
                 }, accessToken);
+
+                if (res.ok) {
+                    // Obtener el ID de la especie creada
+                    const createdSpecies = await res.json();
+                    createdSpeciesId = createdSpecies.id;
+                    setNewlyCreatedSpeciesId(createdSpeciesId);
+                }
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
                     method: "PUT",
                     body: JSON.stringify(payload),
                 }, accessToken);
+                createdSpeciesId = selectedSpecies.id; // En modo edit, usar el ID existente
             }
 
             if (!res.ok) {
@@ -473,7 +487,48 @@ export default function SpeciesPage() {
                 throw new Error(errorData.detail || "Error al guardar");
             }
 
+            // Si hay fotos pendientes y se creó/editó exitosamente, subirlas automáticamente
+            if (pendingPhotos.length > 0 && createdSpeciesId) {
+                try {
+                    const token = getAccessTokenFromContext(accessToken);
+                    if (token) {
+                        const uploadFormData = new FormData();
+                        pendingPhotos.forEach(file => {
+                            uploadFormData.append('files', file);
+                        });
+
+                        const csrfTokenValue = csrfToken || null;
+                        const headers = {
+                            'Authorization': `Bearer ${token}`
+                        };
+
+                        if (csrfTokenValue) {
+                            headers['X-CSRF-Token'] = csrfTokenValue;
+                        }
+
+                        const uploadRes = await fetch(`${API}/photos/especie/${createdSpeciesId}`, {
+                            method: 'POST',
+                            headers,
+                            body: uploadFormData,
+                            credentials: 'include'
+                        });
+
+                        if (uploadRes.ok) {
+                            console.log('[SpeciesPage] ✅ Fotos subidas automáticamente después de crear la especie');
+                            setPendingPhotos([]); // Limpiar fotos pendientes
+                        } else {
+                            console.warn('[SpeciesPage] ⚠️ No se pudieron subir las fotos automáticamente, pero la especie se creó correctamente');
+                        }
+                    }
+                } catch (uploadErr) {
+                    console.error('[SpeciesPage] Error al subir fotos automáticamente:', uploadErr);
+                    // No lanzar error, la especie ya se creó exitosamente
+                }
+            }
+
             setShowModal(false);
+            setPendingPhotos([]); // Limpiar fotos pendientes
+            setNewlyCreatedSpeciesId(null);
             fetchSpecies();
         } catch (err) {
             setError(err.message);
@@ -1254,7 +1309,11 @@ export default function SpeciesPage() {
             {/* Modal for Create/Edit/View */}
             <Modal
                 isOpen={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={() => {
+                    setShowModal(false);
+                    setPendingPhotos([]); // Limpiar fotos pendientes al cerrar
+                    setNewlyCreatedSpeciesId(null);
+                }}
                 title={
                     modalMode === "create" ? "Nueva Especie" :
                         modalMode === "edit" ? "Editar Especie" :
@@ -1489,55 +1548,158 @@ export default function SpeciesPage() {
                                 />
                             </div>
 
-                            {/* Espacio para imagen */}
+                            {/* Sección de Fotos */}
                             <div style={{
+                                marginTop: "8px",
                                 padding: "20px",
                                 backgroundColor: "#f9fafb",
-                                border: "2px dashed #d1d5db",
-                                borderRadius: "8px",
-                                textAlign: "center"
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "8px"
                             }}>
-                                <div style={{
-                                    fontSize: "48px",
-                                    marginBottom: "12px"
-                                }}>
-                                    🌵
-                                </div>
-                                <p style={{
-                                    fontSize: "14px",
+                                <h3 style={{
+                                    fontSize: "16px",
                                     fontWeight: "600",
-                                    color: "#374151",
-                                    marginBottom: "8px"
+                                    color: "#111827",
+                                    marginBottom: "16px"
                                 }}>
-                                    Imagen de la Especie
-                                </p>
-                                <p style={{
-                                    fontSize: "12px",
-                                    color: "#6b7280",
-                                    marginBottom: "12px",
-                                    lineHeight: "1.5"
-                                }}>
-                                    Espacio reservado para la fotografía identificativa de la especie.
-                                    <br />
-                                    <span style={{ fontStyle: "italic" }}>
-                                        (Funcionalidad de carga de imágenes próximamente)
-                                    </span>
-                                </p>
-                                <input
-                                    type="text"
-                                    value={formData.image_url}
-                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "13px",
-                                        boxSizing: "border-box",
-                                        backgroundColor: "white"
-                                    }}
-                                    placeholder="URL de imagen temporal (opcional)"
-                                />
+                                    📸 Fotos de la Especie
+                                </h3>
+                                
+                                {modalMode === "edit" && selectedSpecies?.id ? (
+                                    <>
+                                        {/* En modo edición, mostrar PhotoUploader normal */}
+                                        <PhotoGallery
+                                            entityType="especie"
+                                            entityId={selectedSpecies.id}
+                                            showManageButtons={true}
+                                            onRefresh={() => {
+                                                if (selectedSpecies) {
+                                                    handleEdit(selectedSpecies);
+                                                }
+                                            }}
+                                        />
+                                        <PhotoUploader
+                                            entityType="especie"
+                                            entityId={selectedSpecies.id}
+                                            onUploadComplete={() => {
+                                                if (selectedSpecies) {
+                                                    handleEdit(selectedSpecies);
+                                                }
+                                            }}
+                                            maxPhotos={10}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* En modo creación, permitir seleccionar fotos que se subirán después */}
+                                        <div style={{
+                                            marginBottom: "16px",
+                                            padding: "16px",
+                                            backgroundColor: "white",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "8px"
+                                        }}>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const selectedFiles = Array.from(e.target.files);
+                                                    const validFiles = selectedFiles.filter(file => {
+                                                        if (!file.type.startsWith('image/')) {
+                                                            setError(`${file.name} no es una imagen válida`);
+                                                            return false;
+                                                        }
+                                                        if (file.size > 10 * 1024 * 1024) {
+                                                            setError(`${file.name} es demasiado grande (máx 10MB)`);
+                                                            return false;
+                                                        }
+                                                        return true;
+                                                    });
+                                                    
+                                                    if (validFiles.length > 0) {
+                                                        setPendingPhotos([...pendingPhotos, ...validFiles]);
+                                                        setError("");
+                                                    }
+                                                    // Reset input
+                                                    e.target.value = '';
+                                                }}
+                                                disabled={submitting || pendingPhotos.length >= 10}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "8px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "6px",
+                                                    fontSize: "14px",
+                                                    cursor: submitting || pendingPhotos.length >= 10 ? "not-allowed" : "pointer"
+                                                }}
+                                            />
+                                            <p style={{
+                                                fontSize: "12px",
+                                                color: "#6b7280",
+                                                marginTop: "8px",
+                                                marginBottom: "0"
+                                            }}>
+                                                Puedes seleccionar hasta 10 fotos. Se subirán automáticamente después de crear la especie.
+                                                {pendingPhotos.length > 0 && ` (${pendingPhotos.length} foto${pendingPhotos.length > 1 ? 's' : ''} seleccionada${pendingPhotos.length > 1 ? 's' : ''})`}
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Vista previa de fotos seleccionadas */}
+                                        {pendingPhotos.length > 0 && (
+                                            <div style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                                                gap: "12px",
+                                                marginTop: "16px"
+                                            }}>
+                                                {pendingPhotos.map((file, index) => (
+                                                    <div key={index} style={{ position: "relative" }}>
+                                                        <img
+                                                            src={URL.createObjectURL(file)}
+                                                            alt={`Preview ${index + 1}`}
+                                                            style={{
+                                                                width: "100%",
+                                                                height: "120px",
+                                                                objectFit: "cover",
+                                                                borderRadius: "8px",
+                                                                border: "2px solid #e5e7eb"
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newPhotos = [...pendingPhotos];
+                                                                newPhotos.splice(index, 1);
+                                                                setPendingPhotos(newPhotos);
+                                                            }}
+                                                            disabled={submitting}
+                                                            style={{
+                                                                position: "absolute",
+                                                                top: "4px",
+                                                                right: "4px",
+                                                                width: "24px",
+                                                                height: "24px",
+                                                                borderRadius: "50%",
+                                                                border: "none",
+                                                                backgroundColor: "rgba(220, 38, 38, 0.9)",
+                                                                color: "white",
+                                                                cursor: submitting ? "not-allowed" : "pointer",
+                                                                fontSize: "14px",
+                                                                fontWeight: "bold",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center"
+                                                            }}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
 
                             <div>
@@ -2009,7 +2171,11 @@ export default function SpeciesPage() {
                             }}>
                                 <button
                                     type="button"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setPendingPhotos([]); // Limpiar fotos pendientes al cancelar
+                                        setNewlyCreatedSpeciesId(null);
+                                    }}
                                     style={{
                                         padding: "10px 20px",
                                         backgroundColor: "white",
