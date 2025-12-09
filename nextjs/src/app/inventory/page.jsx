@@ -714,10 +714,8 @@ export default function InventoryPage() {
         e.preventDefault();
 
         // Validar campos obligatorios comunes
-        if (!formData.sector_id) {
-            setError("El sector es obligatorio");
-            return;
-        }
+        // sector_id puede estar vacío o ser "standby" para ejemplares sin asignar
+        // No es obligatorio, así que no validamos aquí
 
         // Validar campos según el modo
         if (modalMode === "compra") {
@@ -2029,10 +2027,9 @@ export default function InventoryPage() {
                                             marginBottom: "6px",
                                             display: "block"
                                         }}>
-                                            Sector <span style={{ color: "#dc2626" }}>*</span>
+                                            Sector
                                         </label>
                                         <select
-                                            required
                                             value={formData.sector_id}
                                             onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
                                             style={{
