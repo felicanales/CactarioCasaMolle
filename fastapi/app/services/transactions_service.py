@@ -17,10 +17,8 @@ def get_purchases_grouped(request: Optional[Request] = None) -> List[Dict[str, A
     sb = get_service()
     
     try:
-        # Obtener todos los ejemplares con purchase_date
-        result = sb.table("ejemplar").select(
-            "id, purchase_date, purchase_price, invoice_number, nursery, species_id, sector_id, age_months, health_status, location, has_offshoots"
-        ).not_.is_("purchase_date", "null").order("purchase_date", desc=True).execute()
+        # Obtener todos los ejemplares con purchase_date (usar select("*") para evitar problemas con campos faltantes)
+        result = sb.table("ejemplar").select("*").not_.is_("purchase_date", "null").order("purchase_date", desc=True).execute()
         
         if not result.data:
             return []
@@ -116,10 +114,8 @@ def get_sales_grouped(request: Optional[Request] = None) -> List[Dict[str, Any]]
     sb = get_service()
     
     try:
-        # Obtener todos los ejemplares con sale_date
-        result = sb.table("ejemplar").select(
-            "id, sale_date, sale_price, species_id, sector_id, purchase_date, purchase_price, nursery, invoice_number, age_months, health_status, location, has_offshoots"
-        ).not_.is_("sale_date", "null").order("sale_date", desc=True).execute()
+        # Obtener todos los ejemplares con sale_date (usar select("*") para evitar problemas con campos faltantes)
+        result = sb.table("ejemplar").select("*").not_.is_("sale_date", "null").order("sale_date", desc=True).execute()
         
         if not result.data:
             return []
