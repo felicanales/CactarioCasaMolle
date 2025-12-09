@@ -7,12 +7,12 @@ nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
 cmds = [
-    "npm ci --legacy-peer-deps --no-workspaces"
+    "npm ci --legacy-peer-deps"
 ]
 
 [phases.build]
 cmds = [
-    "npm run build",
+    "NODE_ENV=production node_modules/.bin/next build",
     "echo 'Build completed, checking standalone...'",
     "(test -d .next/standalone && echo '✅ Standalone directory exists' || echo '❌ Standalone directory missing')",
     "node copy-assets.js"
