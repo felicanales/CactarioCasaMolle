@@ -6,7 +6,7 @@ cmds = ["npm ci"]
 
 [phases.build]
 cmds = [
-    "npm run build",
+    "export NODE_ENV=production && node node_modules/next/dist/bin/next build",
     "node copy-assets.js"
 ]
 
