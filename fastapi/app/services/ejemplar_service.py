@@ -271,10 +271,12 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # IMPORTANTE: Eliminar campo 'tamaño' completamente del payload
-    # La columna no existe en la BD todavía, así que siempre la removemos
-    if "tamaño" in clean_payload:
-        del clean_payload["tamaño"]
+    # IMPORTANTE: Eliminar campos que no existen en la BD
+    # Estos campos pueden venir del frontend pero no están en el esquema
+    fields_to_remove = ["tamaño", "invoice_number"]
+    for field in fields_to_remove:
+        if field in clean_payload:
+            del clean_payload[field]
     
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
     
