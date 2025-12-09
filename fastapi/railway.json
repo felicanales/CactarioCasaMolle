@@ -8,7 +8,7 @@
         "healthcheckTimeout": 60
     },
     "build": {
-        "builder": "NIXPACKS"
+        "builder": "DOCKERFILE"
     },
-    "$comment": "Using NIXPACKS instead of DOCKERFILE to avoid path issues. If you prefer Dockerfile, change builder to 'DOCKERFILE' and ensure Root Directory = 'fastapi/' in Railway settings."
+    "$comment": "Using DOCKERFILE instead of NIXPACKS because Nix environments have limitations with pip installation. Dockerfile is simpler and more reliable for Python projects."
 }

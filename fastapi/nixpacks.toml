@@ -1,14 +1,13 @@
 # Nixpacks configuration for FastAPI Backend
-# Using python311 - pip should be available via python3 -m pip
+# Using python3Full which includes more tools, or try python311Packages explicitly
 
 [phases.setup]
-nixPkgs = ["python311"]
+nixPkgs = ["python3Full"]
 
 [phases.install]
 cmds = [
-    "python3 -m pip --version || (curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py && rm get-pip.py)",
-    "python3 -m pip install --upgrade pip setuptools wheel",
-    "python3 -m pip install -r requirements.txt"
+    "pip3 install --upgrade pip setuptools wheel",
+    "pip3 install -r requirements.txt"
 ]
 
 [phases.build]
