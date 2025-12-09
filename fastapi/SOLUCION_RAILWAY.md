@@ -105,3 +105,4 @@ El Dockerfile está guardado como `Dockerfile.backup` por si lo necesitas en el 
 
 Pero **Nixpacks es la opción recomendada** ya que es más simple y evita este tipo de problemas.
 
+

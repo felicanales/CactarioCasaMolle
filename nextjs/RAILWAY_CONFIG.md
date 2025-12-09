@@ -45,3 +45,4 @@ Si ves el error: `/bin/bash: line 1: cd: nextjs: No such file or directory`
 2. O elimina/renombra `nixpacks.toml` de la raíz si existe
 3. Asegúrate de que Railway use `nextjs/nixpacks.toml` y `nextjs/railway.json`
 
+

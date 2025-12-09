@@ -80,3 +80,4 @@ Después del redeploy, los logs deberían mostrar:
    - Crea un nuevo servicio con Root Directory = `mobile/`
    - Railway detectará automáticamente los archivos de configuración
 
+

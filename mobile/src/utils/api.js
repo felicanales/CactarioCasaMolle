@@ -4,7 +4,7 @@ import axios from 'axios';
 // La variable se lee en tiempo de build, así que necesitamos asegurarnos de que esté disponible
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
 
-// Log para debugging
+// Log para debugging (siempre, para producción también)
 if (typeof window !== 'undefined') {
   console.log('[API Config] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL || 'NO DEFINIDA - usando Railway por defecto');
   console.log('[API Config] URL final:', API_URL);
@@ -15,44 +15,91 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 segundos de timeout
+  timeout: 30000, // 30 segundos de timeout (aumentado desde 10s)
 });
 
-// Interceptor para logging en desarrollo
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+// Interceptor para logging (siempre activo para debug en producción)
+if (typeof window !== 'undefined') {
   api.interceptors.request.use(
     (config) => {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      const fullUrl = `${config.baseURL}${config.url}`;
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${fullUrl}`);
+      if (config.params) {
+        console.log('[API Request] Params:', config.params);
+      }
       return config;
     },
     (error) => {
-      console.error('[API] Error en request:', error);
+      console.error('[API Request Error]', error);
       return Promise.reject(error);
     }
   );
 
   api.interceptors.response.use(
     (response) => {
-      console.log(`[API] Response:`, response.data);
+      console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
       return response;
     },
     (error) => {
-      console.error('[API] Error en response:', error.response?.data || error.message);
+      const errorDetails = {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        timeout: error.code === 'ECONNABORTED',
+      };
+      
+      console.error('[API Response Error]', errorDetails);
+      
+      // Log más detallado para timeouts
+      if (error.code === 'ECONNABORTED') {
+        console.error('[API Timeout] La solicitud expiró después de 30 segundos');
+        console.error('[API Timeout] URL completa:', `${error.config?.baseURL}${error.config?.url}`);
+        console.error('[API Timeout] Verifica que el backend esté disponible y respondiendo');
+      }
+      
       return Promise.reject(error);
     }
   );
 }
 
-// Endpoints públicos
+// Helper para reintentos con backoff exponencial
+const retryRequest = async (requestFn, maxRetries = 2, delay = 1000) => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      // No reintentar en el último intento
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Solo reintentar en casos de timeout o errores de red
+      if (error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED' || !error.response) {
+        const waitTime = delay * Math.pow(2, attempt);
+        console.log(`[API Retry] Intento ${attempt + 1} falló, reintentando en ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        // No reintentar para errores HTTP (4xx, 5xx)
+        throw error;
+      }
+    }
+  }
+};
+
+// Endpoints públicos con reintentos automáticos
 export const sectorsApi = {
-  list: () => api.get('/sectors/public'),
-  getByQr: (qrCode) => api.get(`/sectors/public/${qrCode}`),
-  getSpeciesByQr: (qrCode) => api.get(`/sectors/public/${qrCode}/species`),
+  list: () => retryRequest(() => api.get('/sectors/public')),
+  getByQr: (qrCode) => retryRequest(() => api.get(`/sectors/public/${qrCode}`)),
+  getSpeciesByQr: (qrCode) => retryRequest(() => api.get(`/sectors/public/${qrCode}/species`)),
 };
 
 export const speciesApi = {
-  list: (params = {}) => api.get('/species/public', { params }),
-  getBySlug: (slug) => api.get(`/species/public/${slug}`),
+  list: (params = {}) => retryRequest(() => api.get('/species/public', { params })),
+  getBySlug: (slug) => retryRequest(() => api.get(`/species/public/${slug}`)),
 };
 
 export default api;

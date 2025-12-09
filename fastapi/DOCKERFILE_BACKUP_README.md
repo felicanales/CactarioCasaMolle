@@ -27,3 +27,4 @@ Si en el futuro quieres volver a usar Dockerfile:
 - Configuración: `fastapi/nixpacks.toml`
 - Builder: NIXPACKS en `railway.json`
 
+

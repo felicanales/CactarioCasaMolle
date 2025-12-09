@@ -20,13 +20,14 @@ export default function Sectores() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Cargando sectores desde:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
+      console.log('[SectoresPage] Cargando sectores desde:', apiUrl);
       
       const response = await sectorsApi.list();
-      console.log('Respuesta completa:', response);
-      console.log('Respuesta data:', response.data);
-      console.log('Tipo de respuesta data:', typeof response.data);
-      console.log('Es array?', Array.isArray(response.data));
+      console.log('[SectoresPage] Respuesta recibida:', response);
+      console.log('[SectoresPage] Respuesta data:', response.data);
+      console.log('[SectoresPage] Tipo de respuesta data:', typeof response.data);
+      console.log('[SectoresPage] Es array?', Array.isArray(response.data));
       
       // Asegurarnos de obtener los datos correctamente
       let data = response.data;
@@ -39,19 +40,27 @@ export default function Sectores() {
       }
       
       if (data && Array.isArray(data)) {
-        console.log(`Se encontraron ${data.length} sectores`);
+        console.log(`[SectoresPage] Se encontraron ${data.length} sectores`);
         setSectores(data);
       } else {
-        console.warn('Respuesta no es un array. Tipo:', typeof data, 'Valor:', data);
+        console.warn('[SectoresPage] Respuesta no es un array. Tipo:', typeof data, 'Valor:', data);
         setSectores([]);
       }
     } catch (err) {
-      console.error('Error al cargar sectores:', err);
-      console.error('Error response:', err.response);
-      console.error('Error response data:', err.response?.data);
+      console.error('[SectoresPage] Error al cargar sectores:', err);
+      console.error('[SectoresPage] Error code:', err.code);
+      console.error('[SectoresPage] Error message:', err.message);
+      console.error('[SectoresPage] Error response:', err.response);
+      console.error('[SectoresPage] Error response data:', err.response?.data);
       
       let errorMessage = 'No se pudieron cargar los sectores';
-      if (err.response?.data) {
+      
+      // Manejo específico de timeouts
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'La solicitud tardó demasiado. El servidor puede estar sobrecargado o hay problemas de conexión. Por favor, intenta nuevamente.';
+      } else if (err.code === 'ECONNREFUSED' || !err.response) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+      } else if (err.response?.data) {
         if (typeof err.response.data === 'string') {
           errorMessage = err.response.data;
         } else if (err.response.data.message) {
