@@ -60,8 +60,12 @@ def list_staff(
         if species_id:
             query = query.eq("species_id", species_id)
         
-        if sector_id:
-            query = query.eq("sector_id", sector_id)
+        if sector_id is not None:
+            # Si sector_id es 0 o "null", filtrar por NULL (sin sector asignado)
+            if sector_id == 0 or str(sector_id).lower() == "null":
+                query = query.is_("sector_id", "null")
+            else:
+                query = query.eq("sector_id", sector_id)
         
         if tamaño:
             query = query.eq("tamaño", tamaño)

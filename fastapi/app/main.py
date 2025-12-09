@@ -59,11 +59,31 @@ else:
 
 logger.info("=" * 60)
 
-app = FastAPI(
-    title="Sistema Cactario Casa Molle",
-    version="1.0.0",
-    description="API para gestión de cactáceas - Casa Molle"
+# Solo habilitar Swagger si NO estás en producción
+# Verificar múltiples variables de entorno para detectar producción
+is_production = (
+    os.getenv("ENV") == "production" or 
+    os.getenv("RAILWAY_ENVIRONMENT_NAME") == "production" or
+    os.getenv("RAILWAY_ENVIRONMENT") == "production"
 )
+
+if is_production:
+    logger.info("🔒 Modo PRODUCCIÓN: Documentación API deshabilitada por seguridad")
+    app = FastAPI(
+        title="Sistema Cactario Casa Molle",
+        version="1.0.0",
+        description="API para gestión de cactáceas - Casa Molle",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None
+    )
+else:
+    logger.info("🔓 Modo DESARROLLO: Documentación API habilitada en /docs")
+    app = FastAPI(
+        title="Sistema Cactario Casa Molle",
+        version="1.0.0",
+        description="API para gestión de cactáceas - Casa Molle"
+    )
 
 # Permitir el origen del frontend - configuración dinámica por entorno
 origins = []
@@ -262,7 +282,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ============================================================
 logger.info("=" * 60)
 logger.info("✅ Servidor FastAPI inicializado correctamente")
-logger.info("📚 Documentación disponible en: /docs")
+if not is_production:
+    logger.info("📚 Documentación disponible en: /docs")
+else:
+    logger.info("🔒 Documentación API deshabilitada (modo producción)")
 logger.info("🏥 Health endpoint disponible en: /health")
 logger.info("🔍 Debug endpoint disponible en: /debug/environment")
 logger.info("=" * 60)

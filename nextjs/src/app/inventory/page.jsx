@@ -262,7 +262,11 @@ export default function InventoryPage() {
         }
 
         if (saleFilters.sector) {
-            filtered = filtered.filter(ej => ej.sector_id === parseInt(saleFilters.sector));
+            if (saleFilters.sector === "standby") {
+                filtered = filtered.filter(ej => ej.sector_id === null || ej.sector_id === undefined);
+            } else {
+                filtered = filtered.filter(ej => ej.sector_id === parseInt(saleFilters.sector));
+            }
         }
 
         if (saleFilters.search) {
@@ -490,7 +494,13 @@ export default function InventoryPage() {
             if (filterMorfologia) params.append('morfologia', filterMorfologia);
             if (filterNombreComun) params.append('nombre_comun', filterNombreComun);
             if (filterTamaño) params.append('tamaño', filterTamaño);
-            if (filterSector) params.append('sector_id', filterSector);
+            if (filterSector) {
+                if (filterSector === "standby") {
+                    params.append('sector_id', 'null'); // Enviar 'null' como string para filtrar sector_id NULL
+                } else {
+                    params.append('sector_id', filterSector);
+                }
+            }
             if (filterHealth) params.append('health_status', filterHealth);
             if (filterPurchaseDate) params.append('purchase_date', filterPurchaseDate);
             params.append('sort_by', sortBy);
@@ -546,7 +556,7 @@ export default function InventoryPage() {
         setModalMode(mode === "venta" ? "venta" : "compra");
         setFormData({
             species_id: String(ej.species_id || ""),
-            sector_id: String(ej.sector_id || ""),
+            sector_id: ej.sector_id === null || ej.sector_id === undefined ? "standby" : String(ej.sector_id),
             purchase_date: ej.purchase_date || "",
             sale_date: ej.sale_date || "",
             nursery: ej.nursery || "",
@@ -759,7 +769,7 @@ export default function InventoryPage() {
                     // Preparar payload base para este item
                     const basePayload = {
                         species_id: parseInt(item.species_id),
-                        sector_id: parseInt(formData.sector_id),
+                        sector_id: formData.sector_id === "standby" || formData.sector_id === "" ? null : parseInt(formData.sector_id),
                         purchase_date: formData.purchase_date,
                         sale_date: null,
                         nursery: formData.nursery || null,
@@ -815,7 +825,7 @@ export default function InventoryPage() {
 
                 // Convertir IDs a números
                 basePayload.species_id = parseInt(formData.species_id);
-                basePayload.sector_id = parseInt(formData.sector_id);
+                basePayload.sector_id = formData.sector_id === "standby" || formData.sector_id === "" ? null : parseInt(formData.sector_id);
 
                 // Convertir age_months a número si existe
                 if (basePayload.age_months) {
@@ -911,6 +921,29 @@ export default function InventoryPage() {
     };
 
     const calculateAge = (ageMonths, purchaseDate) => {
+        // Siempre calcular desde purchase_date si está disponible (edad automática que crece cada mes)
+        if (purchaseDate) {
+            const purchase = new Date(purchaseDate);
+            const now = new Date();
+            // Calcular diferencia en meses considerando el día del mes
+            let diffMonths = (now.getFullYear() - purchase.getFullYear()) * 12 + (now.getMonth() - purchase.getMonth());
+
+            // Si el día actual es menor que el día de compra, no ha pasado un mes completo todavía
+            if (now.getDate() < purchase.getDate()) {
+                diffMonths = Math.max(0, diffMonths);
+            }
+
+            // Asegurar que la edad no sea negativa
+            diffMonths = Math.max(0, diffMonths);
+
+            if (diffMonths >= 12) {
+                const years = Math.floor(diffMonths / 12);
+                const months = diffMonths % 12;
+                return months > 0 ? `${years} año${years !== 1 ? 's' : ''} ${months} mes${months !== 1 ? 'es' : ''}` : `${years} año${years !== 1 ? 's' : ''}`;
+            }
+            return `${diffMonths} mes${diffMonths !== 1 ? 'es' : ''}`;
+        }
+        // Si no hay purchase_date, usar age_months como fallback
         if (ageMonths) {
             if (ageMonths >= 12) {
                 const years = Math.floor(ageMonths / 12);
@@ -918,17 +951,6 @@ export default function InventoryPage() {
                 return months > 0 ? `${years} año${years !== 1 ? 's' : ''} ${months} mes${months !== 1 ? 'es' : ''}` : `${years} año${years !== 1 ? 's' : ''}`;
             }
             return `${ageMonths} mes${ageMonths !== 1 ? 'es' : ''}`;
-        }
-        if (purchaseDate) {
-            const purchase = new Date(purchaseDate);
-            const now = new Date();
-            const diffMonths = (now.getFullYear() - purchase.getFullYear()) * 12 + (now.getMonth() - purchase.getMonth());
-            if (diffMonths >= 12) {
-                const years = Math.floor(diffMonths / 12);
-                const months = diffMonths % 12;
-                return months > 0 ? `${years} año${years !== 1 ? 's' : ''} ${months} mes${months !== 1 ? 'es' : ''}` : `${years} año${years !== 1 ? 's' : ''}`;
-            }
-            return `${diffMonths} mes${diffMonths !== 1 ? 'es' : ''}`;
         }
         return "-";
     };
@@ -1429,6 +1451,7 @@ export default function InventoryPage() {
                                 }}
                             >
                                 <option value="">Todos los sectores</option>
+                                <option value="standby">🔴 Sin Asignar (Standby)</option>
                                 {sectorsList.map(s => (
                                     <option key={s.id} value={s.id}>
                                         {s.name}
@@ -1814,7 +1837,7 @@ export default function InventoryPage() {
                                                     }}>
                                                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                                             <div style={{ fontWeight: "500" }}>
-                                                                {sector.name || "-"}
+                                                                {ej.sector_id === null || ej.sector_id === undefined ? "🔴 Sin Asignar (Standby)" : (sector.name || "-")}
                                                             </div>
                                                             {ej.location && (
                                                                 <div style={{
@@ -1967,8 +1990,8 @@ export default function InventoryPage() {
                                 <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "600", color: "#0369a1" }}>
                                     Información de la Compra
                                 </h3>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                                    <div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
+                                    <div style={{ minWidth: "250px" }}>
                                         <label style={{
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -1991,11 +2014,12 @@ export default function InventoryPage() {
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none"
+                                                outline: "none",
+                                                boxSizing: "border-box"
                                             }}
                                         />
                                     </div>
-                                    <div>
+                                    <div style={{ minWidth: "250px" }}>
                                         <label style={{
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -2017,10 +2041,12 @@ export default function InventoryPage() {
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none"
+                                                outline: "none",
+                                                boxSizing: "border-box"
                                             }}
                                         >
                                             <option value="">Seleccionar sector...</option>
+                                            <option value="standby">🔴 Sin Asignar (Standby)</option>
                                             {sectorsList.map(s => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name}
@@ -2028,7 +2054,7 @@ export default function InventoryPage() {
                                             ))}
                                         </select>
                                     </div>
-                                    <div>
+                                    <div style={{ minWidth: "250px" }}>
                                         <label style={{
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -2051,11 +2077,12 @@ export default function InventoryPage() {
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none"
+                                                outline: "none",
+                                                boxSizing: "border-box"
                                             }}
                                         />
                                     </div>
-                                    <div>
+                                    <div style={{ minWidth: "250px" }}>
                                         <label style={{
                                             fontSize: "12px",
                                             fontWeight: "600",
@@ -2078,7 +2105,8 @@ export default function InventoryPage() {
                                                 border: "1px solid #d1d5db",
                                                 borderRadius: "8px",
                                                 fontSize: "14px",
-                                                outline: "none"
+                                                outline: "none",
+                                                boxSizing: "border-box"
                                             }}
                                         />
                                     </div>
@@ -2738,6 +2766,7 @@ export default function InventoryPage() {
                                     }}
                                 >
                                     <option value="">Todos los sectores</option>
+                                    <option value="standby">🔴 Sin Asignar (Standby)</option>
                                     {sectorsList.map(s => (
                                         <option key={s.id} value={s.id}>
                                             {s.name}
@@ -2891,7 +2920,7 @@ export default function InventoryPage() {
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
-                                                        {sector.name || "-"}
+                                                        {ej.sector_id === null || ej.sector_id === undefined ? "🔴 Sin Asignar (Standby)" : (sector.name || "-")}
                                                     </td>
                                                     <td style={{ padding: "12px", borderBottom: "1px solid #e5e7eb" }}>
                                                         <span style={{
@@ -3135,7 +3164,7 @@ export default function InventoryPage() {
                                             Sector
                                         </label>
                                         <p style={{ margin: 0, fontSize: "16px", fontWeight: "500", color: "#111827" }}>
-                                            {sector.name || "-"}
+                                            {selectedEjemplar?.sector_id === null || selectedEjemplar?.sector_id === undefined ? "🔴 Sin Asignar (Standby)" : (sector.name || "-")}
                                         </p>
                                         {sector.description && (
                                             <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#6b7280" }}>

@@ -12,7 +12,7 @@ router = APIRouter()
 def list_ejemplares_staff(
     q: Optional[str] = Query(None, description="Búsqueda general"),
     species_id: Optional[int] = Query(None, description="Filtrar por especie"),
-    sector_id: Optional[int] = Query(None, description="Filtrar por sector"),
+    sector_id: Optional[str] = Query(None, description="Filtrar por sector (puede ser ID numérico o 'null' para sin asignar)"),
     tamaño: Optional[str] = Query(None, description="Filtrar por tamaño (XS, S, M, L, XL, XXL)"),
     morfologia: Optional[str] = Query(None, description="Filtrar por morfología"),
     nombre_comun: Optional[str] = Query(None, description="Filtrar por nombre común"),
@@ -25,10 +25,22 @@ def list_ejemplares_staff(
     Lista ejemplares con filtros y ordenamiento.
     """
     try:
+        # Convertir sector_id: si es "null" string, pasar 0 para filtrar por NULL
+        # Si es un número válido, convertirlo a int
+        processed_sector_id = None
+        if sector_id:
+            if str(sector_id).lower() == "null":
+                processed_sector_id = 0  # 0 indicará filtrar por NULL
+            else:
+                try:
+                    processed_sector_id = int(sector_id)
+                except (ValueError, TypeError):
+                    pass  # Mantener None si no se puede convertir
+        
         return svc.list_staff(
             q=q,
             species_id=species_id,
-            sector_id=sector_id,
+            sector_id=processed_sector_id,
             tamaño=tamaño,
             morfologia=morfologia,
             nombre_comun=nombre_comun,
