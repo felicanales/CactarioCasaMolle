@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getApiUrl } from "../../utils/api-config";
+import InvoiceScanner from "../../components/InvoiceScanner";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -381,6 +382,12 @@ export default function InventoryPage() {
         { id: 1, species_id: "", quantity: 1, price: "" }
     ]);
     
+    // Estados para escáner de facturas
+    const [showInvoiceScanner, setShowInvoiceScanner] = useState(false);
+    const [invoiceImage, setInvoiceImage] = useState(null); // File object
+    const [invoiceImageUrl, setInvoiceImageUrl] = useState(null); // Preview URL
+    const [uploadingInvoice, setUploadingInvoice] = useState(false);
+    
     // Funciones para manejar items de compra
     const addPurchaseItem = () => {
         setPurchaseItems([...purchaseItems, { 
@@ -577,6 +584,51 @@ export default function InventoryPage() {
             setSelectedIds(new Set());
         } catch (err) {
             setError(err.message || String(err));
+        }
+    };
+
+    // Funciones para manejar escáner de facturas
+    const handleInvoiceCapture = async (file, imageUrl) => {
+        setInvoiceImage(file);
+        setInvoiceImageUrl(imageUrl);
+        setShowInvoiceScanner(false);
+        
+        // Subir imagen automáticamente
+        await uploadInvoiceImage(file);
+    };
+
+    const uploadInvoiceImage = async (file) => {
+        if (!file) return;
+        
+        setUploadingInvoice(true);
+        try {
+            const token = getAccessTokenFromContext(accessToken);
+            if (!token) {
+                throw new Error("No estás autenticado");
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const csrfTokenValue = csrfToken || null;
+            const headers = {
+                'Authorization': `Bearer ${token}`
+            };
+
+            if (csrfTokenValue) {
+                headers['X-CSRF-Token'] = csrfTokenValue;
+            }
+
+            // Subir a un endpoint de fotos (o crear uno específico para facturas)
+            // Por ahora, guardaremos la referencia a la imagen
+            // TODO: Implementar endpoint para almacenar imágenes de facturas
+            
+            console.log('[InventoryPage] Factura capturada:', file.name, file.size);
+            setUploadingInvoice(false);
+        } catch (err) {
+            console.error('[InventoryPage] Error al subir factura:', err);
+            setError(`Error al guardar factura: ${err.message}`);
+            setUploadingInvoice(false);
         }
     };
 
@@ -880,12 +932,15 @@ export default function InventoryPage() {
                         tamaño: "",
                         health_status: "",
                         location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
+                        purchase_price: "",
+                        sale_price: "",
+                        has_offshoots: 0,
+                        cantidad: 1
                     });
                     setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                    // Limpiar estados de factura
+                    setInvoiceImage(null);
+                    setInvoiceImageUrl(null);
                 } else {
                     setError(`Se crearon ${created} ejemplares. ${failed} fallaron: ${errors.join('; ')}`);
                 }
@@ -1104,6 +1159,9 @@ export default function InventoryPage() {
                                         has_offshoots: 0,
                                         cantidad: 1
                                     });
+                                    // Limpiar estados de factura
+                                    setInvoiceImage(null);
+                                    setInvoiceImageUrl(null);
                                     setShowModal(true);
                                 }}
                                 style={{
@@ -2067,20 +2125,86 @@ export default function InventoryPage() {
                                         }}>
                                             Número de Factura
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={formData.invoice_number}
-                                            onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                                            placeholder="Ej: FAC-001234"
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
-                                        />
+                                        <div style={{ display: "flex", gap: "8px" }}>
+                                            <input
+                                                type="text"
+                                                value={formData.invoice_number}
+                                                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                                                placeholder="Ej: FAC-001234"
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "10px 12px",
+                                                    border: "1px solid #d1d5db",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    outline: "none"
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowInvoiceScanner(true)}
+                                                style={{
+                                                    padding: "10px 16px",
+                                                    border: "1px solid #3b82f6",
+                                                    borderRadius: "8px",
+                                                    backgroundColor: "#eff6ff",
+                                                    color: "#1e40af",
+                                                    fontSize: "14px",
+                                                    fontWeight: "600",
+                                                    cursor: "pointer",
+                                                    whiteSpace: "nowrap",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "6px"
+                                                }}
+                                            >
+                                                📷 Escanear Factura
+                                            </button>
+                                        </div>
+                                        {invoiceImageUrl && (
+                                            <div style={{
+                                                marginTop: "12px",
+                                                padding: "12px",
+                                                backgroundColor: "#f0fdf4",
+                                                border: "1px solid #86efac",
+                                                borderRadius: "8px"
+                                            }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                                    <span style={{ fontSize: "12px", fontWeight: "600", color: "#166534" }}>
+                                                        ✓ Factura escaneada
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setInvoiceImage(null);
+                                                            setInvoiceImageUrl(null);
+                                                        }}
+                                                        style={{
+                                                            padding: "4px 8px",
+                                                            border: "1px solid #ef4444",
+                                                            borderRadius: "4px",
+                                                            backgroundColor: "white",
+                                                            color: "#dc2626",
+                                                            fontSize: "12px",
+                                                            cursor: "pointer"
+                                                        }}
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                                <img
+                                                    src={invoiceImageUrl}
+                                                    alt="Factura escaneada"
+                                                    style={{
+                                                        width: "100%",
+                                                        maxHeight: "200px",
+                                                        objectFit: "contain",
+                                                        borderRadius: "4px",
+                                                        border: "1px solid #d1d5db"
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -3168,6 +3292,15 @@ export default function InventoryPage() {
                     </div>
                 )}
             </Modal>
+
+            {/* Escáner de Facturas */}
+            {showInvoiceScanner && (
+                <InvoiceScanner
+                    onCapture={handleInvoiceCapture}
+                    onClose={() => setShowInvoiceScanner(false)}
+                    existingImage={invoiceImageUrl}
+                />
+            )}
         </>
     );
 }
