@@ -7,13 +7,13 @@ import { getApiUrl } from "../utils/api-config";
  * Componente para cargar imágenes que requieren autenticación
  * Carga la imagen usando fetch con el token y luego la muestra como blob URL
  */
-export default function AuthenticatedImage({ 
-    src, 
-    alt, 
-    className, 
+export default function AuthenticatedImage({
+    src,
+    alt,
+    className,
     style,
     onError,
-    ...props 
+    ...props
 }) {
     const [imageSrc, setImageSrc] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function AuthenticatedImage({
     // Helper para obtener el access token
     const getAccessToken = () => {
         if (typeof window === 'undefined') return null;
-        
+
         // Intentar leer cookies de diferentes formas para cross-domain
         try {
             // Método 1: Regex estándar
@@ -30,7 +30,7 @@ export default function AuthenticatedImage({
             if (match && match[2]) {
                 return match[2];
             }
-            
+
             // Método 2: Buscar en todas las cookies (para cross-domain)
             const cookies = document.cookie.split(';');
             for (const cookie of cookies) {
@@ -42,14 +42,14 @@ export default function AuthenticatedImage({
         } catch (error) {
             console.warn('[AuthenticatedImage] Error reading cookies:', error);
         }
-        
+
         // Fallback a localStorage (para compatibilidad)
         try {
             return localStorage.getItem('access_token');
         } catch (error) {
             console.warn('[AuthenticatedImage] Error reading localStorage:', error);
         }
-        
+
         return null;
     };
 
@@ -86,6 +86,11 @@ export default function AuthenticatedImage({
         try {
             setLoading(true);
             setError(false);
+
+            // Revocar URL anterior antes de cargar una nueva
+            if (imageSrc && imageSrc.startsWith('blob:')) {
+                URL.revokeObjectURL(imageSrc);
+            }
 
             const token = getAccessToken();
             const headers = {
@@ -134,7 +139,7 @@ export default function AuthenticatedImage({
 
     if (loading) {
         return (
-            <div 
+            <div
                 className={className}
                 style={{
                     ...style,
@@ -153,7 +158,7 @@ export default function AuthenticatedImage({
 
     if (error || !imageSrc) {
         return (
-            <div 
+            <div
                 className={className}
                 style={{
                     ...style,

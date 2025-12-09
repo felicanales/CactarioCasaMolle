@@ -201,6 +201,7 @@ export default function SpeciesPage() {
     const [submitting, setSubmitting] = useState(false);
     // Estados para manejar fotos en creación
     const [pendingPhotos, setPendingPhotos] = useState([]); // Fotos seleccionadas antes de crear
+    const [pendingPhotoUrls, setPendingPhotoUrls] = useState([]); // URLs de preview para revocar después
     const [newlyCreatedSpeciesId, setNewlyCreatedSpeciesId] = useState(null); // ID de especie recién creada
 
     // Helper para requests autenticadas
@@ -302,6 +303,14 @@ export default function SpeciesPage() {
         }
     }, [user, checkedAuth]);
 
+    // Limpiar URLs cuando el componente se desmonte
+    useEffect(() => {
+        return () => {
+            // Revocar todas las URLs al desmontar el componente
+            pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+        };
+    }, [pendingPhotoUrls]);
+
     // Efecto para aplicar filtros y ordenamiento cuando cambian
     useEffect(() => {
         let filtered = [...species];
@@ -374,7 +383,10 @@ export default function SpeciesPage() {
             historia_y_leyendas: "",
             image_url: "",
         });
-        setPendingPhotos([]); // Limpiar fotos pendientes
+        // Revocar URLs antes de limpiar
+        pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+        setPendingPhotos([]);
+        setPendingPhotoUrls([]);
         setNewlyCreatedSpeciesId(null);
         setShowModal(true);
     };
@@ -515,7 +527,10 @@ export default function SpeciesPage() {
 
                         if (uploadRes.ok) {
                             console.log('[SpeciesPage] ✅ Fotos subidas automáticamente después de crear la especie');
-                            setPendingPhotos([]); // Limpiar fotos pendientes
+                            // Revocar URLs antes de limpiar
+                            pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+                            setPendingPhotos([]);
+                            setPendingPhotoUrls([]);
                         } else {
                             console.warn('[SpeciesPage] ⚠️ No se pudieron subir las fotos automáticamente, pero la especie se creó correctamente');
                         }
@@ -527,7 +542,10 @@ export default function SpeciesPage() {
             }
 
             setShowModal(false);
-            setPendingPhotos([]); // Limpiar fotos pendientes
+            // Revocar todas las URLs antes de limpiar
+            pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+            setPendingPhotos([]);
+            setPendingPhotoUrls([]);
             setNewlyCreatedSpeciesId(null);
             fetchSpecies();
         } catch (err) {
@@ -1311,7 +1329,10 @@ export default function SpeciesPage() {
                 isOpen={showModal}
                 onClose={() => {
                     setShowModal(false);
-                    setPendingPhotos([]); // Limpiar fotos pendientes al cerrar
+                    // Revocar todas las URLs antes de limpiar
+                    pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+                    setPendingPhotos([]);
+                    setPendingPhotoUrls([]);
                     setNewlyCreatedSpeciesId(null);
                 }}
                 title={
@@ -1564,7 +1585,7 @@ export default function SpeciesPage() {
                                 }}>
                                     📸 Fotos de la Especie
                                 </h3>
-                                
+
                                 {modalMode === "edit" && selectedSpecies?.id ? (
                                     <>
                                         {/* En modo edición, mostrar PhotoUploader normal */}
@@ -1616,9 +1637,12 @@ export default function SpeciesPage() {
                                                         }
                                                         return true;
                                                     });
-                                                    
+
                                                     if (validFiles.length > 0) {
+                                                        // Crear URLs para preview
+                                                        const newUrls = validFiles.map(file => URL.createObjectURL(file));
                                                         setPendingPhotos([...pendingPhotos, ...validFiles]);
+                                                        setPendingPhotoUrls([...pendingPhotoUrls, ...newUrls]);
                                                         setError("");
                                                     }
                                                     // Reset input
@@ -1644,7 +1668,7 @@ export default function SpeciesPage() {
                                                 {pendingPhotos.length > 0 && ` (${pendingPhotos.length} foto${pendingPhotos.length > 1 ? 's' : ''} seleccionada${pendingPhotos.length > 1 ? 's' : ''})`}
                                             </p>
                                         </div>
-                                        
+
                                         {/* Vista previa de fotos seleccionadas */}
                                         {pendingPhotos.length > 0 && (
                                             <div style={{
@@ -1656,7 +1680,7 @@ export default function SpeciesPage() {
                                                 {pendingPhotos.map((file, index) => (
                                                     <div key={index} style={{ position: "relative" }}>
                                                         <img
-                                                            src={URL.createObjectURL(file)}
+                                                            src={pendingPhotoUrls[index]}
                                                             alt={`Preview ${index + 1}`}
                                                             style={{
                                                                 width: "100%",
@@ -1669,9 +1693,16 @@ export default function SpeciesPage() {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
+                                                                // Revocar URL antes de eliminar
+                                                                if (pendingPhotoUrls[index]) {
+                                                                    URL.revokeObjectURL(pendingPhotoUrls[index]);
+                                                                }
                                                                 const newPhotos = [...pendingPhotos];
+                                                                const newUrls = [...pendingPhotoUrls];
                                                                 newPhotos.splice(index, 1);
+                                                                newUrls.splice(index, 1);
                                                                 setPendingPhotos(newPhotos);
+                                                                setPendingPhotoUrls(newUrls);
                                                             }}
                                                             disabled={submitting}
                                                             style={{
@@ -2173,7 +2204,10 @@ export default function SpeciesPage() {
                                     type="button"
                                     onClick={() => {
                                         setShowModal(false);
-                                        setPendingPhotos([]); // Limpiar fotos pendientes al cancelar
+                                        // Revocar todas las URLs antes de limpiar
+                                        pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+                                        setPendingPhotos([]);
+                                        setPendingPhotoUrls([]);
                                         setNewlyCreatedSpeciesId(null);
                                     }}
                                     style={{
