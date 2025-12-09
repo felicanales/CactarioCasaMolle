@@ -36,7 +36,19 @@ NEXT_PUBLIC_API_URL=https://tu-backend.railway.app
 
 ## Solución de Problemas
 
-Si ves el error: `/bin/bash: line 1: cd: nextjs: No such file or directory`
+### Error: `npm error No workspaces found: --workspace=cactario-frontend`
+
+**Causa**: Railway está detectando automáticamente workspaces aunque este NO es un proyecto con workspaces.
+
+**Solución**:
+1. **Verifica Root Directory**: En Railway Dashboard → Settings → Root Directory debe ser exactamente `nextjs/`
+2. **Limpia el caché**: Settings → Clear Build Cache
+3. **Verifica que NO haya configuración de workspaces**: 
+   - El servicio debe estar configurado como servicio separado, NO como monorepo
+   - NO debe haber un `package.json` con workspaces configurado
+4. **Fuerza rebuild**: Deploy → Redeploy
+
+### Error: `/bin/bash: line 1: cd: nextjs: No such file or directory`
 
 **Causa**: Railway está intentando hacer `cd nextjs` cuando ya está en ese directorio.
 

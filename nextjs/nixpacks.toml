@@ -1,8 +1,14 @@
+# Nixpacks configuration for Next.js Staff Frontend
+# Root Directory must be set to 'nextjs/' in Railway Dashboard
+# This is NOT a workspace - it's a standalone Next.js app
+
 [phases.setup]
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = [
+    "npm ci --legacy-peer-deps --no-workspaces"
+]
 
 [phases.build]
 cmds = [

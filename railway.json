@@ -1,4 +1,4 @@
 {
     "$schema": "https://railway.app/railway.schema.json",
-    "$comment": "This file should not be used. Each service (nextjs/, mobile/, fastapi/) has its own railway.json configuration. If deploying from root, each service should be configured with its own root directory."
+    "$comment": "⚠️ ESTE ARCHIVO NO DEBE USARSE. Cada servicio (nextjs/, mobile/, fastapi/) debe tener su propio servicio en Railway con Root Directory configurado. Este archivo está aquí solo como referencia y NO debe ser usado para ningún servicio."
 }
