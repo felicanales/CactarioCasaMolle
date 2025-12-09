@@ -248,8 +248,8 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
     # Validar campos obligatorios
     if not payload.get("species_id"):
         raise ValueError("species_id es obligatorio")
-    if not payload.get("sector_id"):
-        raise ValueError("sector_id es obligatorio")
+    # sector_id puede ser None para ejemplares en modo "standby" (sin asignar)
+    # No validamos que sea obligatorio, ya que puede ser null
     
     # Limpiar payload: remover campos que no deben enviarse
     clean_payload = {k: v for k, v in payload.items() 
@@ -285,9 +285,11 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
         logger.info(f"[create_staff] Ejemplar creado exitosamente: {res.data[0].get('id')}")
         
         # Asegurar que la relación especie-sector existe en sectores_especies
+        # Solo si sector_id no es None (ejemplares en standby no tienen sector)
         species_id = clean_payload["species_id"]
-        sector_id = clean_payload["sector_id"]
-        _ensure_sector_species_relation(sector_id, species_id)
+        sector_id = clean_payload.get("sector_id")
+        if sector_id is not None:
+            _ensure_sector_species_relation(sector_id, species_id)
         
         created_ejemplar = res.data[0]
         ejemplar_id = created_ejemplar.get('id')
@@ -354,10 +356,12 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # IMPORTANTE: Eliminar campo 'tamaño' completamente del payload
-    # La columna no existe en la BD todavía, así que siempre la removemos
-    if "tamaño" in clean_payload:
-        del clean_payload["tamaño"]
+    # IMPORTANTE: Eliminar campos que no existen en la BD
+    # Estos campos pueden venir del frontend pero no están en el esquema
+    fields_to_remove = ["tamaño", "invoice_number"]
+    for field in fields_to_remove:
+        if field in clean_payload:
+            del clean_payload[field]
     
     try:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
@@ -368,7 +372,8 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
         new_species_id = clean_payload.get("species_id", old_species_id)
         new_sector_id = clean_payload.get("sector_id", old_sector_id)
         
-        if new_species_id and new_sector_id:
+        # Solo crear relación si ambos IDs existen (ejemplares en standby no tienen sector)
+        if new_species_id and new_sector_id is not None:
             # Si cambió la especie o el sector, crear la nueva relación
             if (new_species_id != old_species_id or new_sector_id != old_sector_id) or not old_species_id:
                 _ensure_sector_species_relation(new_sector_id, new_species_id)
