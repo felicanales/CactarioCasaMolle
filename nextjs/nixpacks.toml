@@ -1,21 +1,12 @@
-# Nixpacks configuration for Next.js Staff Frontend
-# Root Directory must be set to 'nextjs/' in Railway Dashboard
-# This is NOT a workspace - it's a standalone Next.js app
-
 [phases.setup]
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = [
-    "npm ci --legacy-peer-deps --ignore-scripts"
-]
+cmds = ["npm ci"]
 
 [phases.build]
 cmds = [
-    "export NODE_ENV=production",
-    "node node_modules/next/dist/bin/next build",
-    "echo 'Build completed, checking standalone...'",
-    "(test -d .next/standalone && echo '✅ Standalone directory exists' || echo '❌ Standalone directory missing')",
+    "npm run build",
     "node copy-assets.js"
 ]
 
