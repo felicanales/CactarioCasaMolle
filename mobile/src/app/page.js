@@ -85,6 +85,74 @@ export default function Home() {
   };
 
   const renderSection = (section, index) => {
+    // Nueva estructura: sección con título y array de items
+    if (section.title || (section.items && section.items.length > 0)) {
+      return (
+        <div key={index} style={{ marginBottom: '32px' }}>
+          {section.title && (
+            <h2 style={{ 
+              fontSize: '20px', 
+              fontWeight: '600', 
+              marginBottom: '16px',
+              color: '#111827'
+            }}>
+              {section.title}
+            </h2>
+          )}
+          
+          {/* Renderizar items (párrafos e imágenes intercalados) */}
+          {section.items && section.items.length > 0 && (
+            <div>
+              {section.items.map((item, itemIndex) => {
+                if (item.type === 'paragraph') {
+                  return (
+                    <div key={itemIndex} style={{ marginBottom: '16px' }}>
+                      {item.content && (
+                        <p style={{ 
+                          fontSize: '16px', 
+                          lineHeight: '1.6',
+                          color: '#374151',
+                          marginBottom: '16px'
+                        }}>
+                          {item.content}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                
+                if (item.type === 'image') {
+                  return (
+                    <div key={itemIndex} style={{ marginBottom: '16px' }}>
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.alt || section.title || `Imagen ${itemIndex + 1}`}
+                          style={{
+                            width: '100%',
+                            maxHeight: '400px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            marginBottom: '16px'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                
+                return null;
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Compatibilidad hacia atrás: estructura antigua (type: text, bullets, image)
     if (section.type === 'text') {
       return (
         <div key={index} style={{ marginBottom: '24px' }}>

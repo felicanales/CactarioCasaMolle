@@ -237,11 +237,8 @@ export default function HomeContentPage() {
     const addSection = () => {
         const current = getCurrentSections();
         setCurrentSections([...current, {
-            type: "text", // "text", "bullets", "image"
             title: "",
-            content: "",
-            bullets: [],
-            imageUrl: ""
+            items: [] // Array de items: { type: "paragraph" | "image", content: "...", imageUrl: "...", alt: "..." }
         }]);
     };
 
@@ -257,28 +254,105 @@ export default function HomeContentPage() {
         setCurrentSections(updated);
     };
 
-    const addBullet = (sectionIndex) => {
+    // Funciones para manejar items dentro de secciones
+    const addItem = (sectionIndex, itemType) => {
         const current = getCurrentSections();
         const updated = [...current];
-        if (!updated[sectionIndex].bullets) {
-            updated[sectionIndex].bullets = [];
+        if (!updated[sectionIndex].items) {
+            updated[sectionIndex].items = [];
         }
-        updated[sectionIndex].bullets.push("");
+        updated[sectionIndex].items.push({
+            type: itemType, // "paragraph" o "image"
+            content: "",
+            imageUrl: "",
+            alt: ""
+        });
         setCurrentSections(updated);
     };
 
-    const removeBullet = (sectionIndex, bulletIndex) => {
+    const removeItem = (sectionIndex, itemIndex) => {
         const current = getCurrentSections();
         const updated = [...current];
-        updated[sectionIndex].bullets = updated[sectionIndex].bullets.filter((_, i) => i !== bulletIndex);
+        updated[sectionIndex].items = updated[sectionIndex].items.filter((_, i) => i !== itemIndex);
         setCurrentSections(updated);
     };
 
-    const updateBullet = (sectionIndex, bulletIndex, value) => {
+    const updateItem = (sectionIndex, itemIndex, field, value) => {
         const current = getCurrentSections();
         const updated = [...current];
-        updated[sectionIndex].bullets[bulletIndex] = value;
+        updated[sectionIndex].items[itemIndex] = {
+            ...updated[sectionIndex].items[itemIndex],
+            [field]: value
+        };
         setCurrentSections(updated);
+    };
+
+    const moveItem = (sectionIndex, itemIndex, direction) => {
+        const current = getCurrentSections();
+        const updated = [...current];
+        const items = updated[sectionIndex].items;
+        if (direction === "up" && itemIndex > 0) {
+            [items[itemIndex], items[itemIndex - 1]] = [items[itemIndex - 1], items[itemIndex]];
+        } else if (direction === "down" && itemIndex < items.length - 1) {
+            [items[itemIndex], items[itemIndex + 1]] = [items[itemIndex + 1], items[itemIndex]];
+        }
+        setCurrentSections(updated);
+    };
+
+    const handleSectionImageUpload = async (sectionIndex, itemIndex, file) => {
+        if (!file) return;
+
+        setUploadingImageIndex(`section-${sectionIndex}-item-${itemIndex}`);
+        setError("");
+
+        try {
+            const token = getAccessTokenFromContext(accessToken);
+            if (!token) {
+                setError("No estás autenticado. Por favor, inicia sesión.");
+                setUploadingImageIndex(null);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const csrfTokenValue = csrfToken || null;
+            const headers = {
+                'Authorization': `Bearer ${token}`
+            };
+
+            if (csrfTokenValue) {
+                headers['X-CSRF-Token'] = csrfTokenValue;
+            }
+
+            const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
+                method: 'POST',
+                headers,
+                body: formData,
+                credentials: 'include'
+            });
+
+            if (!uploadRes.ok) {
+                if (uploadRes.status === 401) {
+                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+                    setTimeout(() => router.replace("/login"), 1500);
+                    return;
+                }
+                const errorData = await uploadRes.json().catch(() => ({}));
+                throw new Error(errorData.detail || "Error al subir la imagen");
+            }
+
+            const uploadData = await uploadRes.json();
+            updateItem(sectionIndex, itemIndex, "imageUrl", uploadData.url);
+            updateItem(sectionIndex, itemIndex, "alt", uploadData.alt || file.name);
+            setSuccess("Imagen subida exitosamente");
+            setTimeout(() => setSuccess(""), 3000);
+        } catch (err) {
+            console.error("Error uploading image:", err);
+            setError(err.message || "Error al subir la imagen");
+        } finally {
+            setUploadingImageIndex(null);
+        }
     };
 
     if (authLoading || loading) {
@@ -758,23 +832,6 @@ export default function HomeContentPage() {
                                     </button>
                                 </div>
 
-                                <select
-                                    value={section.type || "text"}
-                                    onChange={(e) => updateSection(sectionIndex, "type", e.target.value)}
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        marginBottom: "12px",
-                                        fontSize: "14px"
-                                    }}
-                                >
-                                    <option value="text">Texto con párrafo</option>
-                                    <option value="bullets">Lista con puntos</option>
-                                    <option value="image">Imagen</option>
-                                </select>
-
                                 <input
                                     type="text"
                                     value={section.title || ""}
@@ -785,103 +842,199 @@ export default function HomeContentPage() {
                                         padding: "8px",
                                         border: "1px solid #d1d5db",
                                         borderRadius: "6px",
-                                        marginBottom: "12px",
-                                        fontSize: "14px"
+                                        marginBottom: "16px",
+                                        fontSize: "14px",
+                                        fontWeight: "500"
                                     }}
                                 />
 
-                                {section.type === "text" && (
-                                    <textarea
-                                        value={section.content || ""}
-                                        onChange={(e) => updateSection(sectionIndex, "content", e.target.value)}
-                                        placeholder="Contenido del párrafo"
-                                        rows={4}
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "6px",
-                                            fontSize: "14px",
-                                            fontFamily: "inherit"
-                                        }}
-                                    />
-                                )}
-
-                                {section.type === "bullets" && (
-                                    <div>
-                                        {(section.bullets || []).map((bullet, bulletIndex) => (
-                                            <div key={bulletIndex} style={{
+                                {/* Items de la sección */}
+                                <div style={{ marginBottom: "16px" }}>
+                                    {(section.items || []).map((item, itemIndex) => (
+                                        <div key={itemIndex} style={{
+                                            border: "1px solid #e5e7eb",
+                                            borderRadius: "8px",
+                                            padding: "12px",
+                                            marginBottom: "12px",
+                                            backgroundColor: "#f9fafb"
+                                        }}>
+                                            <div style={{
                                                 display: "flex",
-                                                gap: "8px",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
                                                 marginBottom: "8px"
                                             }}>
-                                                <input
-                                                    type="text"
-                                                    value={bullet}
-                                                    onChange={(e) => updateBullet(sectionIndex, bulletIndex, e.target.value)}
-                                                    placeholder={`Punto ${bulletIndex + 1}`}
+                                                <span style={{ fontSize: "12px", color: "#6b7280", fontWeight: "500" }}>
+                                                    {item.type === "paragraph" ? "📝 Párrafo" : "🖼️ Imagen"}
+                                                </span>
+                                                <div style={{ display: "flex", gap: "4px" }}>
+                                                    <button
+                                                        onClick={() => moveItem(sectionIndex, itemIndex, "up")}
+                                                        disabled={itemIndex === 0}
+                                                        style={{
+                                                            padding: "4px 8px",
+                                                            backgroundColor: itemIndex === 0 ? "#d1d5db" : "#6b7280",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: itemIndex === 0 ? "not-allowed" : "pointer",
+                                                            fontSize: "10px"
+                                                        }}
+                                                    >
+                                                        ↑
+                                                    </button>
+                                                    <button
+                                                        onClick={() => moveItem(sectionIndex, itemIndex, "down")}
+                                                        disabled={itemIndex === (section.items || []).length - 1}
+                                                        style={{
+                                                            padding: "4px 8px",
+                                                            backgroundColor: itemIndex === (section.items || []).length - 1 ? "#d1d5db" : "#6b7280",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: itemIndex === (section.items || []).length - 1 ? "not-allowed" : "pointer",
+                                                            fontSize: "10px"
+                                                        }}
+                                                    >
+                                                        ↓
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeItem(sectionIndex, itemIndex)}
+                                                        style={{
+                                                            padding: "4px 8px",
+                                                            backgroundColor: "#ef4444",
+                                                            color: "white",
+                                                            border: "none",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontSize: "10px"
+                                                        }}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {item.type === "paragraph" && (
+                                                <textarea
+                                                    value={item.content || ""}
+                                                    onChange={(e) => updateItem(sectionIndex, itemIndex, "content", e.target.value)}
+                                                    placeholder="Escribe el párrafo aquí..."
+                                                    rows={4}
                                                     style={{
-                                                        flex: 1,
+                                                        width: "100%",
                                                         padding: "8px",
                                                         border: "1px solid #d1d5db",
                                                         borderRadius: "6px",
-                                                        fontSize: "14px"
+                                                        fontSize: "14px",
+                                                        fontFamily: "inherit"
                                                     }}
                                                 />
-                                                <button
-                                                    onClick={() => removeBullet(sectionIndex, bulletIndex)}
-                                                    style={{
-                                                        padding: "8px 12px",
-                                                        backgroundColor: "#ef4444",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "6px",
-                                                        cursor: "pointer",
-                                                        fontSize: "12px"
-                                                    }}
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <button
-                                            onClick={() => addBullet(sectionIndex)}
-                                            style={{
-                                                padding: "6px 12px",
-                                                backgroundColor: "#3b82f6",
-                                                color: "white",
-                                                border: "none",
-                                                borderRadius: "6px",
-                                                cursor: "pointer",
-                                                fontSize: "12px"
-                                            }}
-                                        >
-                                            + Agregar Punto
-                                        </button>
-                                    </div>
-                                )}
+                                            )}
 
-                                {section.type === "image" && (
-                                    <input
-                                        type="text"
-                                        value={section.imageUrl || ""}
-                                        onChange={(e) => updateSection(sectionIndex, "imageUrl", e.target.value)}
-                                        placeholder="URL de la imagen"
+                                            {item.type === "image" && (
+                                                <div>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                handleSectionImageUpload(sectionIndex, itemIndex, file);
+                                                            }
+                                                        }}
+                                                        disabled={uploadingImageIndex === `section-${sectionIndex}-item-${itemIndex}`}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "8px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "6px",
+                                                            fontSize: "14px",
+                                                            marginBottom: "8px",
+                                                            cursor: uploadingImageIndex === `section-${sectionIndex}-item-${itemIndex}` ? "not-allowed" : "pointer"
+                                                        }}
+                                                    />
+                                                    {uploadingImageIndex === `section-${sectionIndex}-item-${itemIndex}` && (
+                                                        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                                                            Subiendo...
+                                                        </p>
+                                                    )}
+                                                    {item.imageUrl && (
+                                                        <div style={{ marginTop: "8px" }}>
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.alt || `Imagen ${itemIndex + 1}`}
+                                                                style={{
+                                                                    maxWidth: "100%",
+                                                                    maxHeight: "200px",
+                                                                    borderRadius: "8px",
+                                                                    objectFit: "cover"
+                                                                }}
+                                                                onError={(e) => {
+                                                                    e.target.style.display = "none";
+                                                                }}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={item.alt || ""}
+                                                                onChange={(e) => updateItem(sectionIndex, itemIndex, "alt", e.target.value)}
+                                                                placeholder="Texto alternativo (alt)"
+                                                                style={{
+                                                                    width: "100%",
+                                                                    padding: "8px",
+                                                                    border: "1px solid #d1d5db",
+                                                                    borderRadius: "6px",
+                                                                    fontSize: "14px",
+                                                                    marginTop: "8px"
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Botones para agregar items */}
+                                <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                                    <button
+                                        onClick={() => addItem(sectionIndex, "paragraph")}
                                         style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #d1d5db",
+                                            padding: "8px 16px",
+                                            backgroundColor: "#3b82f6",
+                                            color: "white",
+                                            border: "none",
                                             borderRadius: "6px",
-                                            fontSize: "14px"
+                                            cursor: "pointer",
+                                            fontSize: "12px",
+                                            fontWeight: "500"
                                         }}
-                                    />
-                                )}
+                                    >
+                                        + Agregar Párrafo
+                                    </button>
+                                    <button
+                                        onClick={() => addItem(sectionIndex, "image")}
+                                        style={{
+                                            padding: "8px 16px",
+                                            backgroundColor: "#10b981",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "6px",
+                                            cursor: "pointer",
+                                            fontSize: "12px",
+                                            fontWeight: "500"
+                                        }}
+                                    >
+                                        + Agregar Imagen
+                                    </button>
+                                </div>
                             </div>
                         ))}
 
                         {getCurrentSections().length === 0 && (
                             <p style={{ color: "#6b7280", fontStyle: "italic" }}>
-                                No hay secciones agregadas. Puedes agregar secciones con texto, listas o imágenes.
+                                No hay secciones agregadas. Puedes agregar secciones con párrafos e imágenes intercalados.
                             </p>
                         )}
                     </div>
