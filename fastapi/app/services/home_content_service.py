@@ -1,7 +1,59 @@
 # app/services/home_content_service.py
 from typing import List, Optional, Dict, Any
-from app.core.supabase_auth import get_public as get_supabase_client, get_public_clean
+from app.core.supabase_auth import (
+    get_public as get_supabase_client,
+    get_public_clean,
+)
+from supabase import create_client as supabase_create_client
 import json
+import os
+
+def get_authenticated_client(access_token: Optional[str] = None):
+    """
+    Obtiene un cliente de Supabase con la sesión del usuario autenticado.
+    Si no se proporciona token, retorna un cliente sin sesión.
+    
+    Para que RLS funcione correctamente, necesitamos configurar el token en el cliente.
+    El cliente de Supabase Python permite configurar headers adicionales a través
+    del cliente postgrest interno.
+    """
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+    
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_ANON_KEY en .env")
+    
+    # Crear un nuevo cliente para esta operación
+    client = supabase_create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    
+    if access_token:
+        # Configurar el token en el cliente postgrest interno
+        # El cliente de Supabase Python expone el postgrest_client que tiene un session
+        # Podemos modificar los headers del session para incluir el token
+        try:
+            # Acceder al cliente postgrest y configurar headers
+            if hasattr(client, 'postgrest'):
+                postgrest_client = client.postgrest
+                # El postgrest client tiene un session que podemos modificar
+                if hasattr(postgrest_client, 'session'):
+                    session = postgrest_client.session
+                    # Configurar headers si no existen
+                    if not hasattr(session, 'headers') or session.headers is None:
+                        session.headers = {}
+                    # Actualizar headers con el token de autorización
+                    session.headers.update({
+                        "Authorization": f"Bearer {access_token}",
+                        "apikey": SUPABASE_ANON_KEY
+                    })
+        except Exception as e:
+            # Si no podemos configurar los headers, loguear el error pero continuar
+            # El cliente funcionará pero puede que RLS no funcione correctamente
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"No se pudo configurar headers del postgrest client: {e}")
+            logger.warning("El cliente se creará sin autenticación, RLS puede fallar")
+    
+    return client
 
 # ----------------- PÚBLICO -----------------
 
@@ -60,12 +112,17 @@ def get_public() -> Optional[Dict[str, Any]]:
 
 # ----------------- STAFF (privado) -----------------
 
-def get_staff() -> Optional[Dict[str, Any]]:
+def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Obtiene el contenido del home para staff (requiere autenticación).
     """
     try:
-        sb = get_supabase_client()
+        # Usar cliente autenticado si hay token, sino usar cliente público
+        if access_token:
+            sb = get_authenticated_client(access_token)
+        else:
+            sb = get_public_clean()
+        
         res = sb.table("home_content").select("*").order("updated_at", desc=True).limit(1).execute()
         
         if not res.data or len(res.data) == 0:
@@ -113,12 +170,17 @@ def get_staff() -> Optional[Dict[str, Any]]:
     
     return content
 
-def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = None) -> Dict[str, Any]:
+def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = None, access_token: Optional[str] = None) -> Dict[str, Any]:
     """
     Crea o actualiza el contenido del home.
     Si ya existe un registro activo, lo actualiza. Si no, crea uno nuevo.
+    Requiere access_token para que las políticas RLS funcionen correctamente.
     """
-    sb = get_supabase_client()
+    if not access_token:
+        raise ValueError("access_token es requerido para crear o actualizar contenido del home")
+    
+    # Usar cliente autenticado con la sesión del usuario
+    sb = get_authenticated_client(access_token)
     
     # Verificar si ya existe un registro activo
     existing = sb.table("home_content").select("id").eq("is_active", True).limit(1).execute()

@@ -31,12 +31,16 @@ def get_home_content_public():
 # ===========================
 
 @router.get("/staff", dependencies=[Depends(get_current_user)])
-def get_home_content_staff():
+def get_home_content_staff(request: Request):
     """
     Obtiene el contenido del home para staff (requiere usuario autenticado).
     """
     try:
-        content = svc.get_staff()
+        # Obtener el token del header Authorization
+        auth_header = request.headers.get("Authorization", "")
+        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        
+        content = svc.get_staff(access_token)
         if not content:
             return {
                 "welcome_text": "Bienvenido al Cactario CasaMolle",
@@ -138,11 +142,20 @@ def create_or_update_home_content_staff(
     Crea o actualiza el contenido del home (requiere usuario autenticado).
     """
     try:
+        # Obtener el token del header Authorization
+        auth_header = request.headers.get("Authorization", "")
+        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Token de autenticación no encontrado")
+        
         user = request.state.user if hasattr(request.state, 'user') else None
         user_id = user.get("id") if user else None
         
-        result = svc.create_or_update_staff(payload, user_id)
+        result = svc.create_or_update_staff(payload, user_id, access_token)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import logging
         logger = logging.getLogger("cactario-backend")
@@ -160,11 +173,20 @@ def update_home_content_staff(
     Alias para POST (mismo comportamiento).
     """
     try:
+        # Obtener el token del header Authorization
+        auth_header = request.headers.get("Authorization", "")
+        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Token de autenticación no encontrado")
+        
         user = request.state.user if hasattr(request.state, 'user') else None
         user_id = user.get("id") if user else None
         
-        result = svc.create_or_update_staff(payload, user_id)
+        result = svc.create_or_update_staff(payload, user_id, access_token)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import logging
         logger = logging.getLogger("cactario-backend")
