@@ -52,7 +52,7 @@ export default function HomeContentPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    
+
     const [welcomeText, setWelcomeText] = useState("Bienvenido al Cactario CasaMolle");
     const [carouselImages, setCarouselImages] = useState([]);
     const [sections, setSections] = useState([]);
@@ -137,6 +137,8 @@ export default function HomeContentPage() {
         }
     };
 
+    const [uploadingImage, setUploadingImage] = useState(false);
+
     const addCarouselImage = () => {
         setCarouselImages([...carouselImages, { url: "", alt: "" }]);
     };
@@ -149,6 +151,69 @@ export default function HomeContentPage() {
         const updated = [...carouselImages];
         updated[index] = { ...updated[index], [field]: value };
         setCarouselImages(updated);
+    };
+
+    const handleImageUpload = async (index, file) => {
+        if (!file) return;
+
+        setUploadingImage(true);
+        setError("");
+
+        try {
+            const token = getAccessTokenFromContext(accessToken);
+            if (!token) {
+                setError("No estás autenticado. Por favor, inicia sesión.");
+                setUploadingImage(false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const csrfTokenValue = csrfToken || null;
+            const headers = {
+                'Authorization': `Bearer ${token}`
+            };
+
+            if (csrfTokenValue) {
+                headers['X-CSRF-Token'] = csrfTokenValue;
+            }
+
+            const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
+                method: 'POST',
+                headers,
+                body: formData,
+                credentials: 'include'
+            });
+
+            if (!uploadRes.ok) {
+                if (uploadRes.status === 401) {
+                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+                    setTimeout(() => router.replace("/login"), 1500);
+                    return;
+                }
+                const errorData = await uploadRes.json().catch(() => ({}));
+                throw new Error(errorData.detail || "Error al subir la imagen");
+            }
+
+            const uploadData = await uploadRes.json();
+
+            // Actualizar la imagen en el índice correspondiente
+            const updated = [...carouselImages];
+            updated[index] = {
+                ...updated[index],
+                url: uploadData.url,
+                alt: uploadData.alt || file.name
+            };
+            setCarouselImages(updated);
+            setSuccess("Imagen subida exitosamente");
+            setTimeout(() => setSuccess(""), 3000);
+        } catch (err) {
+            console.error("Error uploading image:", err);
+            setError(err.message || "Error al subir la imagen");
+        } finally {
+            setUploadingImage(false);
+        }
     };
 
     const addSection = () => {
@@ -416,11 +481,49 @@ export default function HomeContentPage() {
                                         Eliminar
                                     </button>
                                 </div>
+                                <div style={{ marginBottom: "8px" }}>
+                                    <label style={{
+                                        display: "block",
+                                        fontSize: "14px",
+                                        fontWeight: "500",
+                                        color: "#374151",
+                                        marginBottom: "4px"
+                                    }}>
+                                        Subir imagen desde archivo:
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                handleImageUpload(index, file);
+                                            }
+                                        }}
+                                        disabled={uploadingImage}
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            fontSize: "14px",
+                                            cursor: uploadingImage ? "not-allowed" : "pointer"
+                                        }}
+                                    />
+                                    {uploadingImage && (
+                                        <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+                                            Subiendo...
+                                        </p>
+                                    )}
+                                </div>
+                                <div style={{ marginBottom: "8px", textAlign: "center", color: "#6b7280", fontSize: "14px" }}>
+                                    O
+                                </div>
                                 <input
                                     type="text"
                                     value={img.url || ""}
                                     onChange={(e) => updateCarouselImage(index, "url", e.target.value)}
-                                    placeholder="URL de la imagen"
+                                    placeholder="URL de la imagen (alternativa)"
                                     style={{
                                         width: "100%",
                                         padding: "8px",

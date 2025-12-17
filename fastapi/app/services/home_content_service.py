@@ -1,6 +1,6 @@
 # app/services/home_content_service.py
 from typing import List, Optional, Dict, Any
-from app.core.supabase_auth import get_public, get_public_clean
+from app.core.supabase_auth import get_public as get_supabase_client, get_public_clean
 import json
 
 # ----------------- PÚBLICO -----------------
@@ -65,7 +65,7 @@ def get_staff() -> Optional[Dict[str, Any]]:
     Obtiene el contenido del home para staff (requiere autenticación).
     """
     try:
-        sb = get_public()
+        sb = get_supabase_client()
         res = sb.table("home_content").select("*").order("updated_at", desc=True).limit(1).execute()
         
         if not res.data or len(res.data) == 0:
@@ -118,7 +118,7 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
     Crea o actualiza el contenido del home.
     Si ya existe un registro activo, lo actualiza. Si no, crea uno nuevo.
     """
-    sb = get_public()
+    sb = get_supabase_client()
     
     # Verificar si ya existe un registro activo
     existing = sb.table("home_content").select("id").eq("is_active", True).limit(1).execute()

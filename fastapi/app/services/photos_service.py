@@ -19,17 +19,26 @@ ENTITY_CONFIG = {
     'especie': {
         'column': 'especie_id',
         'table': 'especies',
-        'path_prefix': 'especies'
+        'path_prefix': 'especies',
+        'require_entity_check': True
     },
     'sector': {
         'column': 'sector_id',
         'table': 'sectores',
-        'path_prefix': 'sectores'
+        'path_prefix': 'sectores',
+        'require_entity_check': True
     },
     'ejemplar': {
         'column': 'ejemplar_id',
         'table': 'ejemplar',
-        'path_prefix': 'ejemplares'
+        'path_prefix': 'ejemplares',
+        'require_entity_check': True
+    },
+    'home': {
+        'column': None,  # No hay tabla específica para home
+        'table': None,
+        'path_prefix': 'home',
+        'require_entity_check': False  # No requiere verificar existencia de entidad
     }
 }
 
@@ -60,10 +69,11 @@ async def upload_photos(
     config = ENTITY_CONFIG[entity_type]
     sb = get_service()
     
-    # Verificar que la entidad existe usando foreign key
-    entity = sb.table(config['table']).select("id").eq("id", entity_id).limit(1).execute()
-    if not entity.data:
-        raise ValueError(f"{entity_type} con id {entity_id} no encontrada")
+    # Verificar que la entidad existe usando foreign key (solo si requiere verificación)
+    if config.get('require_entity_check', True) and config['table']:
+        entity = sb.table(config['table']).select("id").eq("id", entity_id).limit(1).execute()
+        if not entity.data:
+            raise ValueError(f"{entity_type} con id {entity_id} no encontrada")
     
     uploaded_photos = []
     
@@ -75,7 +85,11 @@ async def upload_photos(
             
             file_content = await file.read()
             file_extension = Path(file.filename).suffix if file.filename else '.jpg'
-            unique_filename = f"{config['path_prefix']}/{entity_id}/{uuid.uuid4()}{file_extension}"
+            # Para home, usar un path diferente sin entity_id
+            if entity_type == 'home':
+                unique_filename = f"{config['path_prefix']}/carousel/{uuid.uuid4()}{file_extension}"
+            else:
+                unique_filename = f"{config['path_prefix']}/{entity_id}/{uuid.uuid4()}{file_extension}"
             
             # Redimensionar si es necesario
             image = Image.open(BytesIO(file_content))
