@@ -247,6 +247,17 @@ export default function HomeContentPage() {
         setCurrentSections(current.filter((_, i) => i !== index));
     };
 
+    const moveSection = (index, direction) => {
+        const current = getCurrentSections();
+        const updated = [...current];
+        if (direction === "up" && index > 0) {
+            [updated[index], updated[index - 1]] = [updated[index - 1], updated[index]];
+        } else if (direction === "down" && index < updated.length - 1) {
+            [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+        }
+        setCurrentSections(updated);
+    };
+
     const updateSection = (index, field, value) => {
         const current = getCurrentSections();
         const updated = [...current];
@@ -875,20 +886,56 @@ export default function HomeContentPage() {
                                     <span style={{ fontWeight: "500", color: "#374151" }}>
                                         Sección {sectionIndex + 1}
                                     </span>
-                                    <button
-                                        onClick={() => removeSection(sectionIndex)}
-                                        style={{
-                                            padding: "4px 12px",
-                                            backgroundColor: "#ef4444",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "6px",
-                                            cursor: "pointer",
-                                            fontSize: "12px"
-                                        }}
-                                    >
-                                        Eliminar
-                                    </button>
+                                    <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                                        <button
+                                            onClick={() => moveSection(sectionIndex, "up")}
+                                            disabled={sectionIndex === 0}
+                                            style={{
+                                                padding: "4px 8px",
+                                                backgroundColor: sectionIndex === 0 ? "#d1d5db" : "#5a6b3d",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "4px",
+                                                cursor: sectionIndex === 0 ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: "600"
+                                            }}
+                                            title="Mover arriba"
+                                        >
+                                            ↑
+                                        </button>
+                                        <button
+                                            onClick={() => moveSection(sectionIndex, "down")}
+                                            disabled={sectionIndex === getCurrentSections().length - 1}
+                                            style={{
+                                                padding: "4px 8px",
+                                                backgroundColor: sectionIndex === getCurrentSections().length - 1 ? "#d1d5db" : "#5a6b3d",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "4px",
+                                                cursor: sectionIndex === getCurrentSections().length - 1 ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: "600"
+                                            }}
+                                            title="Mover abajo"
+                                        >
+                                            ↓
+                                        </button>
+                                        <button
+                                            onClick={() => removeSection(sectionIndex)}
+                                            style={{
+                                                padding: "4px 12px",
+                                                backgroundColor: "#ef4444",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "6px",
+                                                cursor: "pointer",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <input
