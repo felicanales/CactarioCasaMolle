@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function ImageCarousel({ images, placeholderText = 'Foto' }) {
+export default function ImageCarousel({ images, placeholderText = 'Foto', autoRotate = true, rotationInterval = 5000 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const nextImage = () => {
@@ -16,6 +16,19 @@ export default function ImageCarousel({ images, placeholderText = 'Foto' }) {
   const goToImage = (index) => {
     setCurrentIndex(index);
   };
+
+  // Auto-rotation effect
+  useEffect(() => {
+    if (!autoRotate || !images || images.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, rotationInterval);
+
+    return () => clearInterval(interval);
+  }, [images, autoRotate, rotationInterval]);
 
   if (!images || images.length === 0) {
     return (

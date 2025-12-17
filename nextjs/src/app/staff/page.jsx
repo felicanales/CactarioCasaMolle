@@ -121,6 +121,14 @@ export default function StaffPage() {
       href: "/species-editor",
       color: "#ec4899",
       bgColor: "#fce7f3"
+    },
+    {
+      title: "Editor del Home",
+      description: "Gestiona el contenido del home de la app móvil",
+      icon: "🏠",
+      href: "/home-content",
+      color: "#14b8a6",
+      bgColor: "#ccfbf1"
     }
   ];
 
