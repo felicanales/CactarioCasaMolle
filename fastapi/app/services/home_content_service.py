@@ -7,6 +7,8 @@ from app.core.supabase_auth import (
 from supabase import create_client as supabase_create_client
 import json
 import os
+import requests
+import logging
 
 def get_authenticated_client(access_token: Optional[str] = None):
     """
@@ -146,7 +148,6 @@ def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
         
         if access_token:
             # Usar requests directamente con el token para asegurar que RLS funcione
-            import requests
             headers = {
                 "Authorization": f"Bearer {access_token}",
                 "apikey": SUPABASE_ANON_KEY,
@@ -229,8 +230,6 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
     
     Usa requests directamente para asegurar que el token se envíe correctamente.
     """
-    import logging
-    import requests
     logger = logging.getLogger(__name__)
     
     if not access_token:
