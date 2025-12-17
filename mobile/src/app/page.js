@@ -89,17 +89,6 @@ export default function Home() {
     if (section.title || (section.items && section.items.length > 0)) {
       return (
         <div key={index}>
-          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
-          {index > 0 && (
-            <div style={{
-              height: '3px',
-              backgroundColor: '#5a6b3d',
-              marginBottom: '32px',
-              borderRadius: '2px',
-              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
-            }}></div>
-          )}
-          
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
@@ -180,17 +169,6 @@ export default function Home() {
     if (section.type === 'text') {
       return (
         <div key={index}>
-          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
-          {index > 0 && (
-            <div style={{
-              height: '3px',
-              backgroundColor: '#5a6b3d',
-              marginBottom: '32px',
-              borderRadius: '2px',
-              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
-            }}></div>
-          )}
-          
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
@@ -231,17 +209,6 @@ export default function Home() {
     if (section.type === 'bullets') {
       return (
         <div key={index}>
-          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
-          {index > 0 && (
-            <div style={{
-              height: '3px',
-              backgroundColor: '#5a6b3d',
-              marginBottom: '32px',
-              borderRadius: '2px',
-              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
-            }}></div>
-          )}
-          
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
@@ -290,17 +257,6 @@ export default function Home() {
     if (section.type === 'image') {
       return (
         <div key={index}>
-          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
-          {index > 0 && (
-            <div style={{
-              height: '3px',
-              backgroundColor: '#5a6b3d',
-              marginBottom: '32px',
-              borderRadius: '2px',
-              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
-            }}></div>
-          )}
-          
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
