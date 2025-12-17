@@ -84,21 +84,30 @@ export default function Home() {
     }
   };
 
-  const renderSection = (section, index) => {
+  const renderSection = (section, index, totalSections) => {
     // Nueva estructura: sección con título y array de items
     if (section.title || (section.items && section.items.length > 0)) {
       return (
-        <div key={index} style={{ marginBottom: '32px' }}>
-          {section.title && (
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: '600', 
-              marginBottom: '16px',
-              color: '#111827'
-            }}>
-              {section.title}
-            </h2>
-          )}
+        <div key={index}>
+          <div style={{ 
+            marginBottom: '32px',
+            paddingBottom: '24px',
+            borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
+          }}>
+            {section.title && (
+              <h2 style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                marginBottom: '16px',
+                color: '#111827',
+                paddingBottom: '12px',
+                borderBottom: '2px solid #3b82f6',
+                display: 'inline-block',
+                width: '100%'
+              }}>
+                {section.title}
+              </h2>
+            )}
           
           {/* Renderizar items (párrafos e imágenes intercalados) */}
           {section.items && section.items.length > 0 && (
@@ -148,6 +157,7 @@ export default function Home() {
               })}
             </div>
           )}
+          </div>
         </div>
       );
     }
@@ -155,13 +165,21 @@ export default function Home() {
     // Compatibilidad hacia atrás: estructura antigua (type: text, bullets, image)
     if (section.type === 'text') {
       return (
-        <div key={index} style={{ marginBottom: '24px' }}>
+        <div key={index} style={{ 
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
+        }}>
           {section.title && (
             <h2 style={{ 
               fontSize: '20px', 
               fontWeight: '600', 
               marginBottom: '12px',
-              color: '#111827'
+              color: '#111827',
+              paddingBottom: '12px',
+              borderBottom: '2px solid #3b82f6',
+              display: 'inline-block',
+              width: '100%'
             }}>
               {section.title}
             </h2>
@@ -182,13 +200,21 @@ export default function Home() {
     
     if (section.type === 'bullets') {
       return (
-        <div key={index} style={{ marginBottom: '24px' }}>
+        <div key={index} style={{ 
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
+        }}>
           {section.title && (
             <h2 style={{ 
               fontSize: '20px', 
               fontWeight: '600', 
               marginBottom: '12px',
-              color: '#111827'
+              color: '#111827',
+              paddingBottom: '12px',
+              borderBottom: '2px solid #3b82f6',
+              display: 'inline-block',
+              width: '100%'
             }}>
               {section.title}
             </h2>
@@ -217,13 +243,21 @@ export default function Home() {
     
     if (section.type === 'image') {
       return (
-        <div key={index} style={{ marginBottom: '24px' }}>
+        <div key={index} style={{ 
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
+        }}>
           {section.title && (
             <h2 style={{ 
               fontSize: '20px', 
               fontWeight: '600', 
               marginBottom: '12px',
-              color: '#111827'
+              color: '#111827',
+              paddingBottom: '12px',
+              borderBottom: '2px solid #3b82f6',
+              display: 'inline-block',
+              width: '100%'
             }}>
               {section.title}
             </h2>
@@ -302,7 +336,7 @@ export default function Home() {
                 fontWeight: '500'
               }}
             >
-              {language === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
+              {language === 'es' ? 'EN' : 'ES'}
             </button>
           </div>
           
@@ -333,10 +367,10 @@ export default function Home() {
 
           {sections.length > 0 ? (
             <div>
-              {sections.map((section, index) => renderSection(section, index))}
+              {sections.map((section, index) => renderSection(section, index, sections.length))}
             </div>
           ) : (
-            <div style={{ marginTop: '24px' }}>
+          <div style={{ marginTop: '24px' }}>
               <p style={{ 
                 fontSize: '16px',
                 color: '#6b7280',
@@ -344,7 +378,7 @@ export default function Home() {
               }}>
                 No hay contenido disponible en este momento.
               </p>
-            </div>
+          </div>
           )}
         </div>
       </main>

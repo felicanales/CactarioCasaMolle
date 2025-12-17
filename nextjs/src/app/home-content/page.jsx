@@ -386,10 +386,54 @@ export default function HomeContentPage() {
 
     return (
         <>
-            <style jsx>{`
+            <style jsx global>{`
                 @keyframes spin {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
+                }
+                
+                .editor-container {
+                    width: 100%;
+                }
+                
+                @media (min-width: 768px) {
+                    .editor-container {
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 24px;
+                        padding: 32px !important;
+                    }
+                    
+                    .welcome-card {
+                        padding: 32px !important;
+                    }
+                    
+                    .section-card {
+                        transition: transform 0.2s, box-shadow 0.2s;
+                        padding: 24px !important;
+                    }
+                    
+                    .section-card:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    }
+                    
+                    .item-card {
+                        transition: background-color 0.2s;
+                        padding: 16px !important;
+                    }
+                    
+                    .item-card:hover {
+                        background-color: #f3f4f6;
+                    }
+                }
+                
+                @media (min-width: 1024px) {
+                    .editor-container {
+                        grid-template-columns: 1fr;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
                 }
             `}</style>
 
@@ -447,7 +491,7 @@ export default function HomeContentPage() {
                 </header>
 
                 {/* Main Content */}
-                <main style={{
+                <main className="editor-container" style={{
                     maxWidth: "1200px",
                     margin: "0 auto",
                     padding: "24px"
@@ -504,7 +548,7 @@ export default function HomeContentPage() {
                                     fontSize: "14px"
                                 }}
                             >
-                                🇪🇸 Español
+                                ES
                             </button>
                             <button
                                 onClick={() => setActiveLanguage("en")}
@@ -519,7 +563,7 @@ export default function HomeContentPage() {
                                     fontSize: "14px"
                                 }}
                             >
-                                🇬🇧 English
+                                EN
                             </button>
                         </div>
                     </div>
@@ -531,7 +575,7 @@ export default function HomeContentPage() {
                         padding: "24px",
                         marginBottom: "24px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-                    }}>
+                    }} className="welcome-card">
                         <h2 style={{
                             fontSize: "18px",
                             fontWeight: "600",
@@ -801,11 +845,14 @@ export default function HomeContentPage() {
                         </div>
 
                         {getCurrentSections().map((section, sectionIndex) => (
-                            <div key={sectionIndex} style={{
+                            <div key={sectionIndex} className="section-card" style={{
                                 border: "1px solid #e5e7eb",
-                                borderRadius: "8px",
-                                padding: "16px",
-                                marginBottom: "16px"
+                                borderRadius: "12px",
+                                padding: "24px",
+                                marginBottom: "24px",
+                                backgroundColor: "white",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                                borderLeft: "4px solid #3b82f6"
                             }}>
                                 <div style={{
                                     display: "flex",
@@ -851,10 +898,10 @@ export default function HomeContentPage() {
                                 {/* Items de la sección */}
                                 <div style={{ marginBottom: "16px" }}>
                                     {(section.items || []).map((item, itemIndex) => (
-                                        <div key={itemIndex} style={{
+                                        <div key={itemIndex} className="item-card" style={{
                                             border: "1px solid #e5e7eb",
                                             borderRadius: "8px",
-                                            padding: "12px",
+                                            padding: "16px",
                                             marginBottom: "12px",
                                             backgroundColor: "#f9fafb"
                                         }}>
