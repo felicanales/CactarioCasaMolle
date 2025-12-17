@@ -55,6 +55,20 @@ CREATE POLICY "home_content_staff_all" ON public.home_content
     USING (true)
     WITH CHECK (true);
 
+-- =============================================================================
+-- GRANT PERMISSIONS
+-- =============================================================================
+-- Otorgar permisos necesarios para que las políticas RLS funcionen correctamente
+
+-- Permisos para usuarios anónimos (solo lectura de contenido activo)
+GRANT SELECT ON public.home_content TO anon;
+
+-- Permisos para usuarios autenticados (lectura y escritura completa)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.home_content TO authenticated;
+
+-- Permisos para usar la secuencia del ID
+GRANT USAGE, SELECT ON SEQUENCE public.home_content_id_seq TO authenticated;
+
 -- Comentarios en la tabla y columnas
 COMMENT ON TABLE public.home_content IS 'Contenido del home de la aplicación móvil';
 COMMENT ON COLUMN public.home_content.welcome_text IS 'Texto de bienvenida que se muestra en el home';

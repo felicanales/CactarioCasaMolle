@@ -141,25 +141,35 @@ def create_or_update_home_content_staff(
     """
     Crea o actualiza el contenido del home (requiere usuario autenticado).
     """
+    import logging
+    logger = logging.getLogger("cactario-backend")
+    
     try:
-        # Obtener el token del header Authorization
-        auth_header = request.headers.get("Authorization", "")
-        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        # Obtener el token del header Authorization o de las cookies
+        from app.core.security import get_token_from_request
+        access_token = get_token_from_request(request)
+        
+        logger.info(f"[create_or_update_home_content_staff] Token obtenido: {bool(access_token)}, length: {len(access_token) if access_token else 0}")
         
         if not access_token:
+            logger.error("[create_or_update_home_content_staff] No se encontró token de autenticación")
             raise HTTPException(status_code=401, detail="Token de autenticación no encontrado")
         
         user = request.state.user if hasattr(request.state, 'user') else None
         user_id = user.get("id") if user else None
         
+        logger.info(f"[create_or_update_home_content_staff] Usuario ID: {user_id}, Email: {user.get('email') if user else None}")
+        
         result = svc.create_or_update_staff(payload, user_id, access_token)
+        logger.info("[create_or_update_home_content_staff] Contenido guardado exitosamente")
         return result
     except ValueError as e:
+        logger.error(f"[create_or_update_home_content_staff] ValueError: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
-        import logging
-        logger = logging.getLogger("cactario-backend")
-        logger.error(f"Error en create_or_update_home_content_staff: {str(e)}")
+        logger.error(f"[create_or_update_home_content_staff] Error: {str(e)}")
         logger.exception(e)
         raise HTTPException(status_code=500, detail=str(e))
 
