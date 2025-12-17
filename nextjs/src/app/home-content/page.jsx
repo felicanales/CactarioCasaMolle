@@ -137,7 +137,7 @@ export default function HomeContentPage() {
         }
     };
 
-    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingImageIndex, setUploadingImageIndex] = useState(null);
 
     const addCarouselImage = () => {
         setCarouselImages([...carouselImages, { url: "", alt: "" }]);
@@ -156,14 +156,14 @@ export default function HomeContentPage() {
     const handleImageUpload = async (index, file) => {
         if (!file) return;
 
-        setUploadingImage(true);
+        setUploadingImageIndex(index);
         setError("");
 
         try {
             const token = getAccessTokenFromContext(accessToken);
             if (!token) {
                 setError("No estás autenticado. Por favor, inicia sesión.");
-                setUploadingImage(false);
+                setUploadingImageIndex(null);
                 return;
             }
 
@@ -212,7 +212,7 @@ export default function HomeContentPage() {
             console.error("Error uploading image:", err);
             setError(err.message || "Error al subir la imagen");
         } finally {
-            setUploadingImage(false);
+            setUploadingImageIndex(null);
         }
     };
 
@@ -500,39 +500,43 @@ export default function HomeContentPage() {
                                                 handleImageUpload(index, file);
                                             }
                                         }}
-                                        disabled={uploadingImage}
+                                        disabled={uploadingImageIndex === index}
                                         style={{
                                             width: "100%",
                                             padding: "8px",
                                             border: "1px solid #d1d5db",
                                             borderRadius: "6px",
                                             fontSize: "14px",
-                                            cursor: uploadingImage ? "not-allowed" : "pointer"
+                                            cursor: uploadingImageIndex === index ? "not-allowed" : "pointer"
                                         }}
                                     />
-                                    {uploadingImage && (
+                                    {uploadingImageIndex === index && (
                                         <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
                                             Subiendo...
                                         </p>
                                     )}
+                                    {img.url && uploadingImageIndex !== index && (
+                                        <div style={{ marginTop: "8px" }}>
+                                            <img
+                                                src={img.url}
+                                                alt={img.alt || `Imagen ${index + 1}`}
+                                                style={{
+                                                    maxWidth: "100%",
+                                                    maxHeight: "200px",
+                                                    borderRadius: "8px",
+                                                    objectFit: "cover",
+                                                    marginBottom: "8px"
+                                                }}
+                                                onError={(e) => {
+                                                    e.target.style.display = "none";
+                                                }}
+                                            />
+                                            <p style={{ fontSize: "12px", color: "#10b981" }}>
+                                                ✓ Imagen subida correctamente
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                                <div style={{ marginBottom: "8px", textAlign: "center", color: "#6b7280", fontSize: "14px" }}>
-                                    O
-                                </div>
-                                <input
-                                    type="text"
-                                    value={img.url || ""}
-                                    onChange={(e) => updateCarouselImage(index, "url", e.target.value)}
-                                    placeholder="URL de la imagen (alternativa)"
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        marginBottom: "8px",
-                                        fontSize: "14px"
-                                    }}
-                                />
                                 <input
                                     type="text"
                                     value={img.alt || ""}

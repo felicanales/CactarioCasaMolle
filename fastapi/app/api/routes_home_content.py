@@ -95,6 +95,9 @@ async def upload_carousel_image(
         file_extension = Path(file.filename).suffix if file.filename else '.jpg'
         unique_filename = f"home/carousel/{uuid.uuid4()}{file_extension}"
         
+        # Determinar content type inicial
+        content_type = file.content_type or 'image/jpeg'
+        
         # Redimensionar si es necesario
         image = Image.open(BytesIO(file_content))
         if image.width > MAX_IMAGE_SIZE or image.height > MAX_IMAGE_SIZE:
@@ -108,13 +111,14 @@ async def upload_carousel_image(
                 image = background
             image.save(output, format='JPEG', quality=85)
             file_content = output.getvalue()
-            file.content_type = 'image/jpeg'
+            content_type = 'image/jpeg'  # Después de redimensionar, siempre será JPEG
+            unique_filename = f"home/carousel/{uuid.uuid4()}.jpg"  # Cambiar extensión a .jpg
         
         # Subir a Supabase Storage
         sb.storage.from_(BUCKET_NAME).upload(
             unique_filename,
             file_content,
-            file_options={"content-type": file.content_type}
+            file_options={"content-type": content_type}
         )
         
         # Obtener URL pública
