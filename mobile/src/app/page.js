@@ -89,19 +89,33 @@ export default function Home() {
     if (section.title || (section.items && section.items.length > 0)) {
       return (
         <div key={index}>
+          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
+          {index > 0 && (
+            <div style={{
+              height: '3px',
+              backgroundColor: '#5a6b3d',
+              marginBottom: '32px',
+              borderRadius: '2px',
+              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
+            }}></div>
+          )}
+          
           <div style={{ 
             marginBottom: '32px',
-            paddingBottom: '24px',
-            borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
+            padding: '20px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            border: '2px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}>
             {section.title && (
               <h2 style={{ 
-                fontSize: '20px', 
-                fontWeight: '600', 
-                marginBottom: '16px',
+                fontSize: '22px', 
+                fontWeight: '700', 
+                marginBottom: '20px',
                 color: '#111827',
                 paddingBottom: '12px',
-                borderBottom: '2px solid #5a6b3d',
+                borderBottom: '3px solid #5a6b3d',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -165,119 +179,167 @@ export default function Home() {
     // Compatibilidad hacia atrás: estructura antigua (type: text, bullets, image)
     if (section.type === 'text') {
       return (
-        <div key={index} style={{ 
-          marginBottom: '32px',
-          paddingBottom: '24px',
-          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
-        }}>
-          {section.title && (
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: '600', 
-              marginBottom: '12px',
-              color: '#111827',
-              paddingBottom: '12px',
-              borderBottom: '2px solid #3b82f6',
-              display: 'inline-block',
-              width: '100%'
-            }}>
-              {section.title}
-            </h2>
+        <div key={index}>
+          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
+          {index > 0 && (
+            <div style={{
+              height: '3px',
+              backgroundColor: '#5a6b3d',
+              marginBottom: '32px',
+              borderRadius: '2px',
+              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
+            }}></div>
           )}
-          {section.content && (
-            <p style={{ 
-              fontSize: '16px', 
-              lineHeight: '1.6',
-              color: '#374151',
-              marginBottom: '16px'
-            }}>
-              {section.content}
-            </p>
-          )}
+          
+          <div style={{ 
+            marginBottom: '32px',
+            padding: '20px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            border: '2px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+          }}>
+            {section.title && (
+              <h2 style={{ 
+                fontSize: '22px', 
+                fontWeight: '700', 
+                marginBottom: '20px',
+                color: '#111827',
+                paddingBottom: '12px',
+                borderBottom: '3px solid #5a6b3d',
+                display: 'inline-block',
+                width: '100%'
+              }}>
+                {section.title}
+              </h2>
+            )}
+            {section.content && (
+              <p style={{ 
+                fontSize: '16px', 
+                lineHeight: '1.6',
+                color: '#374151',
+                marginBottom: '16px'
+              }}>
+                {section.content}
+              </p>
+            )}
+          </div>
         </div>
       );
     }
     
     if (section.type === 'bullets') {
       return (
-        <div key={index} style={{ 
-          marginBottom: '32px',
-          paddingBottom: '24px',
-          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
-        }}>
-          {section.title && (
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: '600', 
-              marginBottom: '12px',
-              color: '#111827',
-              paddingBottom: '12px',
-              borderBottom: '2px solid #3b82f6',
-              display: 'inline-block',
-              width: '100%'
-            }}>
-              {section.title}
-            </h2>
+        <div key={index}>
+          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
+          {index > 0 && (
+            <div style={{
+              height: '3px',
+              backgroundColor: '#5a6b3d',
+              marginBottom: '32px',
+              borderRadius: '2px',
+              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
+            }}></div>
           )}
-          {section.bullets && section.bullets.length > 0 && (
-            <ul style={{ 
-              paddingLeft: '24px', 
-              marginTop: '12px',
-              listStyleType: 'disc'
-            }}>
-              {section.bullets.map((bullet, bulletIndex) => (
-                <li key={bulletIndex} style={{ 
-                  marginBottom: '8px',
-                  fontSize: '16px',
-                  lineHeight: '1.6',
-                  color: '#374151'
-                }}>
-                  {bullet}
-                </li>
-              ))}
-            </ul>
-          )}
+          
+          <div style={{ 
+            marginBottom: '32px',
+            padding: '20px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            border: '2px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+          }}>
+            {section.title && (
+              <h2 style={{ 
+                fontSize: '22px', 
+                fontWeight: '700', 
+                marginBottom: '20px',
+                color: '#111827',
+                paddingBottom: '12px',
+                borderBottom: '3px solid #5a6b3d',
+                display: 'inline-block',
+                width: '100%'
+              }}>
+                {section.title}
+              </h2>
+            )}
+            {section.bullets && section.bullets.length > 0 && (
+              <ul style={{ 
+                paddingLeft: '24px', 
+                marginTop: '12px',
+                listStyleType: 'disc'
+              }}>
+                {section.bullets.map((bullet, bulletIndex) => (
+                  <li key={bulletIndex} style={{ 
+                    marginBottom: '8px',
+                    fontSize: '16px',
+                    lineHeight: '1.6',
+                    color: '#374151'
+                  }}>
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       );
     }
     
     if (section.type === 'image') {
       return (
-        <div key={index} style={{ 
-          marginBottom: '32px',
-          paddingBottom: '24px',
-          borderBottom: index < totalSections - 1 ? '2px solid #e5e7eb' : 'none'
-        }}>
-          {section.title && (
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: '600', 
-              marginBottom: '12px',
-              color: '#111827',
-              paddingBottom: '12px',
-              borderBottom: '2px solid #3b82f6',
-              display: 'inline-block',
-              width: '100%'
-            }}>
-              {section.title}
-            </h2>
+        <div key={index}>
+          {/* Separador visual más notorio antes de cada sección (excepto la primera) */}
+          {index > 0 && (
+            <div style={{
+              height: '3px',
+              backgroundColor: '#5a6b3d',
+              marginBottom: '32px',
+              borderRadius: '2px',
+              boxShadow: '0 2px 4px rgba(90, 107, 61, 0.2)'
+            }}></div>
           )}
-          {section.imageUrl && (
-            <img
-              src={section.imageUrl}
-              alt={section.title || `Imagen ${index + 1}`}
-              style={{
-                width: '100%',
-                maxHeight: '400px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                marginTop: '12px'
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          )}
+          
+          <div style={{ 
+            marginBottom: '32px',
+            padding: '20px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            border: '2px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+          }}>
+            {section.title && (
+              <h2 style={{ 
+                fontSize: '22px', 
+                fontWeight: '700', 
+                marginBottom: '20px',
+                color: '#111827',
+                paddingBottom: '12px',
+                borderBottom: '3px solid #5a6b3d',
+                display: 'inline-block',
+                width: '100%'
+              }}>
+                {section.title}
+              </h2>
+            )}
+            {section.imageUrl && (
+              <img
+                src={section.imageUrl}
+                alt={section.title || `Imagen ${index + 1}`}
+                style={{
+                  width: '100%',
+                  maxHeight: '400px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  marginTop: '12px'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
         </div>
       );
     }
