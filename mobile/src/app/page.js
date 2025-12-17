@@ -101,7 +101,7 @@ export default function Home() {
                 marginBottom: '16px',
                 color: '#111827',
                 paddingBottom: '12px',
-                borderBottom: '2px solid #3b82f6',
+                borderBottom: '2px solid #5a6b3d',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -327,7 +327,7 @@ export default function Home() {
               onClick={toggleLanguage}
               style={{
                 padding: '8px 12px',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#5a6b3d',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',

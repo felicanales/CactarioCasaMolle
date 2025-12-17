@@ -369,7 +369,7 @@ export default function HomeContentPage() {
                         width: "40px",
                         height: "40px",
                         border: "3px solid #e5e7eb",
-                        borderTop: "3px solid #3b82f6",
+                                    borderTop: "3px solid #5a6b3d",
                         borderRadius: "50%",
                         animation: "spin 1s linear infinite",
                         margin: "0 auto"
@@ -458,25 +458,37 @@ export default function HomeContentPage() {
                         justifyContent: "space-between",
                         alignItems: "center"
                     }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                            <Link href="/staff" style={{ textDecoration: "none", color: "#3b82f6" }}>
-                                ← Volver
-                            </Link>
-                            <h1 style={{
-                                fontSize: "20px",
-                                fontWeight: "700",
-                                color: "#111827",
-                                margin: 0
+                        <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 12px)", flex: 1, minWidth: "200px" }}>
+                            <Link href="/staff" style={{
+                                padding: "8px",
+                                borderRadius: "6px",
+                                border: "1px solid #e5e7eb",
+                                backgroundColor: "white",
+                                color: "#374151",
+                                textDecoration: "none",
+                                fontSize: "14px",
+                                transition: "all 0.2s",
+                                flexShrink: 0
                             }}>
-                                Editor de Contenido del Home
-                            </h1>
+                                ←
+                            </Link>
+                            <div style={{ minWidth: 0 }}>
+                                <h1 style={{
+                                    fontSize: "clamp(16px, 4vw, 20px)",
+                                    fontWeight: "700",
+                                    color: "#111827",
+                                    margin: 0
+                                }}>
+                                    Editor de Contenido del Home
+                                </h1>
+                            </div>
                         </div>
                         <button
                             onClick={handleSave}
                             disabled={saving}
                             style={{
                                 padding: "8px 24px",
-                                backgroundColor: saving ? "#9ca3af" : "#3b82f6",
+                                backgroundColor: saving ? "#9ca3af" : "#5a6b3d",
                                 color: "white",
                                 border: "none",
                                 borderRadius: "8px",
@@ -539,7 +551,7 @@ export default function HomeContentPage() {
                                 onClick={() => setActiveLanguage("es")}
                                 style={{
                                     padding: "8px 16px",
-                                    backgroundColor: activeLanguage === "es" ? "#3b82f6" : "transparent",
+                                    backgroundColor: activeLanguage === "es" ? "#5a6b3d" : "transparent",
                                     color: activeLanguage === "es" ? "white" : "#6b7280",
                                     border: "none",
                                     borderRadius: "8px 8px 0 0",
@@ -554,7 +566,7 @@ export default function HomeContentPage() {
                                 onClick={() => setActiveLanguage("en")}
                                 style={{
                                     padding: "8px 16px",
-                                    backgroundColor: activeLanguage === "en" ? "#3b82f6" : "transparent",
+                                    backgroundColor: activeLanguage === "en" ? "#5a6b3d" : "transparent",
                                     color: activeLanguage === "en" ? "white" : "#6b7280",
                                     border: "none",
                                     borderRadius: "8px 8px 0 0",
@@ -852,7 +864,7 @@ export default function HomeContentPage() {
                                 marginBottom: "24px",
                                 backgroundColor: "white",
                                 boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                                borderLeft: "4px solid #3b82f6"
+                                borderLeft: "4px solid #5a6b3d"
                             }}>
                                 <div style={{
                                     display: "flex",
@@ -1049,7 +1061,7 @@ export default function HomeContentPage() {
                                         onClick={() => addItem(sectionIndex, "paragraph")}
                                         style={{
                                             padding: "8px 16px",
-                                            backgroundColor: "#3b82f6",
+                                            backgroundColor: "#5a6b3d",
                                             color: "white",
                                             border: "none",
                                             borderRadius: "6px",
