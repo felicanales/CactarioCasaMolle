@@ -9,18 +9,31 @@ def get_public() -> Optional[Dict[str, Any]]:
     """
     Obtiene el contenido público del home (sin autenticación).
     """
-    sb = get_public_clean()
-    res = sb.table("home_content").select("*").eq("is_active", True).order("updated_at", desc=True).limit(1).execute()
-    
-    if not res.data or len(res.data) == 0:
-        # Retornar contenido por defecto si no hay configuración
-        return {
-            "welcome_text": "Bienvenido al Cactario CasaMolle",
-            "carousel_images": [],
-            "sections": []
-        }
-    
-    content = res.data[0]
+    try:
+        sb = get_public_clean()
+        res = sb.table("home_content").select("*").eq("is_active", True).order("updated_at", desc=True).limit(1).execute()
+        
+        if not res.data or len(res.data) == 0:
+            # Retornar contenido por defecto si no hay configuración
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        
+        content = res.data[0]
+    except Exception as e:
+        # Si la tabla no existe o hay otro error, retornar contenido por defecto
+        error_msg = str(e).lower()
+        if "does not exist" in error_msg or "relation" in error_msg or "table" in error_msg:
+            # La tabla no existe, retornar contenido por defecto
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        # Otro tipo de error, re-lanzar
+        raise
     
     # Parsear JSON fields si existen (Supabase puede devolver strings o objetos ya parseados)
     if content.get("carousel_images") is not None:
@@ -51,18 +64,31 @@ def get_staff() -> Optional[Dict[str, Any]]:
     """
     Obtiene el contenido del home para staff (requiere autenticación).
     """
-    sb = get_public()
-    res = sb.table("home_content").select("*").order("updated_at", desc=True).limit(1).execute()
-    
-    if not res.data or len(res.data) == 0:
-        # Retornar contenido por defecto
-        return {
-            "welcome_text": "Bienvenido al Cactario CasaMolle",
-            "carousel_images": [],
-            "sections": []
-        }
-    
-    content = res.data[0]
+    try:
+        sb = get_public()
+        res = sb.table("home_content").select("*").order("updated_at", desc=True).limit(1).execute()
+        
+        if not res.data or len(res.data) == 0:
+            # Retornar contenido por defecto
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        
+        content = res.data[0]
+    except Exception as e:
+        # Si la tabla no existe o hay otro error, retornar contenido por defecto
+        error_msg = str(e).lower()
+        if "does not exist" in error_msg or "relation" in error_msg or "table" in error_msg:
+            # La tabla no existe, retornar contenido por defecto
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        # Otro tipo de error, re-lanzar
+        raise
     
     # Parsear JSON fields si existen (Supabase puede devolver strings o objetos ya parseados)
     if content.get("carousel_images") is not None:

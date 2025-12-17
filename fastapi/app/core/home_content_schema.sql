@@ -28,6 +28,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Eliminar trigger si existe antes de crearlo (para hacer el script idempotente)
+DROP TRIGGER IF EXISTS trigger_update_home_content_updated_at ON public.home_content;
+
 CREATE TRIGGER trigger_update_home_content_updated_at
     BEFORE UPDATE ON public.home_content
     FOR EACH ROW
@@ -35,6 +38,10 @@ CREATE TRIGGER trigger_update_home_content_updated_at
 
 -- Habilitar RLS (Row Level Security)
 ALTER TABLE public.home_content ENABLE ROW LEVEL SECURITY;
+
+-- Eliminar políticas existentes si existen (para hacer el script idempotente)
+DROP POLICY IF EXISTS "home_content_public_select" ON public.home_content;
+DROP POLICY IF EXISTS "home_content_staff_all" ON public.home_content;
 
 -- Política para lectura pública (solo contenido activo)
 CREATE POLICY "home_content_public_select" ON public.home_content

@@ -34,14 +34,32 @@ def get_home_content_staff():
     """
     Obtiene el contenido del home para staff (requiere usuario autenticado).
     """
-    content = svc.get_staff()
-    if not content:
-        return {
-            "welcome_text": "Bienvenido al Cactario CasaMolle",
-            "carousel_images": [],
-            "sections": []
-        }
-    return content
+    try:
+        content = svc.get_staff()
+        if not content:
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        return content
+    except Exception as e:
+        # Log del error para debugging
+        import logging
+        logger = logging.getLogger("cactario-backend")
+        logger.error(f"Error en get_home_content_staff: {str(e)}")
+        logger.exception(e)
+        
+        # Si es un error de tabla no existente, retornar contenido por defecto
+        error_msg = str(e).lower()
+        if "does not exist" in error_msg or "relation" in error_msg or "table" in error_msg:
+            return {
+                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "carousel_images": [],
+                "sections": []
+            }
+        # Otro tipo de error, lanzar HTTPException
+        raise HTTPException(status_code=500, detail=f"Error al obtener contenido del home: {str(e)}")
 
 @router.post("/staff", dependencies=[Depends(get_current_user)])
 def create_or_update_home_content_staff(
