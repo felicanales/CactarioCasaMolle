@@ -53,9 +53,12 @@ export default function HomeContentPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    const [welcomeText, setWelcomeText] = useState("Bienvenido al Cactario CasaMolle");
+    const [welcomeTextEs, setWelcomeTextEs] = useState("Bienvenido al Cactario CasaMolle");
+    const [welcomeTextEn, setWelcomeTextEn] = useState("Welcome to Cactario CasaMolle");
     const [carouselImages, setCarouselImages] = useState([]);
-    const [sections, setSections] = useState([]);
+    const [sectionsEs, setSectionsEs] = useState([]);
+    const [sectionsEn, setSectionsEn] = useState([]);
+    const [activeLanguage, setActiveLanguage] = useState("es"); // "es" o "en"
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -87,9 +90,11 @@ export default function HomeContentPage() {
             }
 
             const data = await res.json();
-            setWelcomeText(data.welcome_text || "Bienvenido al Cactario CasaMolle");
+            setWelcomeTextEs(data.welcome_text_es || "Bienvenido al Cactario CasaMolle");
+            setWelcomeTextEn(data.welcome_text_en || "Welcome to Cactario CasaMolle");
             setCarouselImages(data.carousel_images || []);
-            setSections(data.sections || []);
+            setSectionsEs(data.sections_es || []);
+            setSectionsEn(data.sections_en || []);
         } catch (err) {
             console.error("Error loading content:", err);
             setError("Error al cargar el contenido del home");
@@ -106,9 +111,11 @@ export default function HomeContentPage() {
 
             const token = getAccessTokenFromContext(accessToken);
             const payload = {
-                welcome_text: welcomeText,
+                welcome_text_es: welcomeTextEs,
+                welcome_text_en: welcomeTextEn,
                 carousel_images: carouselImages,
-                sections: sections,
+                sections_es: sectionsEs,
+                sections_en: sectionsEn,
                 is_active: true
             };
 
@@ -140,7 +147,7 @@ export default function HomeContentPage() {
     const [uploadingImageIndex, setUploadingImageIndex] = useState(null);
 
     const addCarouselImage = () => {
-        setCarouselImages([...carouselImages, { url: "", alt: "" }]);
+        setCarouselImages([...carouselImages, { url: "", alt_es: "", alt_en: "" }]);
     };
 
     const removeCarouselImage = (index) => {
@@ -203,7 +210,8 @@ export default function HomeContentPage() {
             updated[index] = {
                 ...updated[index],
                 url: uploadData.url,
-                alt: uploadData.alt || file.name
+                alt_es: updated[index].alt_es || uploadData.alt || file.name,
+                alt_en: updated[index].alt_en || uploadData.alt || file.name
             };
             setCarouselImages(updated);
             setSuccess("Imagen subida exitosamente");
@@ -216,8 +224,19 @@ export default function HomeContentPage() {
         }
     };
 
+    // Funciones para manejar secciones según el idioma activo
+    const getCurrentSections = () => activeLanguage === "es" ? sectionsEs : sectionsEn;
+    const setCurrentSections = (newSections) => {
+        if (activeLanguage === "es") {
+            setSectionsEs(newSections);
+        } else {
+            setSectionsEn(newSections);
+        }
+    };
+
     const addSection = () => {
-        setSections([...sections, {
+        const current = getCurrentSections();
+        setCurrentSections([...current, {
             type: "text", // "text", "bullets", "image"
             title: "",
             content: "",
@@ -227,34 +246,39 @@ export default function HomeContentPage() {
     };
 
     const removeSection = (index) => {
-        setSections(sections.filter((_, i) => i !== index));
+        const current = getCurrentSections();
+        setCurrentSections(current.filter((_, i) => i !== index));
     };
 
     const updateSection = (index, field, value) => {
-        const updated = [...sections];
+        const current = getCurrentSections();
+        const updated = [...current];
         updated[index] = { ...updated[index], [field]: value };
-        setSections(updated);
+        setCurrentSections(updated);
     };
 
     const addBullet = (sectionIndex) => {
-        const updated = [...sections];
+        const current = getCurrentSections();
+        const updated = [...current];
         if (!updated[sectionIndex].bullets) {
             updated[sectionIndex].bullets = [];
         }
         updated[sectionIndex].bullets.push("");
-        setSections(updated);
+        setCurrentSections(updated);
     };
 
     const removeBullet = (sectionIndex, bulletIndex) => {
-        const updated = [...sections];
+        const current = getCurrentSections();
+        const updated = [...current];
         updated[sectionIndex].bullets = updated[sectionIndex].bullets.filter((_, i) => i !== bulletIndex);
-        setSections(updated);
+        setCurrentSections(updated);
     };
 
     const updateBullet = (sectionIndex, bulletIndex, value) => {
-        const updated = [...sections];
+        const current = getCurrentSections();
+        const updated = [...current];
         updated[sectionIndex].bullets[bulletIndex] = value;
-        setSections(updated);
+        setCurrentSections(updated);
     };
 
     if (authLoading || loading) {
@@ -380,6 +404,52 @@ export default function HomeContentPage() {
                         </div>
                     )}
 
+                    {/* Language Tabs */}
+                    <div style={{
+                        backgroundColor: "white",
+                        borderRadius: "12px",
+                        padding: "16px 24px",
+                        marginBottom: "24px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                    }}>
+                        <div style={{
+                            display: "flex",
+                            gap: "8px",
+                            borderBottom: "2px solid #e5e7eb"
+                        }}>
+                            <button
+                                onClick={() => setActiveLanguage("es")}
+                                style={{
+                                    padding: "8px 16px",
+                                    backgroundColor: activeLanguage === "es" ? "#3b82f6" : "transparent",
+                                    color: activeLanguage === "es" ? "white" : "#6b7280",
+                                    border: "none",
+                                    borderRadius: "8px 8px 0 0",
+                                    cursor: "pointer",
+                                    fontWeight: activeLanguage === "es" ? "600" : "400",
+                                    fontSize: "14px"
+                                }}
+                            >
+                                🇪🇸 Español
+                            </button>
+                            <button
+                                onClick={() => setActiveLanguage("en")}
+                                style={{
+                                    padding: "8px 16px",
+                                    backgroundColor: activeLanguage === "en" ? "#3b82f6" : "transparent",
+                                    color: activeLanguage === "en" ? "white" : "#6b7280",
+                                    border: "none",
+                                    borderRadius: "8px 8px 0 0",
+                                    cursor: "pointer",
+                                    fontWeight: activeLanguage === "en" ? "600" : "400",
+                                    fontSize: "14px"
+                                }}
+                            >
+                                🇬🇧 English
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Welcome Text */}
                     <div style={{
                         backgroundColor: "white",
@@ -394,12 +464,18 @@ export default function HomeContentPage() {
                             marginBottom: "12px",
                             color: "#111827"
                         }}>
-                            Texto de Bienvenida
+                            Texto de Bienvenida ({activeLanguage === "es" ? "Español" : "English"})
                         </h2>
                         <input
                             type="text"
-                            value={welcomeText}
-                            onChange={(e) => setWelcomeText(e.target.value)}
+                            value={activeLanguage === "es" ? welcomeTextEs : welcomeTextEn}
+                            onChange={(e) => {
+                                if (activeLanguage === "es") {
+                                    setWelcomeTextEs(e.target.value);
+                                } else {
+                                    setWelcomeTextEn(e.target.value);
+                                }
+                            }}
                             style={{
                                 width: "100%",
                                 padding: "12px",
@@ -407,7 +483,7 @@ export default function HomeContentPage() {
                                 borderRadius: "8px",
                                 fontSize: "16px"
                             }}
-                            placeholder="Bienvenido al Cactario CasaMolle"
+                            placeholder={activeLanguage === "es" ? "Bienvenido al Cactario CasaMolle" : "Welcome to Cactario CasaMolle"}
                         />
                     </div>
 
@@ -519,7 +595,7 @@ export default function HomeContentPage() {
                                         <div style={{ marginTop: "8px" }}>
                                             <img
                                                 src={img.url}
-                                                alt={img.alt || `Imagen ${index + 1}`}
+                                                alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
                                                 style={{
                                                     maxWidth: "100%",
                                                     maxHeight: "200px",
@@ -537,24 +613,58 @@ export default function HomeContentPage() {
                                         </div>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    value={img.alt || ""}
-                                    onChange={(e) => updateCarouselImage(index, "alt", e.target.value)}
-                                    placeholder="Texto alternativo (alt)"
-                                    style={{
-                                        width: "100%",
-                                        padding: "8px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "6px",
-                                        fontSize: "14px"
-                                    }}
-                                />
+                                <div style={{ marginTop: "8px" }}>
+                                    <label style={{
+                                        display: "block",
+                                        fontSize: "14px",
+                                        fontWeight: "500",
+                                        color: "#374151",
+                                        marginBottom: "4px"
+                                    }}>
+                                        Texto alternativo (alt) - Español:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={img.alt_es || img.alt || ""}
+                                        onChange={(e) => updateCarouselImage(index, "alt_es", e.target.value)}
+                                        placeholder="Texto alternativo en español"
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            fontSize: "14px",
+                                            marginBottom: "8px"
+                                        }}
+                                    />
+                                    <label style={{
+                                        display: "block",
+                                        fontSize: "14px",
+                                        fontWeight: "500",
+                                        color: "#374151",
+                                        marginBottom: "4px"
+                                    }}>
+                                        Texto alternativo (alt) - English:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={img.alt_en || img.alt || ""}
+                                        onChange={(e) => updateCarouselImage(index, "alt_en", e.target.value)}
+                                        placeholder="Alternative text in English"
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            fontSize: "14px"
+                                        }}
+                                    />
+                                </div>
                                 {img.url && (
                                     <div style={{ marginTop: "12px" }}>
                                         <img
                                             src={img.url}
-                                            alt={img.alt || `Imagen ${index + 1}`}
+                                            alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
                                             style={{
                                                 maxWidth: "100%",
                                                 maxHeight: "200px",
@@ -597,7 +707,7 @@ export default function HomeContentPage() {
                                 color: "#111827",
                                 margin: 0
                             }}>
-                                Secciones de Contenido
+                                Secciones de Contenido ({activeLanguage === "es" ? "Español" : "English"})
                             </h2>
                             <button
                                 onClick={addSection}
@@ -616,7 +726,7 @@ export default function HomeContentPage() {
                             </button>
                         </div>
 
-                        {sections.map((section, sectionIndex) => (
+                        {getCurrentSections().map((section, sectionIndex) => (
                             <div key={sectionIndex} style={{
                                 border: "1px solid #e5e7eb",
                                 borderRadius: "8px",
@@ -769,7 +879,7 @@ export default function HomeContentPage() {
                             </div>
                         ))}
 
-                        {sections.length === 0 && (
+                        {getCurrentSections().length === 0 && (
                             <p style={{ color: "#6b7280", fontStyle: "italic" }}>
                                 No hay secciones agregadas. Puedes agregar secciones con texto, listas o imágenes.
                             </p>

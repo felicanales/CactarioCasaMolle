@@ -5,12 +5,17 @@
 -- Incluye: texto de bienvenida, imágenes del carrusel y secciones de contenido
 -- =============================================================================
 
--- Crear tabla home_content
+-- Crear tabla home_content con soporte para múltiples idiomas
 CREATE TABLE IF NOT EXISTS public.home_content (
     id BIGSERIAL PRIMARY KEY,
-    welcome_text TEXT NOT NULL DEFAULT 'Bienvenido al Cactario CasaMolle',
+    -- Textos en español
+    welcome_text_es TEXT NOT NULL DEFAULT 'Bienvenido al Cactario CasaMolle',
+    sections_es JSONB DEFAULT '[]'::jsonb,
+    -- Textos en inglés
+    welcome_text_en TEXT DEFAULT 'Welcome to Cactario CasaMolle',
+    sections_en JSONB DEFAULT '[]'::jsonb,
+    -- Imágenes del carrusel (compartidas, pero con alt text en ambos idiomas)
     carousel_images JSONB DEFAULT '[]'::jsonb,
-    sections JSONB DEFAULT '[]'::jsonb,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -70,32 +75,59 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.home_content TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.home_content_id_seq TO authenticated;
 
 -- Comentarios en la tabla y columnas
-COMMENT ON TABLE public.home_content IS 'Contenido del home de la aplicación móvil';
-COMMENT ON COLUMN public.home_content.welcome_text IS 'Texto de bienvenida que se muestra en el home';
-COMMENT ON COLUMN public.home_content.carousel_images IS 'Array JSON con las imágenes del carrusel. Formato: [{"url": "...", "alt": "..."}]';
-COMMENT ON COLUMN public.home_content.sections IS 'Array JSON con las secciones de contenido. Cada sección puede ser tipo "text", "bullets" o "image"';
+COMMENT ON TABLE public.home_content IS 'Contenido del home de la aplicación móvil con soporte multiidioma';
+COMMENT ON COLUMN public.home_content.welcome_text_es IS 'Texto de bienvenida en español';
+COMMENT ON COLUMN public.home_content.welcome_text_en IS 'Texto de bienvenida en inglés';
+COMMENT ON COLUMN public.home_content.sections_es IS 'Array JSON con las secciones de contenido en español';
+COMMENT ON COLUMN public.home_content.sections_en IS 'Array JSON con las secciones de contenido en inglés';
+COMMENT ON COLUMN public.home_content.carousel_images IS 'Array JSON con las imágenes del carrusel. Formato: [{"url": "...", "alt_es": "...", "alt_en": "..."}]';
 COMMENT ON COLUMN public.home_content.is_active IS 'Indica si este contenido está activo y debe mostrarse en la app móvil';
+
+-- =============================================================================
+-- MIGRACIÓN: Actualizar datos existentes (si los hay)
+-- =============================================================================
+-- Si ya existe contenido, migrar welcome_text y sections a las nuevas columnas
+DO $$
+BEGIN
+    -- Migrar welcome_text a welcome_text_es si existe la columna antigua
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'home_content' AND column_name = 'welcome_text'
+    ) THEN
+        UPDATE public.home_content 
+        SET welcome_text_es = welcome_text 
+        WHERE welcome_text_es IS NULL OR welcome_text_es = '';
+        
+        UPDATE public.home_content 
+        SET sections_es = sections 
+        WHERE (sections_es IS NULL OR sections_es = '[]'::jsonb) 
+        AND sections IS NOT NULL AND sections != '[]'::jsonb;
+    END IF;
+END $$;
 
 -- =============================================================================
 -- EJEMPLO DE DATOS
 -- =============================================================================
--- INSERT INTO public.home_content (welcome_text, carousel_images, sections, is_active)
+-- INSERT INTO public.home_content (welcome_text_es, welcome_text_en, carousel_images, sections_es, sections_en, is_active)
 -- VALUES (
 --     'Bienvenido al Cactario CasaMolle',
+--     'Welcome to Cactario CasaMolle',
 --     '[
---         {"url": "https://example.com/image1.jpg", "alt": "Cactus 1"},
---         {"url": "https://example.com/image2.jpg", "alt": "Cactus 2"}
+--         {"url": "https://example.com/image1.jpg", "alt_es": "Cactus 1", "alt_en": "Cactus 1"},
+--         {"url": "https://example.com/image2.jpg", "alt_es": "Cactus 2", "alt_en": "Cactus 2"}
 --     ]'::jsonb,
 --     '[
 --         {
 --             "type": "text",
 --             "title": "Sobre la App",
 --             "content": "Esta aplicación te permite explorar el cactario..."
---         },
+--         }
+--     ]'::jsonb,
+--     '[
 --         {
---             "type": "bullets",
---             "title": "Características",
---             "bullets": ["Explora especies", "Escanea códigos QR", "Aprende sobre cactus"]
+--             "type": "text",
+--             "title": "About the App",
+--             "content": "This app allows you to explore the cactarium..."
 --         }
 --     ]'::jsonb,
 --     true

@@ -83,9 +83,15 @@ def get_authenticated_client(access_token: Optional[str] = None):
 
 # ----------------- PÚBLICO -----------------
 
-def get_public() -> Optional[Dict[str, Any]]:
+def get_public(lang: str = "es") -> Optional[Dict[str, Any]]:
     """
     Obtiene el contenido público del home (sin autenticación).
+    
+    Args:
+        lang: Idioma del contenido ('es' para español, 'en' para inglés). Default: 'es'
+    
+    Returns:
+        Dict con welcome_text, carousel_images y sections en el idioma solicitado
     """
     try:
         sb = get_public_clean()
@@ -93,8 +99,9 @@ def get_public() -> Optional[Dict[str, Any]]:
         
         if not res.data or len(res.data) == 0:
             # Retornar contenido por defecto si no hay configuración
+            default_welcome = "Bienvenido al Cactario CasaMolle" if lang == "es" else "Welcome to Cactario CasaMolle"
             return {
-                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "welcome_text": default_welcome,
                 "carousel_images": [],
                 "sections": []
             }
@@ -105,42 +112,75 @@ def get_public() -> Optional[Dict[str, Any]]:
         error_msg = str(e).lower()
         if "does not exist" in error_msg or "relation" in error_msg or "table" in error_msg:
             # La tabla no existe, retornar contenido por defecto
+            default_welcome = "Bienvenido al Cactario CasaMolle" if lang == "es" else "Welcome to Cactario CasaMolle"
             return {
-                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "welcome_text": default_welcome,
                 "carousel_images": [],
                 "sections": []
             }
         # Otro tipo de error, re-lanzar
         raise
     
-    # Parsear JSON fields si existen (Supabase puede devolver strings o objetos ya parseados)
-    if content.get("carousel_images") is not None:
-        if isinstance(content["carousel_images"], str):
-            try:
-                content["carousel_images"] = json.loads(content["carousel_images"])
-            except:
-                content["carousel_images"] = []
-        # Si ya es una lista/dict, dejarlo como está
-    else:
-        content["carousel_images"] = []
+    # Seleccionar contenido según el idioma
+    welcome_key = f"welcome_text_{lang}" if lang in ["es", "en"] else "welcome_text_es"
+    sections_key = f"sections_{lang}" if lang in ["es", "en"] else "sections_es"
     
-    if content.get("sections") is not None:
-        if isinstance(content["sections"], str):
-            try:
-                content["sections"] = json.loads(content["sections"])
-            except:
-                content["sections"] = []
-        # Si ya es una lista/dict, dejarlo como está
+    # Si las columnas nuevas no existen, usar las antiguas (compatibilidad hacia atrás)
+    if welcome_key not in content or content.get(welcome_key) is None:
+        if "welcome_text" in content:
+            welcome_text = content["welcome_text"]
+        else:
+            welcome_text = "Bienvenido al Cactario CasaMolle" if lang == "es" else "Welcome to Cactario CasaMolle"
     else:
-        content["sections"] = []
+        welcome_text = content.get(welcome_key) or ("Bienvenido al Cactario CasaMolle" if lang == "es" else "Welcome to Cactario CasaMolle")
     
-    return content
+    if sections_key not in content or content.get(sections_key) is None:
+        if "sections" in content:
+            sections = content["sections"]
+        else:
+            sections = []
+    else:
+        sections = content.get(sections_key) or []
+    
+    # Parsear JSON fields si existen
+    if isinstance(sections, str):
+        try:
+            sections = json.loads(sections)
+        except:
+            sections = []
+    
+    # Parsear carousel_images
+    carousel_images = content.get("carousel_images") or []
+    if isinstance(carousel_images, str):
+        try:
+            carousel_images = json.loads(carousel_images)
+        except:
+            carousel_images = []
+    
+    # Procesar alt text de imágenes según idioma
+    processed_carousel = []
+    for img in carousel_images:
+        if isinstance(img, dict):
+            # Usar alt_es o alt_en según el idioma, o alt como fallback
+            alt_key = f"alt_{lang}" if lang in ["es", "en"] else "alt_es"
+            alt_text = img.get(alt_key) or img.get("alt") or ""
+            processed_carousel.append({
+                "url": img.get("url", ""),
+                "alt": alt_text
+            })
+    
+    return {
+        "welcome_text": welcome_text,
+        "carousel_images": processed_carousel,
+        "sections": sections
+    }
 
 # ----------------- STAFF (privado) -----------------
 
 def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Obtiene el contenido del home para staff (requiere autenticación).
+    Retorna ambos idiomas (español e inglés) para edición.
     """
     try:
         SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -162,16 +202,20 @@ def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
                     content = data[0]
                 else:
                     return {
-                        "welcome_text": "Bienvenido al Cactario CasaMolle",
+                        "welcome_text_es": "Bienvenido al Cactario CasaMolle",
+                        "welcome_text_en": "Welcome to Cactario CasaMolle",
                         "carousel_images": [],
-                        "sections": []
+                        "sections_es": [],
+                        "sections_en": []
                     }
             else:
                 # Si falla, retornar contenido por defecto
                 return {
-                    "welcome_text": "Bienvenido al Cactario CasaMolle",
+                    "welcome_text_es": "Bienvenido al Cactario CasaMolle",
+                    "welcome_text_en": "Welcome to Cactario CasaMolle",
                     "carousel_images": [],
-                    "sections": []
+                    "sections_es": [],
+                    "sections_en": []
                 }
         else:
             # Sin token, usar cliente público
@@ -180,9 +224,11 @@ def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
             
             if not res.data or len(res.data) == 0:
                 return {
-                    "welcome_text": "Bienvenido al Cactario CasaMolle",
+                    "welcome_text_es": "Bienvenido al Cactario CasaMolle",
+                    "welcome_text_en": "Welcome to Cactario CasaMolle",
                     "carousel_images": [],
-                    "sections": []
+                    "sections_es": [],
+                    "sections_en": []
                 }
             
             content = res.data[0]
@@ -192,35 +238,49 @@ def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
         if "does not exist" in error_msg or "relation" in error_msg or "table" in error_msg:
             # La tabla no existe, retornar contenido por defecto
             return {
-                "welcome_text": "Bienvenido al Cactario CasaMolle",
+                "welcome_text_es": "Bienvenido al Cactario CasaMolle",
+                "welcome_text_en": "Welcome to Cactario CasaMolle",
                 "carousel_images": [],
-                "sections": []
+                "sections_es": [],
+                "sections_en": []
             }
         # Otro tipo de error, re-lanzar
         raise
     
-    # Parsear JSON fields si existen (Supabase puede devolver strings o objetos ya parseados)
-    if content.get("carousel_images") is not None:
-        if isinstance(content["carousel_images"], str):
-            try:
-                content["carousel_images"] = json.loads(content["carousel_images"])
-            except:
-                content["carousel_images"] = []
-        # Si ya es una lista/dict, dejarlo como está
-    else:
-        content["carousel_images"] = []
+    # Parsear JSON fields si existen
+    carousel_images = content.get("carousel_images") or []
+    if isinstance(carousel_images, str):
+        try:
+            carousel_images = json.loads(carousel_images)
+        except:
+            carousel_images = []
     
-    if content.get("sections") is not None:
-        if isinstance(content["sections"], str):
-            try:
-                content["sections"] = json.loads(content["sections"])
-            except:
-                content["sections"] = []
-        # Si ya es una lista/dict, dejarlo como está
-    else:
-        content["sections"] = []
+    sections_es = content.get("sections_es") or content.get("sections") or []
+    if isinstance(sections_es, str):
+        try:
+            sections_es = json.loads(sections_es)
+        except:
+            sections_es = []
     
-    return content
+    sections_en = content.get("sections_en") or []
+    if isinstance(sections_en, str):
+        try:
+            sections_en = json.loads(sections_en)
+        except:
+            sections_en = []
+    
+    # Compatibilidad hacia atrás: si no existen las columnas nuevas, usar las antiguas
+    welcome_text_es = content.get("welcome_text_es") or content.get("welcome_text") or "Bienvenido al Cactario CasaMolle"
+    welcome_text_en = content.get("welcome_text_en") or "Welcome to Cactario CasaMolle"
+    
+    return {
+        "welcome_text_es": welcome_text_es,
+        "welcome_text_en": welcome_text_en,
+        "carousel_images": carousel_images,
+        "sections_es": sections_es,
+        "sections_en": sections_en,
+        "is_active": content.get("is_active", True)
+    }
 
 def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = None, access_token: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -241,14 +301,21 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
         raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_ANON_KEY en .env")
     
-    # Preparar datos
+    # Preparar datos con soporte multiidioma
     carousel_data = payload.get("carousel_images", [])
-    sections_data = payload.get("sections", [])
+    sections_es = payload.get("sections_es", [])
+    sections_en = payload.get("sections_en", [])
+    
+    # Compatibilidad hacia atrás: si viene sections (sin _es), usarlo para sections_es
+    if not sections_es and payload.get("sections"):
+        sections_es = payload.get("sections")
     
     data = {
-        "welcome_text": payload.get("welcome_text", "Bienvenido al Cactario CasaMolle"),
+        "welcome_text_es": payload.get("welcome_text_es") or payload.get("welcome_text") or "Bienvenido al Cactario CasaMolle",
+        "welcome_text_en": payload.get("welcome_text_en") or "Welcome to Cactario CasaMolle",
         "carousel_images": carousel_data if isinstance(carousel_data, (list, dict)) else json.dumps(carousel_data),
-        "sections": sections_data if isinstance(sections_data, (list, dict)) else json.dumps(sections_data),
+        "sections_es": sections_es if isinstance(sections_es, (list, dict)) else json.dumps(sections_es),
+        "sections_en": sections_en if isinstance(sections_en, (list, dict)) else json.dumps(sections_en),
         "is_active": payload.get("is_active", True)
     }
     

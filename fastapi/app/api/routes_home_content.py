@@ -12,15 +12,23 @@ router = APIRouter()
 # ===========================
 
 @router.get("/public")
-def get_home_content_public():
+def get_home_content_public(lang: str = "es"):
     """
     Obtiene el contenido público del home (sin autenticación).
+    
+    Args:
+        lang: Idioma del contenido ('es' para español, 'en' para inglés). Default: 'es'
     """
-    content = svc.get_public()
+    # Validar idioma
+    if lang not in ["es", "en"]:
+        lang = "es"
+    
+    content = svc.get_public(lang=lang)
     if not content:
         # Retornar contenido por defecto
+        default_welcome = "Bienvenido al Cactario CasaMolle" if lang == "es" else "Welcome to Cactario CasaMolle"
         return {
-            "welcome_text": "Bienvenido al Cactario CasaMolle",
+            "welcome_text": default_welcome,
             "carousel_images": [],
             "sections": []
         }

@@ -11,10 +11,30 @@ export default function Home() {
   const [carouselImages, setCarouselImages] = useState([]);
   const [sections, setSections] = useState([]);
   const [error, setError] = useState(null);
+  const [language, setLanguage] = useState('es'); // 'es' o 'en'
+
+  // Detectar idioma del navegador al cargar
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Intentar obtener idioma guardado en localStorage
+      const savedLang = localStorage.getItem('cactario_language');
+      if (savedLang && (savedLang === 'es' || savedLang === 'en')) {
+        setLanguage(savedLang);
+      } else {
+        // Detectar idioma del navegador
+        const browserLang = navigator.language || navigator.userLanguage;
+        const lang = browserLang.startsWith('en') ? 'en' : 'es';
+        setLanguage(lang);
+        localStorage.setItem('cactario_language', lang);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    loadHomeContent();
-  }, []);
+    if (language) {
+      loadHomeContent();
+    }
+  }, [language]);
 
   const loadHomeContent = async () => {
     try {
@@ -24,7 +44,8 @@ export default function Home() {
       // Obtener la URL de la API desde las variables de entorno
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
       
-      const response = await fetch(`${API_URL}/home-content/public`);
+      // Pasar el parámetro de idioma
+      const response = await fetch(`${API_URL}/home-content/public?lang=${language}`);
       
       if (!response.ok) {
         throw new Error('Error al cargar el contenido del home');
@@ -32,9 +53,9 @@ export default function Home() {
       
       const data = await response.json();
       
-      setWelcomeText(data.welcome_text || 'Bienvenido al Cactario CasaMolle');
+      setWelcomeText(data.welcome_text || (language === 'es' ? 'Bienvenido al Cactario CasaMolle' : 'Welcome to Cactario CasaMolle'));
       
-      // Procesar imágenes del carrusel
+      // Procesar imágenes del carrusel con alt text según idioma
       const images = (data.carousel_images || []).map((img, index) => ({
         id: index + 1,
         url: img.url || img,
@@ -46,10 +67,20 @@ export default function Home() {
       setSections(data.sections || []);
     } catch (err) {
       console.error('Error loading home content:', err);
-      setError('No se pudo cargar el contenido. Mostrando contenido por defecto.');
+      setError(language === 'es' 
+        ? 'No se pudo cargar el contenido. Mostrando contenido por defecto.'
+        : 'Could not load content. Showing default content.');
       // Mantener valores por defecto
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleLanguage = () => {
+    const newLang = language === 'es' ? 'en' : 'es';
+    setLanguage(newLang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cactario_language', newLang);
     }
   };
 
@@ -176,14 +207,36 @@ export default function Home() {
       <Header />
       <main className="main-content">
         <div>
-          <h1 style={{ 
-            fontSize: '24px', 
-            fontWeight: '700', 
-            marginBottom: '24px',
-            color: '#111827'
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            {welcomeText} 🌵
-          </h1>
+            <h1 style={{ 
+              fontSize: '24px', 
+              fontWeight: '700', 
+              margin: 0,
+              color: '#111827'
+            }}>
+              {welcomeText} 🌵
+            </h1>
+            <button
+              onClick={toggleLanguage}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {language === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
+            </button>
+          </div>
           
           {carouselImages.length > 0 && (
             <div style={{ marginBottom: '32px' }}>
