@@ -439,38 +439,3 @@ def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Op
             )
         except Exception as audit_error:
             logger.warning(f"[delete_staff] Error al registrar auditoría: {str(audit_error)}")
-
-def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Optional[str] = None, user_name: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> None:
-    """
-    Elimina un ejemplar.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    sb = get_public()
-    
-    # Obtener el ejemplar antes de eliminarlo para auditoría
-    old_ejemplar_res = sb.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
-    old_values = old_ejemplar_res.data[0] if old_ejemplar_res.data else None
-    
-    sb.table("ejemplar").delete().eq("id", ejemplar_id).execute()
-    
-    # Registrar en auditoría
-    if (user_id or user_email) and old_values:
-        try:
-            from app.services.audit_service import log_change
-            log_change(
-                table_name='ejemplar',
-                record_id=ejemplar_id,
-                action='DELETE',
-                user_id=user_id,
-                user_email=user_email,
-                user_name=user_name,
-                old_values=old_values,
-                new_values=None,
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
-        except Exception as audit_error:
-            logger.warning(f"[delete_staff] Error al registrar auditoría: {str(audit_error)}")
-

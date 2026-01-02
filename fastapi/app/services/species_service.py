@@ -296,30 +296,3 @@ def delete_admin(species_id: int, user_id: Optional[int] = None, user_email: Opt
             )
         except Exception as audit_error:
             logger.warning(f"[delete_admin] Error al registrar auditoría: {str(audit_error)}")
-
-    
-    # Obtener la especie antes de eliminarla para auditoría
-    old_species_res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
-    old_values = old_species_res.data[0] if old_species_res.data else None
-    
-    # (Opcional: validar dependencias: ejemplar, fotos_especies, purchase_items, etc.)
-    sb.table("especies").delete().eq("id", species_id).execute()
-    
-    # Registrar en auditoría
-    if (user_id or user_email) and old_values:
-        try:
-            from app.services.audit_service import log_change
-            log_change(
-                table_name='especies',
-                record_id=species_id,
-                action='DELETE',
-                user_id=user_id,
-                user_email=user_email,
-                user_name=user_name,
-                old_values=old_values,
-                new_values=None,
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
-        except Exception as audit_error:
-            logger.warning(f"[delete_admin] Error al registrar auditoría: {str(audit_error)}")
