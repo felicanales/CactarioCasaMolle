@@ -37,6 +37,12 @@ Backend (FastAPI) service:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `R2_PUBLIC_BASE_URL`
+- `R2_SIGNED_URL_TTL`
 - `DATABASE_URL`
 - `ENVIRONMENT=production` (or `ENV=production`)
 - `CORS_ORIGINS` with the staff and mobile domains

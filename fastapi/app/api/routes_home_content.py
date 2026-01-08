@@ -4,6 +4,7 @@ from typing import Dict, Any, List
 from app.middleware.auth_middleware import get_current_user
 from app.services import home_content_service as svc
 from app.services import photos_service
+from app.core import r2_storage
 
 router = APIRouter()
 
@@ -89,13 +90,9 @@ async def upload_carousel_image(
         from io import BytesIO
         from PIL import Image
         import uuid
-        from app.core.supabase_auth import get_service
-        
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
-        
-        sb = get_service()
-        BUCKET_NAME = "photos"
+
         MAX_IMAGE_SIZE = 2048
         
         # Leer y procesar la imagen
@@ -122,18 +119,21 @@ async def upload_carousel_image(
             content_type = 'image/jpeg'  # Después de redimensionar, siempre será JPEG
             unique_filename = f"home/carousel/{uuid.uuid4()}.jpg"  # Cambiar extensión a .jpg
         
-        # Subir a Supabase Storage
-        sb.storage.from_(BUCKET_NAME).upload(
+        r2_storage.upload_object(
             unique_filename,
             file_content,
-            file_options={"content-type": content_type}
+            content_type=content_type,
         )
-        
-        # Obtener URL pública
-        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(unique_filename)
+
+        public_url = r2_storage.get_public_url(unique_filename)
+        signed_url = None
+        if r2_storage.should_use_signed_urls() and current_user:
+            signed_url = r2_storage.get_signed_url(unique_filename)
+            public_url = signed_url
         
         return {
             "url": public_url,
+            "signed_url": signed_url,
             "alt": file.filename or "Imagen del carrusel"
         }
     except HTTPException:

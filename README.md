@@ -59,6 +59,14 @@ SUPABASE_URL=tu_supabase_url
 SUPABASE_ANON_KEY=tu_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
 
+# R2 Storage (Cloudflare)
+R2_ACCOUNT_ID=tu_account_id
+R2_ACCESS_KEY_ID=tu_access_key_id
+R2_SECRET_ACCESS_KEY=tu_secret_access_key
+R2_BUCKET=tu_bucket
+R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
+R2_SIGNED_URL_TTL=3600
+
 # Database
 DATABASE_URL=tu_database_url
 

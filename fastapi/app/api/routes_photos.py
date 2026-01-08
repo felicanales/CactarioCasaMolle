@@ -2,8 +2,12 @@ from fastapi import APIRouter, HTTPException, Path, File, UploadFile, Form, Depe
 from typing import List, Optional
 from app.services import photos_service as svc
 from app.middleware.auth_middleware import get_current_user
+from app.core import r2_storage
 
 router = APIRouter()
+
+def _should_include_signed_url(current_user: Optional[dict]) -> bool:
+    return bool(current_user) and r2_storage.should_use_signed_urls()
 
 
 @router.post("/{entity_type}/{entity_id}", dependencies=[Depends(get_current_user)])
@@ -30,6 +34,7 @@ async def upload_photos(
             entity_id,
             files,
             is_cover_photo_id,
+            include_signed_url=_should_include_signed_url(current_user),
             user_id=user_id,
             user_email=user_email,
             user_name=user_name,
@@ -51,12 +56,13 @@ async def upload_photos(
 def list_photos(
     entity_type: str = Path(..., description="Tipo de entidad"),
     entity_id: int = Path(..., ge=1, description="ID de la entidad"),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Lista todas las fotos de una entidad (publico).
     """
     try:
-        photos = svc.list_photos(entity_type, entity_id)
+        photos = svc.list_photos(entity_type, entity_id, include_signed_url=_should_include_signed_url(current_user))
         return {"photos": photos, "count": len(photos)}
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -66,12 +72,13 @@ def list_photos(
 def get_cover_photo(
     entity_type: str = Path(..., description="Tipo de entidad"),
     entity_id: int = Path(..., ge=1, description="ID de la entidad"),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Obtiene la foto de portada de una entidad (publico).
     """
     try:
-        cover = svc.get_cover_photo(entity_type, entity_id)
+        cover = svc.get_cover_photo(entity_type, entity_id, include_signed_url=_should_include_signed_url(current_user))
         if not cover:
             raise HTTPException(404, "No hay foto de portada disponible")
         return cover
