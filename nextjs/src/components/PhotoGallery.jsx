@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getApiUrl } from "../utils/api-config";
+import { resolvePhotoUrl } from "../utils/images";
 
 const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
@@ -211,7 +212,7 @@ export default function PhotoGallery({
                         onClick={() => setSelectedPhoto(photo)}
                         >
                             <img
-                                src={photo.public_url}
+                                src={resolvePhotoUrl(photo)}
                                 alt="Foto"
                                 style={{
                                     position: 'absolute',
@@ -303,7 +304,7 @@ export default function PhotoGallery({
                     onClick={() => setSelectedPhoto(null)}
                 >
                     <img
-                        src={selectedPhoto.public_url}
+                        src={resolvePhotoUrl(selectedPhoto)}
                         alt="Foto ampliada"
                         style={{
                             maxWidth: '90%',
@@ -339,4 +340,3 @@ export default function PhotoGallery({
         </div>
     );
 }
-
