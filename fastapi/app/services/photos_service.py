@@ -7,7 +7,7 @@ from PIL import Image
 import uuid
 import logging
 from app.core.supabase_auth import get_public, get_service
-from app.core import r2_storage
+from app.core import storage_router
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def _build_variant_urls(variants: Optional[Dict[str, str]]) -> Dict[str, str]:
     urls = {}
     for key, path in variants.items():
         if path:
-            urls[key] = r2_storage.get_public_url(path)
+            urls[key] = storage_router.get_public_url(path)
     return urls
 
 # Mapeo de tipos de entidad a columnas y tablas
@@ -143,7 +143,7 @@ async def upload_photos(
             else:
                 image_for_variants = _normalize_image(image)
             
-            r2_storage.upload_object(
+            storage_router.upload_object(
                 key=unique_filename,
                 data=original_content,
                 content_type=original_content_type,
@@ -155,7 +155,7 @@ async def upload_photos(
                 resized = _resize_to_width(image_for_variants, width)
                 variant_content = _image_to_jpeg_bytes(resized)
                 variant_path = f"w={width}/{base_dir}/{base_filename}.jpg"
-                r2_storage.upload_object(
+                storage_router.upload_object(
                     key=variant_path,
                     data=variant_content,
                     content_type="image/jpeg",
@@ -192,7 +192,7 @@ async def upload_photos(
             if result.data:
                 photo_record = result.data[0]
                 photo_id = photo_record["id"]
-                public_url = r2_storage.get_public_url(unique_filename)
+                public_url = storage_router.get_public_url(unique_filename)
                 uploaded_photos.append({
                     "id": photo_id,
                     "storage_path": unique_filename,
@@ -247,7 +247,7 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
     
     result = []
     for photo in (photos.data or []):
-        public_url = r2_storage.get_public_url(photo["storage_path"])
+        public_url = storage_router.get_public_url(photo["storage_path"])
         result.append({
             **photo,
             "public_url": public_url,
@@ -277,7 +277,7 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     
     if cover.data:
         photo = cover.data[0]
-        public_url = r2_storage.get_public_url(photo["storage_path"])
+        public_url = storage_router.get_public_url(photo["storage_path"])
         return {
             **photo,
             "public_url": public_url,
@@ -294,7 +294,7 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     
     if first.data:
         photo = first.data[0]
-        public_url = r2_storage.get_public_url(photo["storage_path"])
+        public_url = storage_router.get_public_url(photo["storage_path"])
         return {
             **photo,
             "public_url": public_url,
@@ -328,7 +328,7 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
     for photo in (covers.data or []):
         eid = photo[config['column']]
         if eid not in cover_map and photo.get("storage_path"):
-            public_url = r2_storage.get_public_url(photo["storage_path"])
+            public_url = storage_router.get_public_url(photo["storage_path"])
             cover_map[eid] = public_url
             covered_ids.add(eid)
     
@@ -349,7 +349,7 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
         
         for eid, storage_path in by_entity.items():
             if storage_path:
-                public_url = r2_storage.get_public_url(storage_path)
+                public_url = storage_router.get_public_url(storage_path)
                 cover_map[eid] = public_url
     
     return cover_map
@@ -457,10 +457,10 @@ def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optio
     variants = old_values.get("variants") or {}
     
     try:
-        r2_storage.delete_object(storage_path)
+        storage_router.delete_object(storage_path)
         for variant_path in variants.values():
             if variant_path:
-                r2_storage.delete_object(variant_path)
+                storage_router.delete_object(variant_path)
     except Exception as e:
         logger.warning(f"No se pudo eliminar del storage: {str(e)}")
     

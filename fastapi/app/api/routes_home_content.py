@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from app.middleware.auth_middleware import get_current_user
 from app.services import home_content_service as svc
 from app.services import photos_service
-from app.core import r2_storage
+from app.core import storage_router
 
 router = APIRouter()
 
@@ -119,14 +119,14 @@ async def upload_carousel_image(
             content_type = 'image/jpeg'  # Después de redimensionar, siempre será JPEG
             unique_filename = f"home/carousel/{uuid.uuid4()}.jpg"  # Cambiar extensión a .jpg
         
-        r2_storage.upload_object(
+        storage_router.upload_object(
             key=unique_filename,
             data=file_content,
             content_type=content_type,
         )
 
         return {
-            "url": r2_storage.get_public_url(unique_filename),
+            "url": storage_router.get_public_url(unique_filename),
             "alt": file.filename or "Imagen del carrusel"
         }
     except HTTPException:
