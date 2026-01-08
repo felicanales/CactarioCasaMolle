@@ -16,7 +16,6 @@ class R2Config:
     secret_access_key: str
     bucket: str
     public_base_url: Optional[str]
-    signed_url_ttl: int
 
 
 def _require_env(name: str) -> str:
@@ -43,7 +42,6 @@ def get_config() -> R2Config:
         secret_access_key=_require_env("R2_SECRET_ACCESS_KEY"),
         bucket=_require_env("R2_BUCKET"),
         public_base_url=_normalize_public_base_url(os.getenv("R2_PUBLIC_BASE_URL")),
-        signed_url_ttl=int(os.getenv("R2_SIGNED_URL_TTL", "3600")),
     )
 
 
@@ -76,21 +74,9 @@ def delete_object(key: str) -> None:
 
 def get_public_url(key: str) -> str:
     config = get_config()
-    base_url = config.public_base_url or f"https://{config.account_id}.r2.cloudflarestorage.com/{config.bucket}"
+    if not config.public_base_url:
+        raise RuntimeError("R2_PUBLIC_BASE_URL no definido; requerido para URLs públicas.")
     normalized_key = key.lstrip("/")
-    return f"{base_url}/{normalized_key}"
+    return f"{config.public_base_url}/{normalized_key}"
 
 
-def get_signed_url(key: str, ttl: Optional[int] = None) -> str:
-    config = get_config()
-    client = get_client()
-    return client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": config.bucket, "Key": key},
-        ExpiresIn=ttl or config.signed_url_ttl,
-    )
-
-
-def should_use_signed_urls() -> bool:
-    config = get_config()
-    return not bool(config.public_base_url)

@@ -131,7 +131,6 @@ def environment_info():
         "R2_SECRET_ACCESS_KEY_SET": "Sí" if os.getenv("R2_SECRET_ACCESS_KEY") else "No",
         "R2_BUCKET_SET": "Sí" if os.getenv("R2_BUCKET") else "No",
         "R2_PUBLIC_BASE_URL": os.getenv("R2_PUBLIC_BASE_URL", "No definido"),
-        "R2_SIGNED_URL_TTL": os.getenv("R2_SIGNED_URL_TTL", "No definido"),
     }
 
     other_vars = {

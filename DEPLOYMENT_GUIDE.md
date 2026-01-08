@@ -42,7 +42,6 @@ Backend (FastAPI) service:
 - `R2_SECRET_ACCESS_KEY`
 - `R2_BUCKET`
 - `R2_PUBLIC_BASE_URL`
-- `R2_SIGNED_URL_TTL`
 - `DATABASE_URL`
 - `ENVIRONMENT=production` (or `ENV=production`)
 - `CORS_ORIGINS` with the staff and mobile domains

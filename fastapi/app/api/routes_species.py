@@ -19,14 +19,20 @@ def list_species_public(
     """
     Lista pública de especies (sin auth).
     """
-    return svc.list_public(q, limit, offset)
+    try:
+        return svc.list_public(q, limit, offset)
+    except RuntimeError as e:
+        raise HTTPException(500, str(e))
 
 @router.get("/public/{slug}")
 def get_species_public(slug: str = Path(..., description="Slug de la especie")):
     """
     Ficha pública de especie por slug (sin auth).
     """
-    row = svc.get_public_by_slug(slug)
+    try:
+        row = svc.get_public_by_slug(slug)
+    except RuntimeError as e:
+        raise HTTPException(500, str(e))
     if not row:
         raise HTTPException(404, "Especie no encontrada")
     return row
@@ -106,12 +112,6 @@ def delete_species_admin(species_id: int, request: Request, current_user: dict =
     user_id = current_user.get('id')
     user_email = current_user.get('email')
     user_name = current_user.get('full_name') or current_user.get('username')
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get('user-agent')
-    
-    svc.delete_admin(species_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
-    return
-
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get('user-agent')
     

@@ -65,7 +65,6 @@ R2_ACCESS_KEY_ID=tu_access_key_id
 R2_SECRET_ACCESS_KEY=tu_secret_access_key
 R2_BUCKET=tu_bucket
 R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
-R2_SIGNED_URL_TTL=3600
 
 # Database
 DATABASE_URL=tu_database_url

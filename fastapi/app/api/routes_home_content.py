@@ -125,15 +125,8 @@ async def upload_carousel_image(
             content_type=content_type,
         )
 
-        public_url = r2_storage.get_public_url(unique_filename)
-        signed_url = None
-        if r2_storage.should_use_signed_urls() and current_user:
-            signed_url = r2_storage.get_signed_url(unique_filename)
-            public_url = signed_url
-        
         return {
-            "url": public_url,
-            "signed_url": signed_url,
+            "url": r2_storage.get_public_url(unique_filename),
             "alt": file.filename or "Imagen del carrusel"
         }
     except HTTPException:

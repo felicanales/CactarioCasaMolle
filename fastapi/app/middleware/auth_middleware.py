@@ -1,17 +1,16 @@
 """
 Authentication middleware for JWT validation and user context
 """
-from typing import Optional
 import os
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from app.core.security import (
-    get_token_from_request, 
-    validate_supabase_jwt, 
+    get_token_from_request,
+    validate_supabase_jwt,
     validate_user_active,
-    validate_csrf_token
+    validate_csrf_token,
 )
 
 # BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
@@ -66,6 +65,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Skip auth for public endpoints (any path containing /public)
         # This covers /sectors/public, /species/public, and their sub-paths
         if "/public" in request.url.path:
+            return await call_next(request)
+
+        # Allow public photo GET endpoints without requiring auth
+        if request.method == "GET" and request.url.path.startswith("/photos"):
             return await call_next(request)
         
         # Get token from request

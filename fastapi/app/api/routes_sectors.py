@@ -40,7 +40,10 @@ def list_species_by_sector_public(qr_code: str):
     """
     Lista pública de especies para un sector identificado por QR (sin auth).
     """
-    out = svc.list_species_public_by_sector_qr(qr_code)
+    try:
+        out = svc.list_species_public_by_sector_qr(qr_code)
+    except RuntimeError as e:
+        raise HTTPException(500, str(e))
     # Si el QR no existe, el servicio retorna []; podrías distinguir entre "sin especies" y "no existe"
     return out
 
@@ -147,18 +150,6 @@ def update_sector_staff(sector_id: int, payload: Dict[str, Any], request: Reques
         raise HTTPException(400, str(e))
 
 @router.delete("/staff/{sector_id}", status_code=204, dependencies=[Depends(get_current_user)])
-def delete_sector_admin(sector_id: int, request: Request, current_user: dict = Depends(get_current_user)):
-    """
-    Elimina un sector (requiere usuario autenticado).
-    """
-    user_id = current_user.get('id')
-    user_email = current_user.get('email')
-    user_name = current_user.get('full_name') or current_user.get('username')
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get('user-agent')
-    
-    svc.delete_admin(sector_id, user_id=user_id, user_email=user_email, user_name=user_name, ip_address=ip_address, user_agent=user_agent)
-    return
 def delete_sector_admin(sector_id: int, request: Request, current_user: dict = Depends(get_current_user)):
     """
     Elimina un sector (requiere usuario autenticado).
