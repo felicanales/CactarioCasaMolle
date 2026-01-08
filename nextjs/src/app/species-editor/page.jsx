@@ -1258,7 +1258,7 @@ export default function SpeciesEditorPage() {
                                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                 {(sp.cover_photo || sp.image_url) ? (
                                                     <AuthenticatedImage
-                                                        src={sp.cover_photo || sp.image_url}
+                                                        src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=400" })}
                                                         alt={sp.scientific_name}
                                                         style={{
                                                             width: "44px",
@@ -1542,7 +1542,7 @@ export default function SpeciesEditorPage() {
                                                 </label>
                                                 {(selectedSpecies?.cover_photo || selectedSpecies?.image_url) ? (
                                                     <AuthenticatedImage
-                                                        src={selectedSpecies.cover_photo || selectedSpecies.image_url}
+                                                        src={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url, { variant: "w=800" })}
                                                         alt={selectedSpecies.scientific_name || "Portada"}
                                                         style={{
                                                             maxWidth: "100%",
@@ -1622,7 +1622,7 @@ export default function SpeciesEditorPage() {
                                                                             }}
                                                                         >
                                                                             <AuthenticatedImage
-                                                                                src={resolvePhotoUrl(photo)}
+                                                                                src={resolvePhotoUrl(photo, { variant: "w=400" })}
                                                                                 alt={`Foto ${photo.id}`}
                                                                                 style={{
                                                                                     width: "100%",
