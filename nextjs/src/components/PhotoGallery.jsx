@@ -212,7 +212,7 @@ export default function PhotoGallery({
                         onClick={() => setSelectedPhoto(photo)}
                         >
                             <img
-                                src={resolvePhotoUrl(photo)}
+                                src={resolvePhotoUrl(photo, { variant: "w=400" })}
                                 alt="Foto"
                                 style={{
                                     position: 'absolute',

@@ -59,10 +59,17 @@ def get_client():
     )
 
 
-def upload_object(key: str, data: bytes, content_type: Optional[str] = None) -> None:
+def upload_object(
+    key: str,
+    data: bytes,
+    content_type: Optional[str] = None,
+    cache_control: Optional[str] = None,
+) -> None:
     config = get_config()
     client = get_client()
     extra_args = {"ContentType": content_type} if content_type else {}
+    if cache_control:
+        extra_args["CacheControl"] = cache_control
     client.put_object(Bucket=config.bucket, Key=key, Body=data, **extra_args)
 
 
@@ -78,5 +85,4 @@ def get_public_url(key: str) -> str:
         raise RuntimeError("R2_PUBLIC_BASE_URL no definido; requerido para URLs públicas.")
     normalized_key = key.lstrip("/")
     return f"{config.public_base_url}/{normalized_key}"
-
 

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.fotos (
     -- Agregar más según necesites: purchase_id, receipt_id, etc.
     
     storage_path TEXT NOT NULL,
+    variants JSONB,
     is_cover BOOLEAN DEFAULT FALSE,
     order_index INTEGER DEFAULT 0,
     caption TEXT,
@@ -206,4 +207,3 @@ WHERE id = 'photos';
 --    photos/ejemplares/{ejemplar_id}/{uuid}.jpg
 -- 
 -- =============================================================================
-

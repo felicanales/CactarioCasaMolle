@@ -1109,7 +1109,7 @@ export default function SpeciesPage() {
                                                         {(sp.cover_photo || sp.image_url) ? (
                                                             <AuthenticatedImage
                                                                 className="species-image"
-                                                                src={sp.cover_photo || sp.image_url}
+                                                                src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=400" })}
                                                                 alt={sp.nombre_común || sp.scientific_name}
                                                                 style={{
                                                                     width: "120px",
@@ -1126,7 +1126,10 @@ export default function SpeciesPage() {
                                                                 }}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setSelectedImage({ url: sp.cover_photo || sp.image_url, name: sp.nombre_común || sp.scientific_name });
+                                                                    setSelectedImage({
+                                                                        url: resolvePhotoUrl(sp.cover_photo || sp.image_url),
+                                                                        name: sp.nombre_común || sp.scientific_name
+                                                                    });
                                                                     setShowImageModal(true);
                                                                 }}
                                                                 onMouseEnter={(e) => {
@@ -1386,7 +1389,7 @@ export default function SpeciesPage() {
                                 }}>
                                     {(selectedSpecies.cover_photo || selectedSpecies.image_url) ? (
                                         <AuthenticatedImage
-                                            src={selectedSpecies.cover_photo || selectedSpecies.image_url}
+                                            src={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url, { variant: "w=800" })}
                                             alt={selectedSpecies.scientific_name}
                                             style={{
                                                 maxWidth: "100%",
@@ -2473,4 +2476,3 @@ export default function SpeciesPage() {
         </>
     );
 }
-
