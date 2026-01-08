@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { resolvePhotoUrl } from '@/utils/images';
 
 export default function ImageCarousel({ images, placeholderText = 'Foto', autoRotate = true, rotationInterval = 5000 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,7 +68,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
           >
             {img.url ? (
               <img
-                src={img.url}
+                src={resolvePhotoUrl(img)}
                 alt={`${placeholderText} ${index + 1}`}
                 style={{
                   width: '100%',

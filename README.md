@@ -66,6 +66,10 @@ R2_SECRET_ACCESS_KEY=tu_secret_access_key
 R2_BUCKET=tu_bucket
 R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
 
+# Frontend (Next.js staff/mobile)
+# NOTE: In production, NEXT_PUBLIC_R2_PUBLIC_BASE_URL must be set and must match the backend R2_PUBLIC_BASE_URL.
+NEXT_PUBLIC_R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
+
 # Database
 DATABASE_URL=tu_database_url
 

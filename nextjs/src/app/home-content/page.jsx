@@ -7,6 +7,7 @@ import Link from "next/link";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
 import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
+import { resolvePhotoUrl } from "../../utils/images";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
@@ -735,7 +736,7 @@ export default function HomeContentPage() {
                                     {img.url && uploadingImageIndex !== index && (
                                         <div style={{ marginTop: "8px" }}>
                                             <img
-                                                src={img.url}
+                                                src={resolvePhotoUrl(img)}
                                                 alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
                                                 style={{
                                                     maxWidth: "100%",
@@ -804,7 +805,7 @@ export default function HomeContentPage() {
                                 {img.url && (
                                     <div style={{ marginTop: "12px" }}>
                                         <img
-                                            src={img.url}
+                                            src={resolvePhotoUrl(img)}
                                             alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
                                             style={{
                                                 maxWidth: "100%",
@@ -1068,7 +1069,7 @@ export default function HomeContentPage() {
                                                     {item.imageUrl && (
                                                         <div style={{ marginTop: "8px" }}>
                                                             <img
-                                                                src={item.imageUrl}
+                                                                src={resolvePhotoUrl(item)}
                                                                 alt={item.alt || `Imagen ${itemIndex + 1}`}
                                                                 style={{
                                                                     maxWidth: "100%",

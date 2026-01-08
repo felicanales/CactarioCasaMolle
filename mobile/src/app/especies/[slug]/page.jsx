@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { speciesApi } from '@/utils/api';
+import { resolvePhotoUrl } from '@/utils/images';
 
 export default function EspecieDetail() {
   const params = useParams();
@@ -39,7 +40,7 @@ export default function EspecieDetail() {
 
   // Preparar fotos desde el array photos
   const photos = especie?.photos || [];
-  const coverPhoto = especie?.cover_photo || (photos.length > 0 ? photos[0]?.public_url : null);
+  const coverPhoto = resolvePhotoUrl(especie?.cover_photo || (photos.length > 0 ? photos[0] : null));
 
   const renderInfoCard = (icon, title, content, onClick = null) => {
     if (!content || (typeof content === 'string' && content.trim() === '')) {
@@ -369,7 +370,7 @@ export default function EspecieDetail() {
                     }}
                   >
                     <AuthenticatedImage
-                      src={photo.public_url || photo.url}
+                      src={resolvePhotoUrl(photo)}
                       alt={`Foto ${index + 1} de ${especie.nombre_común || especie.scientific_name}`}
                       style={{
                         width: '100%',
@@ -502,7 +503,7 @@ export default function EspecieDetail() {
 
                 {/* Imagen ampliada */}
                 <AuthenticatedImage
-                  src={photos[selectedImageIndex]?.public_url || photos[selectedImageIndex]?.url}
+                  src={resolvePhotoUrl(photos[selectedImageIndex])}
                   alt={`Foto ${selectedImageIndex + 1} de ${especie.nombre_común || especie.scientific_name}`}
                   style={{
                     maxWidth: '100%',

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ImageCarousel from '@/components/ImageCarousel';
+import { resolvePhotoUrl } from '@/utils/images';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,7 @@ export default function Home() {
                     <div key={itemIndex} style={{ marginBottom: '16px' }}>
                       {item.imageUrl && (
                         <img
-                          src={item.imageUrl}
+                          src={resolvePhotoUrl(item)}
                           alt={item.alt || section.title || `Imagen ${itemIndex + 1}`}
                           style={{
                             width: '100%',
@@ -281,7 +282,7 @@ export default function Home() {
             )}
             {section.imageUrl && (
               <img
-                src={section.imageUrl}
+                src={resolvePhotoUrl(section)}
                 alt={section.title || `Imagen ${index + 1}`}
                 style={{
                   width: '100%',

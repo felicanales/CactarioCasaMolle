@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
 import { getApiUrl } from "../utils/api-config";
+import { resolvePhotoUrl } from "../utils/images";
 
 // Helper para obtener el access token
 // Prioridad: token del AuthContext > cookies > localStorage
@@ -313,7 +314,7 @@ export default function PhotoUploader({
                     {previews.map((preview) => (
                         <div key={preview.id} style={{ position: 'relative' }}>
                             <img
-                                src={preview.preview}
+                                src={resolvePhotoUrl(preview.preview)}
                                 alt="Preview"
                                 style={{
                                     width: '100%',
@@ -388,4 +389,3 @@ export default function PhotoUploader({
         </div>
     );
 }
-

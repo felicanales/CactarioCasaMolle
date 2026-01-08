@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
-import { sectorsApi, speciesApi } from '@/utils/api';
+import { sectorsApi } from '@/utils/api';
+import { resolvePhotoUrl } from '@/utils/images';
 
 export default function SectorEspecies() {
   const params = useParams();
@@ -87,7 +88,7 @@ export default function SectorEspecies() {
                 <div className="grid-item-image">
                   {especie.cover_photo ? (
                     <AuthenticatedImage
-                      src={especie.cover_photo}
+                      src={resolvePhotoUrl(especie.cover_photo)}
                       alt={especie.nombre_común || especie.scientific_name}
                       style={{
                         width: '100%',

@@ -8,6 +8,7 @@ import PhotoUploader from "../../components/PhotoUploader";
 import PhotoGallery from "../../components/PhotoGallery";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
 import { getApiUrl } from "../../utils/api-config";
+import { resolvePhotoUrl } from "../../utils/images";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -1680,7 +1681,7 @@ export default function SpeciesPage() {
                                                 {pendingPhotos.map((file, index) => (
                                                     <div key={index} style={{ position: "relative" }}>
                                                         <img
-                                                            src={pendingPhotoUrls[index]}
+                                                            src={resolvePhotoUrl(pendingPhotoUrls[index])}
                                                             alt={`Preview ${index + 1}`}
                                                             style={{
                                                                 width: "100%",
@@ -2397,7 +2398,7 @@ export default function SpeciesPage() {
                         position: 'relative'
                     }}>
                         <img
-                            src={selectedImage.url}
+                            src={resolvePhotoUrl(selectedImage.url)}
                             alt={selectedImage.name}
                             style={{
                                 maxWidth: '100%',
@@ -2472,5 +2473,4 @@ export default function SpeciesPage() {
         </>
     );
 }
-
 
