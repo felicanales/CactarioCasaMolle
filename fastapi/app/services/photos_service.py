@@ -144,8 +144,8 @@ async def upload_photos(
                 image_for_variants = _normalize_image(image)
             
             r2_storage.upload_object(
-                unique_filename,
-                original_content,
+                key=unique_filename,
+                data=original_content,
                 content_type=original_content_type,
                 cache_control=CACHE_CONTROL_IMMUTABLE,
             )
@@ -156,8 +156,8 @@ async def upload_photos(
                 variant_content = _image_to_jpeg_bytes(resized)
                 variant_path = f"w={width}/{base_dir}/{base_filename}.jpg"
                 r2_storage.upload_object(
-                    variant_path,
-                    variant_content,
+                    key=variant_path,
+                    data=variant_content,
                     content_type="image/jpeg",
                     cache_control=CACHE_CONTROL_IMMUTABLE,
                 )

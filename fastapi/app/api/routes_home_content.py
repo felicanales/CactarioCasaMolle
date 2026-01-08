@@ -120,8 +120,8 @@ async def upload_carousel_image(
             unique_filename = f"home/carousel/{uuid.uuid4()}.jpg"  # Cambiar extensión a .jpg
         
         r2_storage.upload_object(
-            unique_filename,
-            file_content,
+            key=unique_filename,
+            data=file_content,
             content_type=content_type,
         )
 

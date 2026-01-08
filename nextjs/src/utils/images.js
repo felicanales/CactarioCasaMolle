@@ -78,20 +78,21 @@ export const resolvePhotoUrl = (photo, options = {}) => {
     }
 
     if (photo.url) {
-        return buildR2PublicUrl(photo.url);
+        return buildR2PublicUrl(replaceVariantSegment(photo.url, variant));
     }
 
     if (photo.imageUrl) {
-        return buildR2PublicUrl(photo.imageUrl);
+        return buildR2PublicUrl(replaceVariantSegment(photo.imageUrl, variant));
     }
 
     if (photo.image_url) {
-        return buildR2PublicUrl(photo.image_url);
+        return buildR2PublicUrl(replaceVariantSegment(photo.image_url, variant));
     }
 
     if (photo.public_url) {
-        return photo.public_url;
+        const resolved = variant ? replaceVariantSegment(photo.public_url, variant) : photo.public_url;
+        return buildR2PublicUrl(resolved);
     }
 
-    return buildR2PublicUrl(photo.storage_path);
+    return buildR2PublicUrl(replaceVariantSegment(photo.storage_path, variant));
 };
