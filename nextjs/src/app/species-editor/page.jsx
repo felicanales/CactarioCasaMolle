@@ -7,6 +7,7 @@ import Link from "next/link";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
 import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
+import { resolvePhotoUrl } from "../../utils/images";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -1621,7 +1622,7 @@ export default function SpeciesEditorPage() {
                                                                             }}
                                                                         >
                                                                             <AuthenticatedImage
-                                                                                src={photo.public_url || photo.storage_path}
+                                                                                src={resolvePhotoUrl(photo)}
                                                                                 alt={`Foto ${photo.id}`}
                                                                                 style={{
                                                                                     width: "100%",
@@ -2365,5 +2366,3 @@ export default function SpeciesEditorPage() {
         </>
     );
 }
-
-
