@@ -32,6 +32,7 @@ pydantic-settings==2.5.2
 requests==2.32.3
 python-multipart==0.0.9   # para subir imágenes (fotos de especies)
 Pillow==10.3.0            # procesamiento básico de imágenes
+boto3==1.35.24            # cliente S3 compatible (Cloudflare R2)
 
 # --- Testing ---
 pytest==8.3.3

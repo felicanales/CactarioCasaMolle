@@ -7,11 +7,11 @@ from PIL import Image
 import uuid
 import logging
 from app.core.supabase_auth import get_public, get_service
+from app.core import r2_storage
 
 logger = logging.getLogger(__name__)
 
 # Configuración
-BUCKET_NAME = "photos"
 MAX_IMAGE_SIZE = 2048
 
 # Mapeo de tipos de entidad a columnas y tablas
@@ -48,6 +48,7 @@ async def upload_photos(
     entity_id: int,
     files: List[UploadFile],
     is_cover_photo_id: Optional[int] = None,
+    include_signed_url: bool = False,
     user_id: Optional[int] = None,
     user_email: Optional[str] = None,
     user_name: Optional[str] = None,
@@ -106,11 +107,10 @@ async def upload_photos(
                 file_content = output.getvalue()
                 file.content_type = 'image/jpeg'
             
-            # Subir a Supabase Storage
-            sb.storage.from_(BUCKET_NAME).upload(
+            r2_storage.upload_object(
                 unique_filename,
                 file_content,
-                file_options={"content-type": file.content_type}
+                content_type=file.content_type,
             )
             
             # Obtener máximo order_index actual
@@ -141,11 +141,16 @@ async def upload_photos(
             if result.data:
                 photo_record = result.data[0]
                 photo_id = photo_record["id"]
-                public_url = sb.storage.from_(BUCKET_NAME).get_public_url(unique_filename)
+                public_url = r2_storage.get_public_url(unique_filename)
+                signed_url = None
+                if include_signed_url:
+                    signed_url = r2_storage.get_signed_url(unique_filename)
+                    public_url = signed_url
                 uploaded_photos.append({
                     "id": photo_id,
                     "storage_path": unique_filename,
                     "public_url": public_url,
+                    "signed_url": signed_url,
                     "is_cover": is_cover,
                     "order_index": photo_data["order_index"]
                 })
@@ -176,7 +181,7 @@ async def upload_photos(
     return uploaded_photos
 
 
-def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
+def list_photos(entity_type: str, entity_id: int, include_signed_url: bool = False) -> List[Dict[str, Any]]:
     """
     Lista todas las fotos de una entidad usando foreign key.
     """
@@ -194,16 +199,21 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
     
     result = []
     for photo in (photos.data or []):
-        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+        public_url = r2_storage.get_public_url(photo["storage_path"])
+        signed_url = None
+        if include_signed_url:
+            signed_url = r2_storage.get_signed_url(photo["storage_path"])
+            public_url = signed_url
         result.append({
             **photo,
-            "public_url": public_url
+            "public_url": public_url,
+            "signed_url": signed_url,
         })
     
     return result
 
 
-def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]]:
+def get_cover_photo(entity_type: str, entity_id: int, include_signed_url: bool = False) -> Optional[Dict[str, Any]]:
     """
     Obtiene la foto de portada usando foreign key.
     """
@@ -223,8 +233,12 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     
     if cover.data:
         photo = cover.data[0]
-        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
-        return {**photo, "public_url": public_url}
+        public_url = r2_storage.get_public_url(photo["storage_path"])
+        signed_url = None
+        if include_signed_url:
+            signed_url = r2_storage.get_signed_url(photo["storage_path"])
+            public_url = signed_url
+        return {**photo, "public_url": public_url, "signed_url": signed_url}
     
     # Si no hay portada, buscar la primera por order_index
     first = sb.table("fotos")\
@@ -236,13 +250,17 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     
     if first.data:
         photo = first.data[0]
-        public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
-        return {**photo, "public_url": public_url}
+        public_url = r2_storage.get_public_url(photo["storage_path"])
+        signed_url = None
+        if include_signed_url:
+            signed_url = r2_storage.get_signed_url(photo["storage_path"])
+            public_url = signed_url
+        return {**photo, "public_url": public_url, "signed_url": signed_url}
     
     return None
 
 
-def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, Optional[str]]:
+def get_cover_photos_map(entity_type: str, entity_ids: List[int], include_signed_url: bool = False) -> Dict[int, Optional[str]]:
     """
     Obtiene las fotos de portada para múltiples entidades (útil para listados).
     Retorna un diccionario {entity_id: public_url}
@@ -266,7 +284,9 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
     for photo in (covers.data or []):
         eid = photo[config['column']]
         if eid not in cover_map and photo.get("storage_path"):
-            public_url = sb.storage.from_(BUCKET_NAME).get_public_url(photo["storage_path"])
+            public_url = r2_storage.get_public_url(photo["storage_path"])
+            if include_signed_url:
+                public_url = r2_storage.get_signed_url(photo["storage_path"])
             cover_map[eid] = public_url
             covered_ids.add(eid)
     
@@ -287,7 +307,9 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
         
         for eid, storage_path in by_entity.items():
             if storage_path:
-                public_url = sb.storage.from_(BUCKET_NAME).get_public_url(storage_path)
+                public_url = r2_storage.get_public_url(storage_path)
+                if include_signed_url:
+                    public_url = r2_storage.get_signed_url(storage_path)
                 cover_map[eid] = public_url
     
     return cover_map
@@ -394,7 +416,7 @@ def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optio
     storage_path = old_values["storage_path"]
     
     try:
-        sb.storage.from_(BUCKET_NAME).remove([storage_path])
+        r2_storage.delete_object(storage_path)
     except Exception as e:
         logger.warning(f"No se pudo eliminar del storage: {str(e)}")
     

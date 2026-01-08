@@ -125,6 +125,15 @@ def environment_info():
         "SUPABASE_SERVICE_ROLE_KEY_SET": "Sí" if os.getenv("SUPABASE_SERVICE_ROLE_KEY") else "No",
     }
 
+    r2_vars = {
+        "R2_ACCOUNT_ID_SET": "Sí" if os.getenv("R2_ACCOUNT_ID") else "No",
+        "R2_ACCESS_KEY_ID_SET": "Sí" if os.getenv("R2_ACCESS_KEY_ID") else "No",
+        "R2_SECRET_ACCESS_KEY_SET": "Sí" if os.getenv("R2_SECRET_ACCESS_KEY") else "No",
+        "R2_BUCKET_SET": "Sí" if os.getenv("R2_BUCKET") else "No",
+        "R2_PUBLIC_BASE_URL": os.getenv("R2_PUBLIC_BASE_URL", "No definido"),
+        "R2_SIGNED_URL_TTL": os.getenv("R2_SIGNED_URL_TTL", "No definido"),
+    }
+
     other_vars = {
         "ENV": os.getenv("ENV", "No definido"),
         "CORS_ORIGINS": os.getenv("CORS_ORIGINS", "No definido"),
@@ -163,10 +172,18 @@ def environment_info():
     except Exception:
         supabase_version = "No disponible"
 
+    try:
+        import boto3
+
+        boto3_version = boto3.__version__
+    except Exception:
+        boto3_version = "No disponible"
+
     dependencies = {
         "fastapi": fastapi_version,
         "uvicorn": uvicorn_version,
         "supabase": supabase_version,
+        "boto3": boto3_version,
     }
 
     config_status = {
@@ -174,6 +191,14 @@ def environment_info():
         "supabase_url_configured": os.getenv("SUPABASE_URL") is not None,
         "supabase_anon_key_configured": os.getenv("SUPABASE_ANON_KEY") is not None,
         "supabase_service_role_key_configured": os.getenv("SUPABASE_SERVICE_ROLE_KEY") is not None,
+        "r2_configured": all(
+            [
+                os.getenv("R2_ACCOUNT_ID"),
+                os.getenv("R2_ACCESS_KEY_ID"),
+                os.getenv("R2_SECRET_ACCESS_KEY"),
+                os.getenv("R2_BUCKET"),
+            ]
+        ),
         "all_critical_vars_set": all(
             [
                 os.getenv("PORT"),
@@ -195,6 +220,7 @@ def environment_info():
         "timestamp": timestamp_info,
         "railway": railway_vars,
         "supabase": supabase_vars,
+        "r2": r2_vars,
         "environment": other_vars,
         "system": system_info,
         "dependencies": dependencies,
