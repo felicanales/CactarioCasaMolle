@@ -24,20 +24,53 @@ export const buildR2PublicUrl = (storagePath) => {
     return `${baseUrl}/${normalizedPath}`;
 };
 
-export const resolvePhotoUrl = (photo) => {
+const replaceVariantSegment = (value, variant) => {
+    if (!variant || variant === 'original') {
+        return value;
+    }
+
+    return value.replace(/(^|\/)(original|w=\d+)(\/)/, `$1${variant}$3`);
+};
+
+const resolveVariantPath = (photo, variant) => {
+    if (!photo) {
+        return null;
+    }
+
+    if (photo.variant_urls && photo.variant_urls[variant]) {
+        return photo.variant_urls[variant];
+    }
+
+    if (photo.variants && photo.variants[variant]) {
+        return buildR2PublicUrl(photo.variants[variant]);
+    }
+
+    if (photo.storage_path) {
+        return buildR2PublicUrl(replaceVariantSegment(photo.storage_path, variant));
+    }
+
+    return null;
+};
+
+export const resolvePhotoUrl = (photo, options = {}) => {
+    const { variant } = options;
     if (!photo) {
         return null;
     }
 
     if (typeof photo === 'string') {
-        if (photo.startsWith('/photos/')) {
-            return photo;
+        const resolved = replaceVariantSegment(photo, variant);
+        if (resolved.startsWith('/photos/')) {
+            return resolved;
         }
-        return buildR2PublicUrl(photo);
+        return buildR2PublicUrl(resolved);
     }
 
-    if (photo.public_url) {
-        return photo.public_url;
+    if (variant) {
+        const variantUrl = resolveVariantPath(photo, variant);
+        if (variantUrl) {
+            return variantUrl;
+        }
     }
 
     if (photo.url) {
@@ -50,6 +83,10 @@ export const resolvePhotoUrl = (photo) => {
 
     if (photo.image_url) {
         return buildR2PublicUrl(photo.image_url);
+    }
+
+    if (photo.public_url) {
+        return photo.public_url;
     }
 
     return buildR2PublicUrl(photo.storage_path);

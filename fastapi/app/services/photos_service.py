@@ -13,6 +13,42 @@ logger = logging.getLogger(__name__)
 
 # Configuración
 MAX_IMAGE_SIZE = 2048
+VARIANT_WIDTHS = [400, 800]
+CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable"
+
+
+def _normalize_image(image: Image.Image) -> Image.Image:
+    if image.mode in ("RGBA", "LA", "P"):
+        background = Image.new("RGB", image.size, (255, 255, 255))
+        if image.mode == "P":
+            image = image.convert("RGBA")
+        background.paste(image, mask=image.split()[-1] if image.mode == "RGBA" else None)
+        return background
+    return image
+
+
+def _image_to_jpeg_bytes(image: Image.Image, quality: int = 85) -> bytes:
+    output = BytesIO()
+    image.save(output, format="JPEG", quality=quality)
+    return output.getvalue()
+
+
+def _resize_to_width(image: Image.Image, target_width: int) -> Image.Image:
+    if image.width <= target_width:
+        return image.copy()
+    ratio = target_width / image.width
+    target_height = max(1, int(image.height * ratio))
+    return image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+
+
+def _build_variant_urls(variants: Optional[Dict[str, str]]) -> Dict[str, str]:
+    if not variants:
+        return {}
+    urls = {}
+    for key, path in variants.items():
+        if path:
+            urls[key] = r2_storage.get_public_url(path)
+    return urls
 
 # Mapeo de tipos de entidad a columnas y tablas
 ENTITY_CONFIG = {
@@ -84,33 +120,48 @@ async def upload_photos(
                 continue
             
             file_content = await file.read()
-            file_extension = Path(file.filename).suffix if file.filename else '.jpg'
+            file_extension = (Path(file.filename).suffix if file.filename else '.jpg').lower()
             # Para home, usar un path diferente sin entity_id
             if entity_type == 'home':
-                unique_filename = f"{config['path_prefix']}/carousel/{uuid.uuid4()}{file_extension}"
+                base_dir = f"{config['path_prefix']}/carousel"
             else:
-                unique_filename = f"{config['path_prefix']}/{entity_id}/{uuid.uuid4()}{file_extension}"
+                base_dir = f"{config['path_prefix']}/{entity_id}"
+            base_filename = str(uuid.uuid4())
+            unique_filename = f"original/{base_dir}/{base_filename}{file_extension}"
             
             # Redimensionar si es necesario
             image = Image.open(BytesIO(file_content))
+            original_content = file_content
+            original_content_type = file.content_type or "image/jpeg"
+            image_for_variants = image
             if image.width > MAX_IMAGE_SIZE or image.height > MAX_IMAGE_SIZE:
                 image.thumbnail((MAX_IMAGE_SIZE, MAX_IMAGE_SIZE), Image.Resampling.LANCZOS)
-                output = BytesIO()
-                if image.mode in ('RGBA', 'LA', 'P'):
-                    background = Image.new('RGB', image.size, (255, 255, 255))
-                    if image.mode == 'P':
-                        image = image.convert('RGBA')
-                    background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
-                    image = background
-                image.save(output, format='JPEG', quality=85)
-                file_content = output.getvalue()
-                file.content_type = 'image/jpeg'
+                image_for_variants = _normalize_image(image)
+                original_content = _image_to_jpeg_bytes(image_for_variants)
+                original_content_type = "image/jpeg"
+                unique_filename = f"original/{base_dir}/{base_filename}.jpg"
+            else:
+                image_for_variants = _normalize_image(image)
             
             r2_storage.upload_object(
                 unique_filename,
-                file_content,
-                content_type=file.content_type,
+                original_content,
+                original_content_type,
+                CACHE_CONTROL_IMMUTABLE,
             )
+
+            variants = {}
+            for width in VARIANT_WIDTHS:
+                resized = _resize_to_width(image_for_variants, width)
+                variant_content = _image_to_jpeg_bytes(resized)
+                variant_path = f"w={width}/{base_dir}/{base_filename}.jpg"
+                r2_storage.upload_object(
+                    variant_path,
+                    variant_content,
+                    "image/jpeg",
+                    CACHE_CONTROL_IMMUTABLE,
+                )
+                variants[f"w={width}"] = variant_path
             
             # Obtener máximo order_index actual
             existing_photos = list_photos(entity_type, entity_id)
@@ -131,6 +182,7 @@ async def upload_photos(
             photo_data = {
                 config['column']: entity_id,
                 "storage_path": unique_filename,
+                "variants": variants or None,
                 "is_cover": is_cover,
                 "order_index": max_order + idx + 1
             }
@@ -145,6 +197,8 @@ async def upload_photos(
                     "id": photo_id,
                     "storage_path": unique_filename,
                     "public_url": public_url,
+                    "variants": photo_record.get("variants") or variants,
+                    "variant_urls": _build_variant_urls(photo_record.get("variants") or variants),
                     "is_cover": is_cover,
                     "order_index": photo_data["order_index"]
                 })
@@ -186,7 +240,7 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
     sb = get_public()
     
     photos = sb.table("fotos")\
-        .select("id, storage_path, is_cover, order_index, caption")\
+        .select("id, storage_path, variants, is_cover, order_index, caption")\
         .eq(config['column'], entity_id)\
         .order("order_index")\
         .execute()
@@ -197,6 +251,7 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
         result.append({
             **photo,
             "public_url": public_url,
+            "variant_urls": _build_variant_urls(photo.get("variants")),
         })
     
     return result
@@ -214,7 +269,7 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     
     # Buscar foto marcada como portada
     cover = sb.table("fotos")\
-        .select("id, storage_path, is_cover, order_index")\
+        .select("id, storage_path, variants, is_cover, order_index")\
         .eq(config['column'], entity_id)\
         .eq("is_cover", True)\
         .limit(1)\
@@ -223,11 +278,15 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     if cover.data:
         photo = cover.data[0]
         public_url = r2_storage.get_public_url(photo["storage_path"])
-        return {**photo, "public_url": public_url}
+        return {
+            **photo,
+            "public_url": public_url,
+            "variant_urls": _build_variant_urls(photo.get("variants")),
+        }
     
     # Si no hay portada, buscar la primera por order_index
     first = sb.table("fotos")\
-        .select("id, storage_path, is_cover, order_index")\
+        .select("id, storage_path, variants, is_cover, order_index")\
         .eq(config['column'], entity_id)\
         .order("order_index")\
         .limit(1)\
@@ -236,7 +295,11 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     if first.data:
         photo = first.data[0]
         public_url = r2_storage.get_public_url(photo["storage_path"])
-        return {**photo, "public_url": public_url}
+        return {
+            **photo,
+            "public_url": public_url,
+            "variant_urls": _build_variant_urls(photo.get("variants")),
+        }
     
     return None
 
@@ -391,9 +454,13 @@ def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optio
     
     old_values = photo.data[0]
     storage_path = old_values["storage_path"]
+    variants = old_values.get("variants") or {}
     
     try:
         r2_storage.delete_object(storage_path)
+        for variant_path in variants.values():
+            if variant_path:
+                r2_storage.delete_object(variant_path)
     except Exception as e:
         logger.warning(f"No se pudo eliminar del storage: {str(e)}")
     
