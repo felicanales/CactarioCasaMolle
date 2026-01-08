@@ -49,6 +49,10 @@ const resolveVariantPath = (photo, variant) => {
         return buildR2PublicUrl(replaceVariantSegment(photo.storage_path, variant));
     }
 
+    if (photo.public_url) {
+        return replaceVariantSegment(photo.public_url, variant);
+    }
+
     return null;
 };
 

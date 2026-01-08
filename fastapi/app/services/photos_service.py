@@ -146,8 +146,8 @@ async def upload_photos(
             r2_storage.upload_object(
                 unique_filename,
                 original_content,
-                original_content_type,
-                CACHE_CONTROL_IMMUTABLE,
+                content_type=original_content_type,
+                cache_control=CACHE_CONTROL_IMMUTABLE,
             )
 
             variants = {}
@@ -158,8 +158,8 @@ async def upload_photos(
                 r2_storage.upload_object(
                     variant_path,
                     variant_content,
-                    "image/jpeg",
-                    CACHE_CONTROL_IMMUTABLE,
+                    content_type="image/jpeg",
+                    cache_control=CACHE_CONTROL_IMMUTABLE,
                 )
                 variants[f"w={width}"] = variant_path
             
