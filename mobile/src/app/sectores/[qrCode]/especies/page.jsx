@@ -17,12 +17,30 @@ export default function SectorEspecies() {
   const [sector, setSector] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 25;
+  const totalPages = Math.ceil(especies.length / itemsPerPage);
+  const safePage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const pagedSpecies = especies.slice(startIndex, startIndex + itemsPerPage);
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   useEffect(() => {
     if (qrCode) {
       loadSectorData();
     }
   }, [qrCode]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [qrCode]);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const loadSectorData = async () => {
     try {
@@ -77,8 +95,9 @@ export default function SectorEspecies() {
             No hay especies registradas en este sector
           </div>
         ) : (
-          <div className="grid-2-col">
-            {especies.map((especie) => (
+          <div>
+            <div className="grid-2-col">
+              {pagedSpecies.map((especie) => (
               <div
                 key={especie.id}
                 className="grid-item"
@@ -118,6 +137,68 @@ export default function SectorEspecies() {
                 </div>
               </div>
             ))}
+            </div>
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginTop: '12px',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(safePage - 1)}
+                  disabled={safePage === 1}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-gray-light)',
+                    backgroundColor: safePage === 1 ? 'var(--color-gray-light)' : 'var(--color-white)',
+                    color: 'var(--color-black)',
+                    cursor: safePage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  Anterior
+                </button>
+                {pageNumbers.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--color-gray-light)',
+                      backgroundColor: page === safePage ? 'var(--color-black)' : 'var(--color-white)',
+                      color: page === safePage ? 'var(--color-white)' : 'var(--color-black)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                    }}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(safePage + 1)}
+                  disabled={safePage === totalPages}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-gray-light)',
+                    backgroundColor: safePage === totalPages ? 'var(--color-gray-light)' : 'var(--color-white)',
+                    color: 'var(--color-black)',
+                    cursor: safePage === totalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
