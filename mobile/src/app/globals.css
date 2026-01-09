@@ -152,10 +152,21 @@ body {
 }
 
 .nav-icon {
-  font-size: 22px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .nav-button.active .nav-icon {
@@ -419,7 +430,8 @@ p {
   }
   
   .nav-icon {
-    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
   
   .nav-label {
@@ -440,4 +452,3 @@ p {
     top: -6px;
   }
 }
-

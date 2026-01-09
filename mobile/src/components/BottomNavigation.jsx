@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 
 export default function BottomNavigation() {
@@ -21,19 +22,19 @@ export default function BottomNavigation() {
     {
       path: '/',
       label: 'Home',
-      icon: '🏠',
+      iconSrc: '/icon_1.png',
       shortLabel: 'Inicio'
     },
     {
       path: '/qr',
       label: 'QR lector',
-      icon: '📷',
+      iconSrc: '/icon_2.png',
       shortLabel: 'QR'
     },
     {
       path: '/sectores',
       label: 'Sectores de cactus',
-      icon: '🌵',
+      iconSrc: '/icon_3.png',
       shortLabel: 'Sectores'
     },
   ];
@@ -49,7 +50,15 @@ export default function BottomNavigation() {
             onClick={() => navigateTo(item.path)}
             aria-label={item.label}
           >
-            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-icon" aria-hidden="true">
+              <Image
+                src={item.iconSrc}
+                alt=""
+                width={24}
+                height={24}
+                className="nav-icon-image"
+              />
+            </span>
             <span className="nav-label">
               <span className="nav-label-full">{item.label}</span>
               <span className="nav-label-short">{item.shortLabel}</span>
@@ -60,4 +69,3 @@ export default function BottomNavigation() {
     </nav>
   );
 }
-
