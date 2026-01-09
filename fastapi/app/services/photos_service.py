@@ -16,6 +16,48 @@ MAX_IMAGE_SIZE = 2048
 VARIANT_WIDTHS = [400, 800]
 CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable"
 
+# Backward compatibility: deployments may not have the "variants" column.
+_PHOTOS_HAS_VARIANTS: Optional[bool] = None
+
+
+def _is_missing_variants_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return "42703" in message and "variants" in message
+
+
+def _strip_variants(fields: List[str]) -> List[str]:
+    return [field for field in fields if field != "variants"]
+
+
+def _execute_photos_query(query_builder, fields: List[str]):
+    global _PHOTOS_HAS_VARIANTS
+    effective_fields = fields
+    if _PHOTOS_HAS_VARIANTS is False:
+        effective_fields = _strip_variants(fields)
+    try:
+        return query_builder(effective_fields).execute()
+    except Exception as error:
+        if _PHOTOS_HAS_VARIANTS is not False and _is_missing_variants_error(error):
+            _PHOTOS_HAS_VARIANTS = False
+            effective_fields = _strip_variants(fields)
+            return query_builder(effective_fields).execute()
+        raise
+
+
+def _insert_photo_row(sb, photo_data: Dict[str, Any]):
+    global _PHOTOS_HAS_VARIANTS
+    payload = photo_data
+    if _PHOTOS_HAS_VARIANTS is False:
+        payload = {k: v for k, v in payload.items() if k != "variants"}
+    try:
+        return sb.table("fotos").insert(payload).execute()
+    except Exception as error:
+        if _PHOTOS_HAS_VARIANTS is not False and _is_missing_variants_error(error):
+            _PHOTOS_HAS_VARIANTS = False
+            payload = {k: v for k, v in payload.items() if k != "variants"}
+            return sb.table("fotos").insert(payload).execute()
+        raise
+
 
 def _normalize_image(image: Image.Image) -> Image.Image:
     if image.mode in ("RGBA", "LA", "P"):
@@ -187,7 +229,7 @@ async def upload_photos(
                 "order_index": max_order + idx + 1
             }
             
-            result = sb.table("fotos").insert(photo_data).execute()
+            result = _insert_photo_row(sb, photo_data)
             
             if result.data:
                 photo_record = result.data[0]
@@ -238,12 +280,16 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
     
     config = ENTITY_CONFIG[entity_type]
     sb = get_public()
-    
-    photos = sb.table("fotos")\
-        .select("id, storage_path, variants, is_cover, order_index, caption")\
-        .eq(config['column'], entity_id)\
-        .order("order_index")\
-        .execute()
+
+    fields = ["id", "storage_path", "variants", "is_cover", "order_index", "caption"]
+
+    def build_query(select_fields: List[str]):
+        return sb.table("fotos")\
+            .select(",".join(select_fields))\
+            .eq(config['column'], entity_id)\
+            .order("order_index")
+
+    photos = _execute_photos_query(build_query, fields)
     
     result = []
     for photo in (photos.data or []):
@@ -268,12 +314,16 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
     sb = get_public()
     
     # Buscar foto marcada como portada
-    cover = sb.table("fotos")\
-        .select("id, storage_path, variants, is_cover, order_index")\
-        .eq(config['column'], entity_id)\
-        .eq("is_cover", True)\
-        .limit(1)\
-        .execute()
+    fields = ["id", "storage_path", "variants", "is_cover", "order_index"]
+
+    def build_cover_query(select_fields: List[str]):
+        return sb.table("fotos")\
+            .select(",".join(select_fields))\
+            .eq(config['column'], entity_id)\
+            .eq("is_cover", True)\
+            .limit(1)
+
+    cover = _execute_photos_query(build_cover_query, fields)
     
     if cover.data:
         photo = cover.data[0]
@@ -285,12 +335,14 @@ def get_cover_photo(entity_type: str, entity_id: int) -> Optional[Dict[str, Any]
         }
     
     # Si no hay portada, buscar la primera por order_index
-    first = sb.table("fotos")\
-        .select("id, storage_path, variants, is_cover, order_index")\
-        .eq(config['column'], entity_id)\
-        .order("order_index")\
-        .limit(1)\
-        .execute()
+    def build_first_query(select_fields: List[str]):
+        return sb.table("fotos")\
+            .select(",".join(select_fields))\
+            .eq(config['column'], entity_id)\
+            .order("order_index")\
+            .limit(1)
+
+    first = _execute_photos_query(build_first_query, fields)
     
     if first.data:
         photo = first.data[0]
