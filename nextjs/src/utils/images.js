@@ -6,6 +6,18 @@ const isAbsoluteUrl = (value) => /^(https?:\/\/|blob:|data:)/i.test(value);
 
 const getR2BaseUrl = () => process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || '';
 
+const normalizeResolvedUrl = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    if (isAbsoluteUrl(value) || value.startsWith("/")) {
+        return value;
+    }
+
+    return null;
+};
+
 export const buildR2PublicUrl = (storagePath) => {
     if (!storagePath) {
         return null;
@@ -38,19 +50,31 @@ const resolveVariantPath = (photo, variant) => {
     }
 
     if (photo.variant_urls && photo.variant_urls[variant]) {
-        return photo.variant_urls[variant];
+        return normalizeResolvedUrl(photo.variant_urls[variant]) || photo.variant_urls[variant];
     }
 
     if (photo.variants && photo.variants[variant]) {
-        return buildR2PublicUrl(photo.variants[variant]);
+        const resolved = buildR2PublicUrl(photo.variants[variant]);
+        const normalized = normalizeResolvedUrl(resolved);
+        if (normalized) {
+            return normalized;
+        }
     }
 
     if (photo.storage_path) {
-        return buildR2PublicUrl(replaceVariantSegment(photo.storage_path, variant));
+        const resolved = buildR2PublicUrl(replaceVariantSegment(photo.storage_path, variant));
+        const normalized = normalizeResolvedUrl(resolved);
+        if (normalized) {
+            return normalized;
+        }
     }
 
     if (photo.public_url) {
-        return replaceVariantSegment(photo.public_url, variant);
+        const resolved = replaceVariantSegment(photo.public_url, variant);
+        const normalized = normalizeResolvedUrl(resolved);
+        if (normalized) {
+            return normalized;
+        }
     }
 
     return null;
