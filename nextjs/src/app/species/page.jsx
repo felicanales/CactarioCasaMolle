@@ -32,7 +32,6 @@ const formatCommonNames = (nombre_común, nombres_comunes) => {
 const getAccessTokenFromContext = (accessTokenFromContext) => {
     // Prioridad 1: Token del estado de AuthContext (más confiable)
     if (accessTokenFromContext) {
-        console.log('[SpeciesPage] Using token from AuthContext state');
         return accessTokenFromContext;
     }
 
@@ -44,7 +43,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         // Método 1: Regex estándar
         let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
         if (match && match[2]) {
-            console.log('[SpeciesPage] Using token from cookies (method 1)');
             return match[2];
         }
 
@@ -53,26 +51,19 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         for (const cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
             if (name === 'sb-access-token' && value) {
-                console.log('[SpeciesPage] Using token from cookies (method 2)');
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[SpeciesPage] Error reading cookies:', error);
-    }
+    } catch {}
 
     // Prioridad 3: localStorage (para compatibilidad)
     try {
         const localStorageToken = localStorage.getItem('access_token');
         if (localStorageToken) {
-            console.log('[SpeciesPage] Using token from localStorage');
             return localStorageToken;
         }
-    } catch (error) {
-        console.warn('[SpeciesPage] Error reading localStorage:', error);
-    }
+    } catch {}
 
-    console.warn('[SpeciesPage] No token found in any source');
     return null;
 };
 
@@ -223,7 +214,6 @@ export default function SpeciesPage() {
         // Agregar Authorization header si hay token disponible
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
-            console.log('[SpeciesPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
         } else {
             console.error('[SpeciesPage] ❌ No access token available for:', options.method || 'GET', url);
         }
@@ -244,9 +234,7 @@ export default function SpeciesPage() {
         }
 
         if (!authLoading && !checkedAuth) {
-            console.log('[SpeciesPage] Checking auth, user:', user);
             if (!user) {
-                console.log('[SpeciesPage] No user, redirecting to login');
                 router.replace("/login");
             }
             setCheckedAuth(true);
@@ -262,14 +250,12 @@ export default function SpeciesPage() {
             // Cargar todas las especies sin filtros del backend
             const url = `${API}/species/staff`;
 
-            console.log('[SpeciesPage] Fetching species from:', url);
             const res = await apiRequest(url, {}, accessToken);
 
             if (!res.ok) {
                 console.error('[SpeciesPage] Fetch failed:', res.status);
                 if (res.status === 401 && !BYPASS_AUTH) {
                     // Usuario no autenticado - redirigir a login
-                    console.log('[SpeciesPage] 401 Unauthorized, redirecting to login');
                     setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
                     setTimeout(() => router.replace("/login"), 1500);
                     return;
@@ -278,12 +264,6 @@ export default function SpeciesPage() {
                 throw new Error(errorData.detail || "Error al cargar especies");
             }
             const data = await res.json();
-            console.log('[SpeciesPage] Species loaded:', data.length);
-            if (data.length > 0) {
-                console.log('[SpeciesPage] First species data:', data[0]);
-                console.log('[SpeciesPage] nombre_común value:', data[0].nombre_común);
-                console.log('[SpeciesPage] All keys:', Object.keys(data[0]));
-            }
             setSpecies(data);
             // Inicializar filteredSpecies con todas las especies
             setFilteredSpecies(data);
@@ -299,7 +279,6 @@ export default function SpeciesPage() {
     // Cargar especies solo cuando el usuario esté autenticado y se haya verificado
     useEffect(() => {
         if (user && checkedAuth) {
-            console.log('[SpeciesPage] User authenticated, loading species');
             fetchSpecies();
         }
     }, [user, checkedAuth]);
@@ -521,13 +500,10 @@ export default function SpeciesPage() {
                         });
 
                         if (uploadRes.ok) {
-                            console.log('[SpeciesPage] ✅ Fotos subidas automáticamente después de crear la especie');
                             // Revocar URLs antes de limpiar
                             pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
                             setPendingPhotos([]);
                             setPendingPhotoUrls([]);
-                        } else {
-                            console.warn('[SpeciesPage] ⚠️ No se pudieron subir las fotos automáticamente, pero la especie se creó correctamente');
                         }
                     }
                 } catch (uploadErr) {

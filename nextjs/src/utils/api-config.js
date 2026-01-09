@@ -26,7 +26,6 @@ export const getApiUrl = () => {
             // Por ahora, usar variable de entorno o fallback
             // En Railway, cada servicio tiene su propio dominio
             // El backend debería estar configurado en NEXT_PUBLIC_API_URL
-            console.warn('[api-config] Railway domain detected but NEXT_PUBLIC_API_URL not set. Using fallback.');
             // Fallback: asumir que el backend está en un servicio separado
             // Esto debería ser configurado en Railway como variable de entorno
             return `https://cactariocasamolle-production.up.railway.app`;
@@ -88,8 +87,4 @@ export const getApiUrl = () => {
  */
 export const API_URL = getApiUrl();
 
-// Log API URL for debugging (solo en desarrollo)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('[api-config] Using API URL:', API_URL);
-}
 

@@ -39,16 +39,12 @@ export default function AuthenticatedImage({
                     return value;
                 }
             }
-        } catch (error) {
-            console.warn('[AuthenticatedImage] Error reading cookies:', error);
-        }
+        } catch {}
 
         // Fallback a localStorage (para compatibilidad)
         try {
             return localStorage.getItem('access_token');
-        } catch (error) {
-            console.warn('[AuthenticatedImage] Error reading localStorage:', error);
-        }
+        } catch {}
 
         return null;
     };
@@ -107,9 +103,6 @@ export default function AuthenticatedImage({
             });
 
             if (!response.ok) {
-                if (response.status === 401) {
-                    console.warn('[AuthenticatedImage] Unauthorized, token may be missing or expired');
-                }
                 throw new Error(`Failed to load image: ${response.status}`);
             }
 

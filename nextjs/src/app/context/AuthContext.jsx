@@ -13,11 +13,6 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
 
-// Log API URL for debugging (solo en desarrollo)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('[AuthContext] Using API URL:', API);
-}
-
 // Helper para obtener el access token de cookies (cross-domain compatible)
 const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
@@ -27,8 +22,7 @@ const getAccessToken = () => {
     // Método 1: Regex estándar
     let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
     if (match && match[2]) {
-      console.log('[AuthContext] Using token from cookies (regex)');
-    return match[2];
+      return match[2];
     }
     
     // Método 2: Buscar en todas las cookies (para cross-domain)
@@ -36,12 +30,10 @@ const getAccessToken = () => {
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'sb-access-token' && value) {
-        console.log('[AuthContext] Using token from cookies (split method)');
         return value;
       }
     }
-  } catch (error) {
-    console.warn('[AuthContext] Error reading cookies:', error);
+  } catch {
   }
 
   return null;
@@ -69,9 +61,6 @@ export function AuthProvider({ children }) {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('[AuthContext] Adding Authorization header to request:', url);
-    } else {
-      console.log('[AuthContext] No access token available for request:', url);
     }
 
     return fetch(url, {
@@ -128,14 +117,12 @@ export function AuthProvider({ children }) {
       });
 
       if (!res.ok) {
-        console.log('[AuthContext] fetchMe failed:', res.status);
         setUser(null);
         setAccessToken(null);
         return false;
       }
 
       const data = await res.json();
-      console.log('[AuthContext] fetchMe success:', data);
 
       // Check if user is authenticated
       if (data.authenticated === false) {
@@ -147,7 +134,6 @@ export function AuthProvider({ children }) {
         // Token se maneja solo a través de cookies (más seguro)
         if (data.access_token) {
           setAccessToken(data.access_token);
-          console.log('[AuthContext] User authenticated, token available via cookies');
         }
         return true;
       }
@@ -170,7 +156,6 @@ export function AuthProvider({ children }) {
 
     // Intentar obtener el usuario al cargar
     (async () => {
-      console.log('[AuthContext] Initializing...');
       await fetchMe();
       setLoading(false);
     })();
@@ -208,16 +193,12 @@ export function AuthProvider({ children }) {
     }
     const data = await res.json();
 
-    console.log('[AuthContext] OTP verified, data:', data);
-
     // Token se guarda en cookies automáticamente por el backend (más seguro)
     if (data.access_token) {
       setAccessToken(data.access_token);
-      console.log('[AuthContext] Token available via cookies from backend');
     }
     if (data.user) {
       setUser(data.user);
-      console.log('[AuthContext] User set from verify response:', data.user);
     }
 
     // Esperar un poco para que las cookies se propaguen antes de llamar fetchMe
@@ -227,14 +208,9 @@ export function AuthProvider({ children }) {
     // Actualizar estado completo con fetchMe
     try {
       const fetchMeSuccess = await fetchMe();
-      if (fetchMeSuccess) {
-        console.log('[AuthContext] fetchMe successful after verify');
-      } else {
-        console.warn('[AuthContext] fetchMe failed after verify, but user data is available');
+      if (!fetchMeSuccess && data.user) {
         // Si fetchMe falla pero tenemos datos del usuario de la respuesta, mantenerlos
-        if (data.user) {
-          setUser(data.user);
-        }
+        setUser(data.user);
       }
     } catch (error) {
       console.error('[AuthContext] Error in fetchMe after verify:', error);
@@ -255,7 +231,6 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null);
       setAccessToken(null);
-      console.log('[AuthContext] User logged out, cookies cleared by backend');
     }
   };
 

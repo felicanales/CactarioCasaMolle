@@ -39,7 +39,6 @@ export default function ReportsPage() {
     const getAccessTokenFromContext = (accessTokenFromContext) => {
         // Prioridad 1: Token del estado de AuthContext (más confiable)
         if (accessTokenFromContext) {
-            console.log('[ReportsPage] Using token from AuthContext state');
             return accessTokenFromContext;
         }
 
@@ -51,7 +50,6 @@ export default function ReportsPage() {
             // Método 1: Regex estándar
             let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
             if (match && match[2]) {
-                console.log('[ReportsPage] Using token from cookies (method 1)');
                 return match[2];
             }
             
@@ -60,26 +58,19 @@ export default function ReportsPage() {
             for (const cookie of cookies) {
                 const [name, value] = cookie.trim().split('=');
                 if (name === 'sb-access-token' && value) {
-                    console.log('[ReportsPage] Using token from cookies (method 2)');
                     return value;
                 }
             }
-        } catch (error) {
-            console.warn('[ReportsPage] Error reading cookies:', error);
-        }
+        } catch {}
 
         // Prioridad 3: localStorage (para compatibilidad)
         try {
             const localStorageToken = localStorage.getItem('access_token');
             if (localStorageToken) {
-                console.log('[ReportsPage] Using token from localStorage');
                 return localStorageToken;
             }
-        } catch (error) {
-            console.warn('[ReportsPage] Error reading localStorage:', error);
-        }
+        } catch {}
 
-        console.warn('[ReportsPage] No token found in any source');
         return null;
     };
 
@@ -101,7 +92,6 @@ export default function ReportsPage() {
 
         if (token) {
             headers.Authorization = `Bearer ${token}`;
-            console.log('[ReportsPage] ✅ Adding Authorization header to:', options.method || 'GET', fullUrl);
         } else {
             console.error('[ReportsPage] ❌ No access token available for:', options.method || 'GET', fullUrl);
         }

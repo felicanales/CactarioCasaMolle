@@ -19,7 +19,6 @@ const API = getApiUrl();
 const getAccessTokenFromContext = (accessTokenFromContext) => {
     // Prioridad 1: Token del estado de AuthContext (más confiable)
     if (accessTokenFromContext) {
-        console.log('[InventoryPage] Using token from AuthContext state');
         return accessTokenFromContext;
     }
 
@@ -31,7 +30,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         // Método 1: Regex estándar
         let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
         if (match && match[2]) {
-            console.log('[InventoryPage] Using token from cookies (method 1)');
             return match[2];
         }
 
@@ -40,26 +38,19 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         for (const cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
             if (name === 'sb-access-token' && value) {
-                console.log('[InventoryPage] Using token from cookies (method 2)');
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[InventoryPage] Error reading cookies:', error);
-    }
+    } catch {}
 
     // Prioridad 3: localStorage (para compatibilidad)
     try {
         const localStorageToken = localStorage.getItem('access_token');
         if (localStorageToken) {
-            console.log('[InventoryPage] Using token from localStorage');
             return localStorageToken;
         }
-    } catch (error) {
-        console.warn('[InventoryPage] Error reading localStorage:', error);
-    }
+    } catch {}
 
-    console.warn('[InventoryPage] No token found in any source');
     return null;
 };
 
@@ -438,7 +429,6 @@ export default function InventoryPage() {
         // Agregar Authorization header si hay token disponible
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
-            console.log('[InventoryPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
         } else {
             console.error('[InventoryPage] ❌ No access token available for:', options.method || 'GET', url);
         }

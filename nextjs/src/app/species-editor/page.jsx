@@ -32,7 +32,6 @@ const API = typeof window !== 'undefined' ? getDynamicApiUrl() : (process.env.NE
 const getAccessTokenFromContext = (accessTokenFromContext) => {
     // Prioridad 1: Token del estado de AuthContext (más confiable)
     if (accessTokenFromContext) {
-        console.log('[SpeciesEditor] Using token from AuthContext state');
         return accessTokenFromContext;
     }
 
@@ -44,7 +43,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         // Método 1: Regex estándar
         let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
         if (match && match[2]) {
-            console.log('[SpeciesEditor] Using token from cookies (method 1)');
             return match[2];
         }
 
@@ -53,26 +51,19 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         for (const cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
             if (name === 'sb-access-token' && value) {
-                console.log('[SpeciesEditor] Using token from cookies (method 2)');
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[SpeciesEditor] Error reading cookies:', error);
-    }
+    } catch {}
 
     // Prioridad 3: localStorage (para compatibilidad)
     try {
         const localStorageToken = localStorage.getItem('access_token');
         if (localStorageToken) {
-            console.log('[SpeciesEditor] Using token from localStorage');
             return localStorageToken;
         }
-    } catch (error) {
-        console.warn('[SpeciesEditor] Error reading localStorage:', error);
-    }
+    } catch {}
 
-    console.warn('[SpeciesEditor] No token found in any source');
     return null;
 };
 
@@ -216,7 +207,6 @@ export default function SpeciesEditorPage() {
 
             if (accessToken) {
                 headers['Authorization'] = `Bearer ${accessToken}`;
-                console.log('[SpeciesEditor] ✅ Adding Authorization header to:', options.method || 'GET', finalUrl);
             } else {
                 console.error('[SpeciesEditor] ❌ No access token available for:', options.method || 'GET', finalUrl);
             }
@@ -678,21 +668,12 @@ export default function SpeciesEditorPage() {
                     Object.entries(payload).filter(([_, v]) => v !== undefined)
                 );
 
-                console.log('[SpeciesEditor] Enviando actualización de especie:', {
-                    speciesId: selectedSpecies.id,
-                    payloadKeys: Object.keys(cleanPayload),
-                    payload: cleanPayload
-                });
 
                 const res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
                     method: "PUT",
                     body: JSON.stringify(cleanPayload)
                 }, accessToken);
 
-                console.log('[SpeciesEditor] Respuesta del servidor:', {
-                    status: res.status,
-                    ok: res.ok
-                });
 
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({}));
@@ -738,7 +719,6 @@ export default function SpeciesEditorPage() {
                             setSpeciesEndpointAvailable(false);
                             // No es crítico, el sector se guardó correctamente
                             // Las especies NO se guardaron en Supabase, pero mantenemos las selecciones localmente
-                            console.warn(`⚠️ Endpoint de especies no disponible. Las ${sectorSpeciesIds.length} especies seleccionadas se mantendrán localmente hasta que el backend esté actualizado.`);
                         } else {
                             // Otros errores son críticos
                             const errorData = await speciesRes.json().catch(() => ({}));
@@ -750,7 +730,6 @@ export default function SpeciesEditorPage() {
                         speciesSaved = true;
                         // Verificar que se guardaron correctamente
                         const savedSpecies = await speciesRes.json().catch(() => []);
-                        console.log(`✅ Especies guardadas en sectores_especies para sector ${selectedSector.id}:`, savedSpecies.length);
                     }
                 } catch (speciesErr) {
                     // Si es un 405, no es crítico - el sector se guardó correctamente

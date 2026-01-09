@@ -39,9 +39,7 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[home-content] Error reading cookies:', error);
-    }
+    } catch {}
     return null;
 };
 

@@ -27,8 +27,6 @@ export function middleware(req) {
         return NextResponse.next();
     }
 
-    const { nextUrl } = req;
-    const pathname = nextUrl.pathname;
 
     // En producción con cross-domain, las cookies del backend no están disponibles
     // en el middleware de Next.js. La validación real se hace en:
@@ -39,14 +37,5 @@ export function middleware(req) {
     // Por lo tanto, permitimos el acceso y confiamos en la validación del cliente
     // Esto evita redirecciones innecesarias cuando el usuario está autenticado
     // pero las cookies no están disponibles en el middleware
-
-    const isProtected = ["/staff", "/species", "/sectors"].some((p) => pathname.startsWith(p));
-
-    if (isProtected) {
-        // Log para debugging, pero no bloquear
-        // La validación real se hará en el componente
-        console.log(`[Middleware] Protected route accessed: ${pathname} - validation will happen in component`);
-    }
-
     return NextResponse.next();
 }

@@ -58,11 +58,9 @@ export default function AuditPage() {
             params.append("offset", pagination.offset.toString());
 
             const url = `${API}/audit?${params.toString()}`;
-            console.log("[AuditPage] Haciendo petición a:", url);
             
             const res = await authApiRequest(url, { method: "GET" });
             
-            console.log("[AuditPage] Respuesta recibida - Status:", res.status, res.statusText);
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
@@ -71,20 +69,6 @@ export default function AuditPage() {
             }
 
             const data = await res.json();
-            console.log("[AuditPage] Respuesta completa del servidor:", data);
-            console.log("[AuditPage] Logs recibidos:", data.logs?.length || 0, "registros");
-            
-            if (!data.logs) {
-                console.warn("[AuditPage] ⚠️ La respuesta no contiene 'logs'");
-                console.warn("[AuditPage] Estructura de datos recibida:", Object.keys(data));
-            }
-            
-            if (data.logs && data.logs.length > 0) {
-                console.log("[AuditPage] Primer log:", data.logs[0]);
-                console.log("[AuditPage] Último log:", data.logs[data.logs.length - 1]);
-            } else {
-                console.warn("[AuditPage] ⚠️ No hay logs en la respuesta");
-            }
             
             setLogs(data.logs || []);
         } catch (err) {
@@ -97,7 +81,6 @@ export default function AuditPage() {
 
     useEffect(() => {
         if (checkedAuth || BYPASS_AUTH) {
-            console.log("[AuditPage] Cargando logs con filtros:", filters, "paginación:", pagination);
             fetchLogs();
         }
     }, [checkedAuth, filters, pagination]);
@@ -107,7 +90,6 @@ export default function AuditPage() {
         if (!checkedAuth && !BYPASS_AUTH) return;
         
         const interval = setInterval(() => {
-            console.log("[AuditPage] Auto-refresh de logs");
             fetchLogs();
         }, 30000); // 30 segundos
         
@@ -116,7 +98,6 @@ export default function AuditPage() {
 
     // Función para refrescar manualmente
     const handleRefresh = () => {
-        console.log("[AuditPage] Refrescar manualmente");
         fetchLogs();
     };
     
@@ -124,10 +105,8 @@ export default function AuditPage() {
     const testAuditTable = async () => {
         try {
             const url = `${API}/audit/test`;
-            console.log("[AuditPage] Probando tabla de auditoría:", url);
             const res = await authApiRequest(url, { method: "GET" });
             const data = await res.json();
-            console.log("[AuditPage] Resultado del test:", data);
             alert(`Tabla de auditoría: ${data.total_records || 0} registros\n${data.message || data.error || 'OK'}`);
         } catch (err) {
             console.error("[AuditPage] Error en test:", err);

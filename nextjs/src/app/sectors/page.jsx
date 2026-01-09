@@ -19,7 +19,6 @@ const API = getApiUrl();
 const getAccessTokenFromContext = (accessTokenFromContext) => {
     // Prioridad 1: Token del estado de AuthContext (más confiable)
     if (accessTokenFromContext) {
-        console.log('[SectorsPage] Using token from AuthContext state');
         return accessTokenFromContext;
     }
 
@@ -31,7 +30,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         // Método 1: Regex estándar
         let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
         if (match && match[2]) {
-            console.log('[SectorsPage] Using token from cookies (method 1)');
             return match[2];
         }
         
@@ -40,26 +38,19 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
         for (const cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
             if (name === 'sb-access-token' && value) {
-                console.log('[SectorsPage] Using token from cookies (method 2)');
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[SectorsPage] Error reading cookies:', error);
-    }
+    } catch {}
 
     // Prioridad 3: localStorage (para compatibilidad)
     try {
         const localStorageToken = localStorage.getItem('access_token');
         if (localStorageToken) {
-            console.log('[SectorsPage] Using token from localStorage');
             return localStorageToken;
         }
-    } catch (error) {
-        console.warn('[SectorsPage] Error reading localStorage:', error);
-    }
+    } catch {}
 
-    console.warn('[SectorsPage] No token found in any source');
     return null;
 };
 
@@ -202,7 +193,6 @@ export default function SectorsPage() {
         // Agregar Authorization header si hay token disponible
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
-            console.log('[SectorsPage] ✅ Adding Authorization header to:', options.method || 'GET', url);
         } else {
             console.error('[SectorsPage] ❌ No access token available for:', options.method || 'GET', url);
         }
@@ -329,12 +319,10 @@ export default function SectorsPage() {
         try {
             let res;
             if (modalMode === "create") {
-                console.log("[handleSubmit] Creando sector con datos:", formData);
                 res = await apiRequest(`${API}/sectors/staff`, {
                     method: "POST",
                     body: JSON.stringify(formData)
                 }, accessToken);
-                console.log("[handleSubmit] Respuesta del servidor:", res.status, res.ok);
             } else if (modalMode === "edit") {
                 res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
                     method: "PUT",
@@ -352,7 +340,6 @@ export default function SectorsPage() {
 
             // Si la respuesta es exitosa, obtener los datos
             const result = await res.json().catch(() => null);
-            console.log("[handleSubmit] Sector guardado exitosamente:", result);
 
             setShowModal(false);
             fetchSectors();

@@ -23,16 +23,12 @@ const getAccessToken = () => {
                 return value;
             }
         }
-    } catch (error) {
-        console.warn('[PhotoGallery] Error reading cookies:', error);
-    }
+    } catch {}
     
     // Fallback a localStorage (para compatibilidad)
     try {
     return localStorage.getItem('access_token');
-    } catch (error) {
-        console.warn('[PhotoGallery] Error reading localStorage:', error);
-    }
+    } catch {}
     
     return null;
 };
