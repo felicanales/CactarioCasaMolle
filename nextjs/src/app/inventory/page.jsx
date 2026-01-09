@@ -146,7 +146,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function InventoryPage() {
-    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
+    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
 
     // Funciones helper para formatear números con separadores de miles (1.000.000)
@@ -423,7 +423,7 @@ export default function InventoryPage() {
     // Helper para requests autenticadas
     // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
     const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        // Si tenemos apiRequest del AuthContext, usarlo
         if (authApiRequest) {
             return authApiRequest(url, options);
         }

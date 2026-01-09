@@ -12,7 +12,7 @@ import { getApiUrl } from "../../utils/api-config";
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 export default function ReportsPage() {
-    const { user, loading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
+    const { user, loading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
     const [ejemplares, setEjemplares] = useState([]);
     const [species, setSpecies] = useState([]);
@@ -87,7 +87,7 @@ export default function ReportsPage() {
         const API = getApiUrl();
         const fullUrl = url.startsWith("http") ? url : `${API}${url}`;
 
-        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        // Si tenemos apiRequest del AuthContext, usarlo
         if (authApiRequest) {
             return authApiRequest(fullUrl, options);
         }

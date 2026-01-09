@@ -14,8 +14,6 @@ from app.core.security import (
     validate_supabase_jwt,
     sync_user_supabase_uid,
     validate_user_active,
-    generate_csrf_token,
-    IS_PRODUCTION
 )
 from app.middleware.auth_middleware import get_current_user
 
@@ -254,26 +252,11 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
     # 5) Configurar cookies seguras de Supabase
     set_supabase_session_cookies(response, res.session)
 
-    # 6) Generar CSRF token
-    csrf_token = generate_csrf_token()
-    # En producción, usar samesite="none" para cookies cross-domain
-    samesite_value = "lax" if not IS_PRODUCTION else "none"
-    response.set_cookie(
-        "csrf-token",
-        csrf_token,
-        httponly=False,  # Necesario para que JS lo lea
-        secure=IS_PRODUCTION,  # Only secure in production (required for samesite=none)
-        samesite=samesite_value,  # lax in dev, none in prod para cross-domain
-        path="/",
-        max_age=3600
-    )
-
     return {
         "access_token": res.session.access_token,
         "token_type": "bearer",
         "user": {"id": res.user.id, "email": res.user.email},
         "expires_in": getattr(res.session, "expires_in", 3600),
-        "csrf_token": csrf_token
     }
 
 @router.post("/refresh")
@@ -297,25 +280,10 @@ def refresh_token(response: Response, request: Request):
         # Update cookies with new tokens
         set_supabase_session_cookies(response, session_response.session)
         
-        # Generate new CSRF token
-        csrf_token = generate_csrf_token()
-        # En producción, usar samesite="none" para cookies cross-domain
-        samesite_value = "lax" if not IS_PRODUCTION else "none"
-        response.set_cookie(
-            "csrf-token",
-            csrf_token,
-            httponly=False,
-            secure=IS_PRODUCTION,  # Only secure in production (required for samesite=none)
-            samesite=samesite_value,  # lax in dev, none in prod para cross-domain
-            path="/",
-            max_age=3600
-        )
-        
         return {
             "access_token": session_response.session.access_token,
             "token_type": "bearer",
             "expires_in": getattr(session_response.session, "expires_in", 3600),
-            "csrf_token": csrf_token
         }
         
     except Exception as e:
@@ -328,11 +296,6 @@ def logout(response: Response, request: Request):
     """
     # Clear Supabase session cookies
     clear_supabase_session_cookies(response)
-    
-    # Clear CSRF token
-    # En producción, usar samesite="none" para cookies cross-domain
-    samesite_value = "lax" if not IS_PRODUCTION else "none"
-    response.delete_cookie("csrf-token", path="/", samesite=samesite_value, secure=IS_PRODUCTION)
     
     # Optional: Sign out from Supabase
     token = get_token_from_request(request)
@@ -375,10 +338,7 @@ def me(request: Request):
     if not validate_user_active(user_claims["id"]):
         raise HTTPException(403, "User account is inactive")
     
-    # Get CSRF token from cookie if available
-    csrf_token = request.cookies.get("csrf-token")
-    
-    # Return user information including the access token and CSRF token
+    # Return user information including the access token
     response_data = {
         "id": user_claims["id"],
         "email": user_claims["email"],
@@ -386,9 +346,5 @@ def me(request: Request):
         "authenticated": True,
         "access_token": token  # Include the token so frontend can update localStorage
     }
-    
-    # Include CSRF token if available (necesario para cookies cross-domain)
-    if csrf_token:
-        response_data["csrf_token"] = csrf_token
     
     return response_data

@@ -141,33 +141,3 @@ def sync_user_supabase_uid(email: str, supabase_uid: str) -> None:
     except Exception as e:
         print(f"Error syncing supabase_uid: {e}")
 
-def validate_csrf_token(request: Request) -> bool:
-    """
-    Validate CSRF token using double-submit cookie pattern
-    """
-    csrf_token_header = request.headers.get("X-CSRF-Token")
-    csrf_token_cookie = request.cookies.get("csrf-token")
-    
-    # Logging para debugging (solo si DEBUG está activado o si falla)
-    import os
-    if os.getenv("DEBUG", "").lower() == "true" or not csrf_token_header or not csrf_token_cookie:
-        logger.info(f"[CSRF] Header: {bool(csrf_token_header)}, Cookie: {bool(csrf_token_cookie)}")
-        if csrf_token_header and csrf_token_cookie:
-            logger.info(f"[CSRF] Tokens match: {csrf_token_header == csrf_token_cookie}")
-    
-    if not csrf_token_header or not csrf_token_cookie:
-        logger.warning(f"[CSRF] Missing token - Header: {bool(csrf_token_header)}, Cookie: {bool(csrf_token_cookie)}")
-        return False
-    
-    tokens_match = csrf_token_header == csrf_token_cookie
-    if not tokens_match:
-        logger.warning(f"[CSRF] Tokens do not match - Header: {csrf_token_header[:10]}..., Cookie: {csrf_token_cookie[:10]}...")
-    
-    return tokens_match
-
-def generate_csrf_token() -> str:
-    """
-    Generate a random CSRF token
-    """
-    import secrets
-    return secrets.token_urlsafe(32)

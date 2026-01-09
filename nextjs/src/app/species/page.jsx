@@ -161,7 +161,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SpeciesPage() {
-    const { user, loading: authLoading, logout, fetchMe, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
+    const { user, loading: authLoading, logout, fetchMe, accessToken, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);
@@ -208,7 +208,7 @@ export default function SpeciesPage() {
     // Helper para requests autenticadas
     // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
     const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-        // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+        // Si tenemos apiRequest del AuthContext, usarlo
         if (authApiRequest) {
             return authApiRequest(url, options);
         }
@@ -510,15 +510,9 @@ export default function SpeciesPage() {
                             uploadFormData.append('files', file);
                         });
 
-                        const csrfTokenValue = csrfToken || null;
                         const headers = {
                             'Authorization': `Bearer ${token}`
                         };
-
-                        if (csrfTokenValue) {
-                            headers['X-CSRF-Token'] = csrfTokenValue;
-                        }
-
                         const uploadRes = await fetch(`${API}/photos/especie/${createdSpeciesId}`, {
                             method: 'POST',
                             headers,

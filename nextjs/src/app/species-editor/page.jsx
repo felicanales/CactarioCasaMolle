@@ -77,7 +77,7 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
 };
 
 export default function SpeciesEditorPage() {
-    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest, csrfToken } = useAuth();
+    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
 
     const [species, setSpecies] = useState([]);
@@ -160,7 +160,7 @@ export default function SpeciesEditorPage() {
             // Detectar si es un endpoint de especies del sector
             const isSpeciesEndpoint = finalUrl.includes('/sectors/staff/') && finalUrl.includes('/species');
 
-            // Si tenemos apiRequest del AuthContext, usarlo (tiene mejor manejo de CSRF)
+            // Si tenemos apiRequest del AuthContext, usarlo
             if (authApiRequest) {
                 // Agregar header de ngrok si es necesario
                 const ngrokHeaders = {};

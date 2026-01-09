@@ -46,12 +46,10 @@ def auth_status(request: Request):
     _require_debug_enabled()
     token = request.cookies.get("sb-access-token")
     refresh_token = request.cookies.get("sb-refresh-token")
-    csrf_token = request.cookies.get("csrf-token")
 
     return {
         "has_access_token": bool(token),
         "has_refresh_token": bool(refresh_token),
-        "has_csrf_token": bool(csrf_token),
         "cookies": list(request.cookies.keys()),
     }
 

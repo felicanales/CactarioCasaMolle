@@ -302,7 +302,6 @@ npm run start:fastapi    # Solo backend
 - **Autorización**: Whitelist de usuarios
 - **Row-Level Security (RLS)**: Políticas en Supabase
 - **Rate Limiting**: Protección contra abuso
-- **CSRF Protection**: Tokens CSRF en requests
 
 ### **4. Documentación**
 

@@ -10,7 +10,6 @@ from app.core.security import (
     get_token_from_request,
     validate_supabase_jwt,
     validate_user_active,
-    validate_csrf_token,
 )
 
 # BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
@@ -129,20 +128,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         # Set user context in request state
         request.state.user = user_claims
-        
-        # Validate CSRF token for state-changing operations
-        if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
-            if not validate_csrf_token(request):
-                response = JSONResponse(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    content={"detail": "Token CSRF inválido"}
-                )
-                # Add CORS headers to error response
-                origin = request.headers.get("origin")
-                if origin:
-                    response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Credentials"] = "true"
-                return response
         
         return await call_next(request)
 

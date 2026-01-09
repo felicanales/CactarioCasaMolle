@@ -54,33 +54,6 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
     return null;
 };
 
-// Helper para obtener CSRF token (cross-domain compatible)
-const getCsrfToken = () => {
-    if (typeof document === 'undefined') return null;
-
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )csrf-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-
-        // Método 2: Buscar en todas las cookies (para cross-domain)
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'csrf-token' && value) {
-                return value;
-            }
-        }
-    } catch (error) {
-        console.warn('[PhotoUploader] Error reading CSRF token from cookies:', error);
-    }
-
-    return null;
-};
-
 export default function PhotoUploader({
     entityType,
     entityId,
@@ -91,7 +64,6 @@ export default function PhotoUploader({
     // El componente debe estar dentro del AuthProvider para que esto funcione
     const auth = useAuth();
     const accessTokenFromContext = auth?.accessToken || null;
-    const csrfTokenFromContext = auth?.csrfToken || null;
     const [files, setFiles] = useState([]);
     const [previews, setPreviews] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -174,28 +146,15 @@ export default function PhotoUploader({
             const API = getApiUrl();
             const url = `${API}/photos/${entityType}/${entityId}`;
 
-            // Obtener CSRF token (prioridad: AuthContext > cookies)
-            const csrfToken = csrfTokenFromContext || getCsrfToken();
 
             console.log('[PhotoUploader] Uploading to:', url);
             console.log('[PhotoUploader] Files count:', files.length);
             console.log('[PhotoUploader] Authorization header will be included');
-            console.log('[PhotoUploader] CSRF token available:', !!csrfToken);
-            console.log('[PhotoUploader] CSRF token source:', csrfTokenFromContext ? 'AuthContext' : 'cookies');
 
             const headers = {
                 'Authorization': `Bearer ${token}`
                 // NO incluir 'Content-Type' - el navegador lo establece automáticamente con boundary para FormData
             };
-
-            // Agregar CSRF token para operaciones POST
-            if (csrfToken) {
-                headers['X-CSRF-Token'] = csrfToken;
-                console.log('[PhotoUploader] ✅ Adding CSRF token to header');
-            } else {
-                console.error('[PhotoUploader] ❌ No CSRF token available');
-                console.error('[PhotoUploader] document.cookie:', typeof document !== 'undefined' ? document.cookie : 'N/A');
-            }
 
             const response = await fetch(url, {
                 method: 'POST',

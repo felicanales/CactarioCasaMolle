@@ -46,7 +46,7 @@ const getAccessTokenFromContext = (accessTokenFromContext) => {
 };
 
 export default function HomeContentPage() {
-    const { user, loading: authLoading, accessToken, apiRequest, csrfToken } = useAuth();
+    const { user, loading: authLoading, accessToken, apiRequest } = useAuth();
     const router = useRouter();
 
     const [loading, setLoading] = useState(true);
@@ -178,15 +178,9 @@ export default function HomeContentPage() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const csrfTokenValue = csrfToken || null;
             const headers = {
                 'Authorization': `Bearer ${token}`
             };
-
-            if (csrfTokenValue) {
-                headers['X-CSRF-Token'] = csrfTokenValue;
-            }
-
             const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
                 method: 'POST',
                 headers,
@@ -328,15 +322,9 @@ export default function HomeContentPage() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const csrfTokenValue = csrfToken || null;
             const headers = {
                 'Authorization': `Bearer ${token}`
             };
-
-            if (csrfTokenValue) {
-                headers['X-CSRF-Token'] = csrfTokenValue;
-            }
-
             const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
                 method: 'POST',
                 headers,
