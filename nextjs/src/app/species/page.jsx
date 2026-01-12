@@ -1080,6 +1080,7 @@ export default function SpeciesPage() {
                                                             <AuthenticatedImage
                                                                 className="species-image"
                                                                 src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=400" })}
+                                                                fallbackSrc={resolvePhotoUrl(sp.cover_photo || sp.image_url)}
                                                                 alt={sp.nombre_común || sp.scientific_name}
                                                                 style={{
                                                                     width: "120px",
@@ -1360,6 +1361,7 @@ export default function SpeciesPage() {
                                     {(selectedSpecies.cover_photo || selectedSpecies.image_url) ? (
                                         <AuthenticatedImage
                                             src={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url, { variant: "w=800" })}
+                                            fallbackSrc={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url)}
                                             alt={selectedSpecies.scientific_name}
                                             style={{
                                                 maxWidth: "100%",

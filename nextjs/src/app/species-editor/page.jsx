@@ -1238,6 +1238,7 @@ export default function SpeciesEditorPage() {
                                                 {(sp.cover_photo || sp.image_url) ? (
                                                     <AuthenticatedImage
                                                         src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=400" })}
+                                                        fallbackSrc={resolvePhotoUrl(sp.cover_photo || sp.image_url)}
                                                         alt={sp.scientific_name}
                                                         style={{
                                                             width: "44px",
@@ -1522,6 +1523,7 @@ export default function SpeciesEditorPage() {
                                                 {(selectedSpecies?.cover_photo || selectedSpecies?.image_url) ? (
                                                     <AuthenticatedImage
                                                         src={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url, { variant: "w=800" })}
+                                                        fallbackSrc={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url)}
                                                         alt={selectedSpecies.scientific_name || "Portada"}
                                                         style={{
                                                             maxWidth: "100%",
@@ -1602,6 +1604,7 @@ export default function SpeciesEditorPage() {
                                                                         >
                                                                             <AuthenticatedImage
                                                                                 src={resolvePhotoUrl(photo, { variant: "w=400" })}
+                                                                                fallbackSrc={resolvePhotoUrl(photo)}
                                                                                 alt={`Foto ${photo.id}`}
                                                                                 style={{
                                                                                     width: "100%",

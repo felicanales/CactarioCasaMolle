@@ -218,6 +218,22 @@ export default function PhotoGallery({
                                     height: '100%',
                                     objectFit: 'cover'
                                 }}
+                                onError={(event) => {
+                                    const fallback = resolvePhotoUrl(photo);
+                                    if (!fallback || event.currentTarget.dataset.fallbackApplied) {
+                                        return;
+                                    }
+                                    if (fallback === event.currentTarget.src) {
+                                        return;
+                                    }
+                                    event.currentTarget.dataset.fallbackApplied = "true";
+                                    console.warn('[PhotoGallery] Thumbnail failed, falling back', {
+                                        photoId: photo.id,
+                                        src: event.currentTarget.src,
+                                        fallback
+                                    });
+                                    event.currentTarget.src = fallback;
+                                }}
                             />
                             {photo.is_cover && (
                                 <div style={{

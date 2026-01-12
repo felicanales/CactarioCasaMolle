@@ -9,6 +9,7 @@ import { getApiUrl } from "../utils/api-config";
  */
 export default function AuthenticatedImage({
     src,
+    fallbackSrc,
     alt,
     className,
     style,
@@ -18,6 +19,7 @@ export default function AuthenticatedImage({
     const [imageSrc, setImageSrc] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [usedFallback, setUsedFallback] = useState(false);
 
     // Helper para obtener el access token
     const getAccessToken = () => {
@@ -49,34 +51,54 @@ export default function AuthenticatedImage({
         return null;
     };
 
-    useEffect(() => {
-        if (!src) {
+
+    const loadFromSource = (value) => {
+        if (!value) {
             setLoading(false);
             return;
         }
 
-        // Si la URL es absoluta y externa, cargar normalmente
-        if (src.startsWith('http://') || src.startsWith('https://')) {
-            // Verificar si es una URL del backend que requiere autenticación
+        if (value.startsWith('http://') || value.startsWith('https://')) {
             const API = getApiUrl();
-            if (src.startsWith(API + '/photos/')) {
-                // Es una URL del backend que requiere autenticación
-                loadAuthenticatedImage(src);
+            if (value.startsWith(`${API}/photos/`)) {
+                loadAuthenticatedImage(value);
             } else {
-                // URL externa, cargar normalmente
-                setImageSrc(src);
+                setImageSrc(value);
                 setLoading(false);
             }
-        } else if (src.startsWith('/photos/')) {
-            // URL relativa del backend, construir URL completa
-            const API = getApiUrl();
-            loadAuthenticatedImage(`${API}${src}`);
-        } else {
-            // URL relativa local, cargar normalmente
-            setImageSrc(src);
-            setLoading(false);
+            return;
         }
-    }, [src]);
+
+        if (value.startsWith('/photos/')) {
+            const API = getApiUrl();
+            loadAuthenticatedImage(`${API}${value}`);
+            return;
+        }
+
+        setImageSrc(value);
+        setLoading(false);
+    };
+
+    const attemptFallback = (reason) => {
+        if (!fallbackSrc || usedFallback || fallbackSrc === src) {
+            return false;
+        }
+        setUsedFallback(true);
+        setError(false);
+        console.warn('[AuthenticatedImage] Falling back to original image', {
+            src,
+            fallbackSrc,
+            reason
+        });
+        loadFromSource(fallbackSrc);
+        return true;
+    };
+
+    useEffect(() => {
+        setUsedFallback(false);
+        setError(false);
+        loadFromSource(src);
+    }, [src, fallbackSrc]);
 
     const loadAuthenticatedImage = async (url) => {
         try {
@@ -112,6 +134,9 @@ export default function AuthenticatedImage({
             setError(false);
         } catch (err) {
             console.error('[AuthenticatedImage] Error loading image:', err);
+            if (attemptFallback('fetch-error')) {
+                return;
+            }
             setError(true);
             if (onError) {
                 onError(err);
@@ -174,6 +199,15 @@ export default function AuthenticatedImage({
             alt={alt}
             className={className}
             style={style}
+            onError={(event) => {
+                if (attemptFallback('img-error')) {
+                    return;
+                }
+                setError(true);
+                if (onError) {
+                    onError(event);
+                }
+            }}
             {...props}
         />
     );
