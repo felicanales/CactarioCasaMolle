@@ -36,12 +36,39 @@ export const buildR2PublicUrl = (storagePath) => {
     return `${baseUrl}/${normalizedPath}`;
 };
 
+const replaceVariantExtension = (value) => {
+    if (!value) {
+        return value;
+    }
+
+    const match = value.match(/\.([a-z0-9]+)(\?.*)?$/i);
+    if (!match) {
+        return value;
+    }
+
+    const extension = match[1].toLowerCase();
+    if (extension === "jpg" || extension === "jpeg") {
+        return value;
+    }
+
+    return value.replace(/\.([a-z0-9]+)(\?.*)?$/i, ".jpg$2");
+};
+
 const replaceVariantSegment = (value, variant) => {
     if (!variant || variant === 'original') {
         return value;
     }
 
-    return value.replace(/(^|\/)(original|w=\d+)(\/)/, `$1${variant}$3`);
+    const replaced = value.replace(/(^|\/)(original|w=\d+)(\/)/, `$1${variant}$3`);
+    if (replaced === value) {
+        return value;
+    }
+
+    if (/\/w=\d+\//.test(replaced)) {
+        return replaceVariantExtension(replaced);
+    }
+
+    return replaced;
 };
 
 const resolveVariantPath = (photo, variant) => {
