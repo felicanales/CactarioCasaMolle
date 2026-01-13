@@ -1,12 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { sectorsApi } from '@/utils/api';
 import { resolvePhotoUrl } from '@/utils/images';
+
+const SECTOR_CACHE_TTL = 5 * 60 * 1000;
+
+const getSectorCacheKey = (qrCode) => `sector_species_cache_${qrCode}`;
+
+const readSectorCache = (qrCode) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cachedRaw = sessionStorage.getItem(getSectorCacheKey(qrCode));
+    if (!cachedRaw) return null;
+    const cached = JSON.parse(cachedRaw);
+    if (!cached?.timestamp) return null;
+    if (Date.now() - cached.timestamp > SECTOR_CACHE_TTL) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+};
+
+const writeSectorCache = (qrCode, data) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(getSectorCacheKey(qrCode), JSON.stringify({
+      timestamp: Date.now(),
+      sector: data.sector || null,
+      especies: Array.isArray(data.especies) ? data.especies : [],
+    }));
+  } catch {}
+};
 
 export default function SectorEspecies() {
   const params = useParams();
@@ -18,6 +47,8 @@ export default function SectorEspecies() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const hasCachedRef = useRef(false);
+  const sectorName = sector?.name || sector?.nombre;
 
   const itemsPerPage = 25;
   const totalPages = Math.ceil(especies.length / itemsPerPage);
@@ -28,7 +59,14 @@ export default function SectorEspecies() {
 
   useEffect(() => {
     if (qrCode) {
-      loadSectorData();
+      const cached = readSectorCache(qrCode);
+      if (cached) {
+        hasCachedRef.current = true;
+        setSector(cached.sector || null);
+        setEspecies(Array.isArray(cached.especies) ? cached.especies : []);
+        setLoading(false);
+      }
+      loadSectorData({ background: hasCachedRef.current });
     }
   }, [qrCode]);
 
@@ -42,26 +80,52 @@ export default function SectorEspecies() {
     }
   }, [currentPage, totalPages]);
 
-  const loadSectorData = async () => {
+  const loadSectorData = async ({ background = false } = {}) => {
     try {
-      setLoading(true);
+      if (!background) {
+        setLoading(true);
+        setError(null);
+      }
       
-      // Cargar información del sector
-      const sectorResponse = await sectorsApi.getByQr(qrCode);
-      setSector(sectorResponse.data);
-      
-      // Cargar especies del sector
-      const speciesResponse = await sectorsApi.getSpeciesByQr(qrCode);
-      console.log('Especies cargadas:', speciesResponse.data);
-      setEspecies(speciesResponse.data || []);
+      const [sectorResult, speciesResult] = await Promise.allSettled([
+        sectorsApi.getByQr(qrCode),
+        sectorsApi.getSpeciesByQr(qrCode),
+      ]);
+
+      const nextSector = sectorResult.status === 'fulfilled' ? sectorResult.value.data : null;
+      const nextSpecies = speciesResult.status === 'fulfilled' ? (speciesResult.value.data || []) : null;
+
+      if (nextSector) {
+        setSector(nextSector);
+      }
+
+      if (nextSpecies) {
+        console.log('Especies cargadas:', nextSpecies);
+        setEspecies(nextSpecies);
+      }
+
+      if (nextSector || nextSpecies) {
+        writeSectorCache(qrCode, {
+          sector: nextSector,
+          especies: nextSpecies || [],
+        });
+      }
+
+      if (sectorResult.status === 'rejected' && speciesResult.status === 'rejected') {
+        throw sectorResult.reason;
+      }
     } catch (err) {
       console.error('Error al cargar datos del sector:', err);
       const errorMessage = err.response?.data?.message || err.message || 'No se pudieron cargar los datos del sector';
-      setError(`Error: ${errorMessage}`);
-      setSector({ name: `Sector ${qrCode}`, qr_code: qrCode });
-      setEspecies([]);
+      if (!hasCachedRef.current) {
+        setError(`Error: ${errorMessage}`);
+        setSector({ name: `Sector ${qrCode}`, qr_code: qrCode });
+        setEspecies([]);
+      }
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
   };
 
@@ -83,7 +147,7 @@ export default function SectorEspecies() {
         </button>
         
         <h1>
-          Especies presentes en {sector?.name || sector?.nombre || qrCode}
+          {sectorName ? `Especies presentes en ${sectorName}` : 'Especies presentes'}
         </h1>
 
         {loading ? (

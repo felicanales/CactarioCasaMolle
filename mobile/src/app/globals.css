@@ -472,7 +472,7 @@ p {
     top: 0;
     bottom: 0;
     left: 0;
-    width: 240px;
+    width: 180px;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
@@ -502,7 +502,7 @@ p {
     bottom: 0;
     right: 0;
     left: auto;
-    width: 240px;
+    width: 180px;
     flex-direction: column;
     padding: 16px 10px;
     gap: 12px;
@@ -534,13 +534,18 @@ p {
     border-radius: 3px;
   }
 
+  .nav-icon {
+    width: 40px;
+    height: 40px;
+  }
+
   .nav-label {
     white-space: normal;
     text-align: center;
   }
 
   .main-content {
-    padding: 24px calc(240px + 24px) 24px calc(240px + 24px);
+    padding: 24px calc(180px + 24px) 24px calc(180px + 24px);
   }
 
   .image-carousel {

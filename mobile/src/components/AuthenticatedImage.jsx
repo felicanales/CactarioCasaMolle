@@ -19,32 +19,29 @@ export default function AuthenticatedImage({
     const [imageSrc, setImageSrc] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [resolvedUrl, setResolvedUrl] = useState(null);
+    const [authTried, setAuthTried] = useState(false);
 
     useEffect(() => {
         if (!src) {
+            setImageSrc(null);
+            setResolvedUrl(null);
             setLoading(false);
             return;
         }
 
-        // Si la URL es absoluta y externa, cargar normalmente
-        if (src.startsWith('http://') || src.startsWith('https://')) {
-            // Verificar si es una URL del backend que requiere autenticación
-            if (src.startsWith(API_URL + '/photos/')) {
-                // Es una URL del backend, intentar cargar con auth pero también permitir carga directa
-                loadAuthenticatedImage(src);
-            } else {
-                // URL externa, cargar normalmente
-                setImageSrc(src);
-                setLoading(false);
-            }
-        } else if (src.startsWith('/photos/')) {
-            // URL relativa del backend, construir URL completa
-            loadAuthenticatedImage(`${API_URL}${src}`);
-        } else {
-            // URL relativa local, cargar normalmente
-            setImageSrc(src);
-            setLoading(false);
+        setAuthTried(false);
+        setError(false);
+        setLoading(true);
+
+        let finalUrl = src;
+        if (src.startsWith('/photos/')) {
+            finalUrl = `${API_URL}${src}`;
         }
+
+        setResolvedUrl(finalUrl);
+        setImageSrc(finalUrl);
+        setLoading(false);
     }, [src]);
 
     const loadAuthenticatedImage = async (url) => {
@@ -176,11 +173,18 @@ export default function AuthenticatedImage({
             className={className}
             style={style}
             onError={(e) => {
+                if (!authTried && resolvedUrl && resolvedUrl.startsWith(API_URL + '/photos/')) {
+                    setAuthTried(true);
+                    loadAuthenticatedImage(resolvedUrl);
+                    return;
+                }
                 setError(true);
                 if (onError) {
                     onError(e);
                 }
             }}
+            loading="lazy"
+            decoding="async"
             {...props}
         />
     );

@@ -1,25 +1,61 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import { sectorsApi } from '@/utils/api';
+
+const SECTORS_CACHE_KEY = 'sectors_cache_v1';
+const SECTORS_CACHE_TTL = 5 * 60 * 1000;
+
+const readSectorsCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cachedRaw = sessionStorage.getItem(SECTORS_CACHE_KEY);
+    if (!cachedRaw) return null;
+    const cached = JSON.parse(cachedRaw);
+    if (!cached?.timestamp || !Array.isArray(cached.data)) return null;
+    if (Date.now() - cached.timestamp > SECTORS_CACHE_TTL) return null;
+    return cached.data;
+  } catch {
+    return null;
+  }
+};
+
+const writeSectorsCache = (data) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SECTORS_CACHE_KEY, JSON.stringify({
+      timestamp: Date.now(),
+      data,
+    }));
+  } catch {}
+};
 
 export default function Sectores() {
   const [sectores, setSectores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const hasCachedRef = useRef(false);
 
   useEffect(() => {
-    loadSectores();
+    const cached = readSectorsCache();
+    if (cached) {
+      hasCachedRef.current = true;
+      setSectores(cached);
+      setLoading(false);
+    }
+    loadSectores({ background: hasCachedRef.current });
   }, []);
 
-  const loadSectores = async () => {
+  const loadSectores = async ({ background = false } = {}) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!background) {
+        setLoading(true);
+        setError(null);
+      }
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
       console.log('[SectoresPage] Cargando sectores desde:', apiUrl);
       
@@ -42,6 +78,7 @@ export default function Sectores() {
       if (data && Array.isArray(data)) {
         console.log(`[SectoresPage] Se encontraron ${data.length} sectores`);
         setSectores(data);
+        writeSectorsCache(data);
       } else {
         console.warn('[SectoresPage] Respuesta no es un array. Tipo:', typeof data, 'Valor:', data);
         setSectores([]);
@@ -72,10 +109,14 @@ export default function Sectores() {
         errorMessage = err.message;
       }
       
-      setError(`Error: ${errorMessage}`);
-      setSectores([]);
+      if (!hasCachedRef.current) {
+        setError(`Error: ${errorMessage}`);
+        setSectores([]);
+      }
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
   };
 

@@ -148,8 +148,14 @@ logger.info("🔧 Configurando middlewares...")
 ngrok_regex = r"https://.*\.ngrok.*"
 railway_regex = r"https://.*\.railway\.app"  # Permitir todos los dominios de Railway
 
+# En desarrollo local, permitir cualquier puerto de localhost
+localhost_regex = r"http://localhost(:\d+)?"
+loopback_regex = r"http://127\.0\.0\.1(:\d+)?"
+
 # Combinar regex en una sola expresión
 combined_regex = f"({ngrok_regex}|{railway_regex})"
+if not is_production:
+    combined_regex = f"({combined_regex}|{localhost_regex}|{loopback_regex})"
 
 # Asegurarse de que el frontend de Railway esté en la lista de orígenes permitidos
 # Si no está explícitamente, el regex lo cubrirá, pero es mejor tenerlo explícito
