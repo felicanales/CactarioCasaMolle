@@ -460,6 +460,82 @@ p {
     grid-template-columns: repeat(3, 1fr);
   }
 
+  .header {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 120px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 12px;
+    border-radius: 0;
+  }
+
+  .header-logo-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-title {
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .header-cactus {
+    font-size: 28px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: auto;
+    width: 120px;
+    flex-direction: column;
+    padding: 16px 10px;
+    gap: 12px;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
+    justify-content: center;
+  }
+
+  .nav-button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 12px 8px;
+    border-radius: 14px;
+    transform: none;
+  }
+
+  .nav-button.active {
+    transform: none;
+  }
+
+  .nav-button.active::before {
+    top: 50%;
+    left: -8px;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 36px;
+    border-radius: 3px;
+  }
+
+  .nav-label {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .main-content {
+    padding: 24px calc(120px + 24px) 24px calc(120px + 24px);
+  }
+
   .image-carousel {
     height: 320px;
   }
