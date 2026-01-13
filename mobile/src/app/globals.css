@@ -454,3 +454,9 @@ p {
     top: -6px;
   }
 }
+
+@media (min-width: 1024px) {
+  .grid-2-col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
