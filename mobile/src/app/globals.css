@@ -459,4 +459,13 @@ p {
   .grid-2-col {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  .main-content {
+    max-width: 80%;
+    margin: 0 auto;
+  }
+
+  .image-carousel {
+    height: 260px;
+  }
 }
