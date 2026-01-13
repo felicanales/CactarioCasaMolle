@@ -460,24 +460,6 @@ p {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .header {
-    width: 80%;
-    margin: 0 auto;
-    border-radius: 0 0 16px 16px;
-  }
-
-  .bottom-nav {
-    width: 80%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 16px 16px 0 0;
-  }
-
-  .main-content {
-    max-width: 80%;
-    margin: 0 auto;
-  }
-
   .image-carousel {
     height: 320px;
   }
