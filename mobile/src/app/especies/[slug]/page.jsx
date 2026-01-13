@@ -55,6 +55,10 @@ export default function EspecieDetail() {
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '12px',
+          width: '100%',
+          maxWidth: '960px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
           border: '1px solid #D4B896',
           cursor: onClick ? 'pointer' : 'default',
           display: 'flex',
@@ -230,6 +234,9 @@ export default function EspecieDetail() {
           zIndex: 1,
           padding: '20px',
           paddingTop: '60px',
+          width: '100%',
+          maxWidth: '960px',
+          margin: '0 auto',
         }}>
           <button
             onClick={(e) => {
@@ -300,7 +307,7 @@ export default function EspecieDetail() {
         paddingBottom: '100px',
         backgroundColor: '#F5E6D3',
       }}>
-        <>
+        <div style={{ width: '100%', maxWidth: '960px', margin: '0 auto' }}>
           {/* Badges de información básica */}
           <div style={{
             marginBottom: '24px',
@@ -573,7 +580,7 @@ export default function EspecieDetail() {
                 No hay información adicional disponible para esta especie.
               </div>
             )}
-        </>
+        </div>
       </main>
 
       <BottomNavigation />

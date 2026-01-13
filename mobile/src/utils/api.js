@@ -3,9 +3,10 @@ import axios from 'axios';
 // En Next.js, las variables de entorno NEXT_PUBLIC_* están disponibles en el cliente
 // La variable se lee en tiempo de build, así que necesitamos asegurarnos de que esté disponible
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
+const LOGS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_LOGS === 'true';
 
-// Log para debugging (siempre, para producción también)
-if (typeof window !== 'undefined') {
+// Log para debugging (solo cuando esta habilitado)
+if (typeof window !== 'undefined' && LOGS_ENABLED) {
   console.log('[API Config] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL || 'NO DEFINIDA - usando Railway por defecto');
   console.log('[API Config] URL final:', API_URL);
 }
@@ -18,8 +19,8 @@ const api = axios.create({
   timeout: 30000, // 30 segundos de timeout (aumentado desde 10s)
 });
 
-// Interceptor para logging (siempre activo para debug en producción)
-if (typeof window !== 'undefined') {
+// Interceptor para logging (solo cuando esta habilitado)
+if (typeof window !== 'undefined' && LOGS_ENABLED) {
   api.interceptors.request.use(
     (config) => {
       const fullUrl = `${config.baseURL}${config.url}`;

@@ -1,4 +1,5 @@
 import "./globals.css";
+import ConsoleSilencer from "@/components/ConsoleSilencer";
 
 export const metadata = {
   title: "Cactuario CasaMolle",
@@ -19,8 +20,10 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#6B5A4F" />
       </head>
-      <body>{children}</body>
+      <body>
+        <ConsoleSilencer />
+        {children}
+      </body>
     </html>
   );
 }
-
