@@ -6,6 +6,32 @@ const isAbsoluteUrl = (value) => /^(https?:\/\/|blob:|data:)/i.test(value);
 
 const getR2BaseUrl = () => process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || '';
 
+const STORAGE_PREFIXES = ["especies", "sectores", "ejemplares", "home"];
+
+const hasVariantSegment = (value) => /(^|\/)(original|w=\d+)(\/)/.test(value);
+
+const prefixVariantIfMissing = (value, variant) => {
+    if (!variant || !value || hasVariantSegment(value) || value.startsWith("/photos/")) {
+        return value;
+    }
+
+    try {
+        const parsed = new URL(value);
+        const path = parsed.pathname.replace(/^\/+/, "");
+        if (!STORAGE_PREFIXES.some((prefix) => path.startsWith(`${prefix}/`))) {
+            return value;
+        }
+        parsed.pathname = `/${variant}/${path}`;
+        return parsed.toString();
+    } catch {
+        const trimmed = value.replace(/^\/+/, "");
+        if (!STORAGE_PREFIXES.some((prefix) => trimmed.startsWith(`${prefix}/`))) {
+            return value;
+        }
+        return value.startsWith("/") ? `/${variant}/${trimmed}` : `${variant}/${trimmed}`;
+    }
+};
+
 const normalizeResolvedUrl = (value) => {
     if (!value) {
         return null;
@@ -114,7 +140,7 @@ export const resolvePhotoUrl = (photo, options = {}) => {
     }
 
     if (typeof photo === 'string') {
-        const resolved = replaceVariantSegment(photo, variant);
+        const resolved = prefixVariantIfMissing(replaceVariantSegment(photo, variant), variant);
         if (resolved.startsWith('/photos/')) {
             return resolved;
         }

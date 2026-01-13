@@ -85,11 +85,13 @@ export default function AuthenticatedImage({
         }
         setUsedFallback(true);
         setError(false);
-        console.warn('[AuthenticatedImage] Falling back to original image', {
-            src,
-            fallbackSrc,
-            reason
-        });
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn('[AuthenticatedImage] Falling back to original image', {
+                src,
+                fallbackSrc,
+                reason
+            });
+        }
         loadFromSource(fallbackSrc);
         return true;
     };
