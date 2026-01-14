@@ -12,10 +12,35 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
+const ACCESS_TOKEN_STORAGE_KEY = "access_token";
+
+const getStoredAccessToken = () => {
+  try {
+    return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const setStoredAccessToken = (token) => {
+  try {
+    if (token) {
+      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+  }
+};
 
 // Helper para obtener el access token de cookies (cross-domain compatible)
 const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
+
+  const storedToken = getStoredAccessToken();
+  if (storedToken) {
+    return storedToken;
+  }
 
   // Intentar leer cookies de diferentes formas para cross-domain
   try {
@@ -50,17 +75,18 @@ export function AuthProvider({ children }) {
   // Crear apiRequest que siempre use el token actual del estado
   // Usar useCallback para que se actualice cuando accessToken cambie
   const apiRequest = useCallback((url, options = {}) => {
-    // Prioridad 1: Token del estado (mas reciente)
-    // Prioridad 2: Token de cookies
-    const token = accessToken || getAccessToken();
-
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (!headers.Authorization && !headers.authorization) {
+      // Prioridad 1: Token del estado (mas reciente)
+      // Prioridad 2: Token almacenado
+      const token = accessToken || getAccessToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return fetch(url, {
@@ -106,19 +132,23 @@ export function AuthProvider({ children }) {
       // If refresh fails, clear state and force re-login
       setUser(null);
       setAccessToken(null);
+      setStoredAccessToken(null);
       throw error;
     }
   };
 
-  const fetchMe = useCallback(async () => {
+  const fetchMe = useCallback(async (tokenOverride = null) => {
     try {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const res = await apiRequest(`${API}/auth/me`, {
         method: "GET",
+        headers,
       });
 
       if (!res.ok) {
         setUser(null);
         setAccessToken(null);
+        setStoredAccessToken(null);
         return false;
       }
 
@@ -128,12 +158,14 @@ export function AuthProvider({ children }) {
       if (data.authenticated === false) {
         setUser(null);
         setAccessToken(null);
+        setStoredAccessToken(null);
         return false;
       } else {
         setUser(data);
         // Token se maneja solo a través de cookies (más seguro)
         if (data.access_token) {
           setAccessToken(data.access_token);
+          setStoredAccessToken(data.access_token);
         }
         return true;
       }
@@ -141,6 +173,7 @@ export function AuthProvider({ children }) {
       console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
       setAccessToken(null);
+      setStoredAccessToken(null);
       return false;
     }
   }, [apiRequest]);
@@ -196,6 +229,7 @@ export function AuthProvider({ children }) {
     // Token se guarda en cookies automáticamente por el backend (más seguro)
     if (data.access_token) {
       setAccessToken(data.access_token);
+      setStoredAccessToken(data.access_token);
     }
     if (data.user) {
       setUser(data.user);
@@ -207,7 +241,7 @@ export function AuthProvider({ children }) {
 
     // Actualizar estado completo con fetchMe
     try {
-      const fetchMeSuccess = await fetchMe();
+      const fetchMeSuccess = await fetchMe(data.access_token || null);
       if (!fetchMeSuccess && data.user) {
         // Si fetchMe falla pero tenemos datos del usuario de la respuesta, mantenerlos
         setUser(data.user);
@@ -231,6 +265,7 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null);
       setAccessToken(null);
+      setStoredAccessToken(null);
     }
   };
 

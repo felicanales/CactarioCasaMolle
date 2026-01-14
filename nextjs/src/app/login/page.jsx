@@ -254,6 +254,9 @@ export default function LoginPage() {
       return;
     }
 
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+
     setLoading(true);
     setAttempts(prev => prev + 1);
     setLastAttempt(Date.now());
@@ -278,25 +281,12 @@ export default function LoginPage() {
 
   // Auto-submit cuando se complete el código (solo una vez por código completo)
   useEffect(() => {
-    if (code.length === 6 && step === "code" && !loading && !submittedRef.current) {
-      submittedRef.current = true;
-      setTimeout(() => {
-        handleVerifyOtp(new Event('submit', { bubbles: true, cancelable: true }));
-      }, 100);
-    }
-
-    // Reset al cambiar de paso
-    if (step !== "code") {
-      submittedRef.current = false;
-    }
-
-    // Reset al limpiar código completamente
-    if (code.length === 0) {
+    if (step !== "code" || code.length === 0) {
       submittedRef.current = false;
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, step, loading]);
+  }, [code, step]);
 
   // Sanitizar email en cada cambio
   const handleEmailChange = (e) => {
