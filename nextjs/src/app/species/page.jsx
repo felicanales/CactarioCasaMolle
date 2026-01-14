@@ -2359,28 +2359,36 @@ export default function SpeciesPage() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.95)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         zIndex: 1000,
-                        padding: '20px'
+                        padding: '0'
                     }}
                 >
-                    <div style={{
-                        maxWidth: '90vw',
-                        maxHeight: '90vh',
-                        position: 'relative'
-                    }}>
+                    <div
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
                         <img
                             src={resolvePhotoUrl(selectedImage.url)}
                             alt={selectedImage.name}
                             style={{
+                                width: '100%',
+                                height: '100%',
                                 maxWidth: '100%',
-                                maxHeight: '90vh',
+                                maxHeight: '100%',
                                 objectFit: 'contain',
-                                borderRadius: '12px'
+                                borderRadius: '0'
                             }}
+                            onClick={(e) => e.stopPropagation()}
                         />
                         <button
                             onClick={(e) => {
@@ -2388,9 +2396,9 @@ export default function SpeciesPage() {
                                 setShowImageModal(false);
                             }}
                             style={{
-                                position: 'absolute',
-                                top: '-20px',
-                                right: '-20px',
+                                position: 'fixed',
+                                top: '16px',
+                                right: '16px',
                                 width: '40px',
                                 height: '40px',
                                 borderRadius: '50%',
@@ -2416,18 +2424,6 @@ export default function SpeciesPage() {
                         >
                             ×
                         </button>
-                        <p style={{
-                            position: 'absolute',
-                            bottom: '-40px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            color: 'white',
-                            fontSize: '16px',
-                            fontWeight: '500',
-                            textAlign: 'center'
-                        }}>
-                            {selectedImage.name}
-                        </p>
                     </div>
                 </div>
             )}

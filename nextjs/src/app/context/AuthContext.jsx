@@ -460,6 +460,33 @@ export function AuthProvider({ children }) {
     return true;
   };
 
+  const getFriendlyOtpError = (rawMessage) => {
+    const fallback = "El codigo ingresado es invalido o expiro. Solicita uno nuevo.";
+    if (!rawMessage || typeof rawMessage !== "string") {
+      return fallback;
+    }
+
+    let detail = rawMessage;
+    try {
+      const parsed = JSON.parse(rawMessage);
+      if (parsed && typeof parsed.detail === "string") {
+        detail = parsed.detail;
+      }
+    } catch {
+      // Mantener el mensaje original si no es JSON
+    }
+
+    const normalized = detail.toLowerCase();
+    const isOtpError = normalized.includes("otp") || normalized.includes("codigo");
+    const isExpiredOrInvalid = normalized.includes("expired") || normalized.includes("expir") || normalized.includes("invalid");
+
+    if (normalized.includes("error verificando otp") || (isOtpError && isExpiredOrInvalid) || normalized.includes("token has expired") || (normalized.includes("token") && normalized.includes("invalid"))) {
+      return fallback;
+    }
+
+    return detail;
+  };
+
   const verifyOtp = async (email, code) => {
     const res = await apiRequest(`${API}/auth/verify-otp`, {
       method: "POST",
@@ -467,11 +494,11 @@ export function AuthProvider({ children }) {
     });
     if (!res.ok) {
       const msg = await res.text();
-      throw new Error(msg || "Código inválido o expirado");
+      throw new Error(getFriendlyOtpError(msg));
     }
     const data = await res.json();
 
-    // Token se guarda en cookies automáticamente por el backend (más seguro)
+    // Token se guarda en cookies autom?ticamente por el backend (m?s seguro)
     if (data.access_token) {
       setAccessToken(data.access_token);
       setStoredAccessToken(data.access_token);
@@ -502,7 +529,7 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const logout = async () => {
+const logout = async () => {
     try {
       await apiRequest(`${API}/auth/logout`, {
         method: "POST",

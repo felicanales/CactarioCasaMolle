@@ -306,32 +306,45 @@ export default function PhotoGallery({
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.95)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         zIndex: 2000,
-                        padding: '20px'
+                        padding: '0'
                     }}
                     onClick={() => setSelectedPhoto(null)}
                 >
+                    <div
+                        style={{
+                            position: 'relative',
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
                     <img
                         src={resolvePhotoUrl(selectedPhoto)}
                         alt="Foto ampliada"
                         style={{
-                            maxWidth: '90%',
-                            maxHeight: '90%',
+                            width: '100%',
+                            height: '100%',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
                             objectFit: 'contain',
-                            borderRadius: '8px'
+                            borderRadius: '0'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     />
+                    </div>
                     <button
                         onClick={() => setSelectedPhoto(null)}
                         style={{
-                            position: 'absolute',
-                            top: '20px',
-                            right: '20px',
+                            position: 'fixed',
+                            top: '16px',
+                            right: '16px',
                             width: '40px',
                             height: '40px',
                             borderRadius: '50%',
