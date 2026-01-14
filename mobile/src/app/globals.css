@@ -234,6 +234,8 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .carousel-arrow {

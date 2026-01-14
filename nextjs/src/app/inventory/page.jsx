@@ -199,7 +199,8 @@ export default function InventoryPage() {
     const [filterTamaño, setFilterTamaño] = useState("");
     const [filterSector, setFilterSector] = useState("");
     const [filterHealth, setFilterHealth] = useState("");
-    const [filterPurchaseDate, setFilterPurchaseDate] = useState("");
+    const [filterPurchaseDateFrom, setFilterPurchaseDateFrom] = useState("");
+    const [filterPurchaseDateTo, setFilterPurchaseDateTo] = useState("");
     const [sortBy, setSortBy] = useState("scientific_name");
     const [sortOrder, setSortOrder] = useState("asc");
 
@@ -473,6 +474,26 @@ export default function InventoryPage() {
     }, [checkedAuth]);
 
     // Cargar ejemplares
+    const getPurchaseDateOnly = (value) => {
+        if (!value) return "";
+        return String(value).split("T")[0];
+    };
+
+    const applyPurchaseDateFilter = (items) => {
+        const hasFrom = Boolean(filterPurchaseDateFrom);
+        const hasTo = Boolean(filterPurchaseDateTo);
+        if (!hasFrom && !hasTo) return items;
+        return items.filter((ej) => {
+            const purchaseDate = getPurchaseDateOnly(ej.purchase_date);
+            if (!purchaseDate) return false;
+            if (hasFrom && !hasTo) return purchaseDate === filterPurchaseDateFrom;
+            if (!hasFrom && hasTo) return purchaseDate === filterPurchaseDateTo;
+            if (filterPurchaseDateFrom && purchaseDate < filterPurchaseDateFrom) return false;
+            if (filterPurchaseDateTo && purchaseDate > filterPurchaseDateTo) return false;
+            return true;
+        });
+    };
+
     const fetchEjemplares = async () => {
         try {
             setLoading(true);
@@ -492,7 +513,6 @@ export default function InventoryPage() {
                 }
             }
             if (filterHealth) params.append('health_status', filterHealth);
-            if (filterPurchaseDate) params.append('purchase_date', filterPurchaseDate);
             params.append('sort_by', sortBy);
             params.append('sort_order', sortOrder);
 
@@ -512,7 +532,8 @@ export default function InventoryPage() {
             const data = await res.json();
             // Asegurar que data es un array
             if (Array.isArray(data)) {
-                setEjemplares(data);
+                const filteredByPurchaseDate = applyPurchaseDateFilter(data);
+                setEjemplares(filteredByPurchaseDate);
             } else {
                 console.error('[InventoryPage] Respuesta no es un array:', data);
                 setEjemplares([]);
@@ -532,7 +553,7 @@ export default function InventoryPage() {
         if (user && checkedAuth) {
             fetchEjemplares();
         }
-    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterTamaño, filterSector, filterHealth, filterPurchaseDate, sortBy, sortOrder]);
+    }, [user, checkedAuth, searchQuery, filterSpecies, filterMorfologia, filterNombreComun, filterTamaño, filterSector, filterHealth, filterPurchaseDateFrom, filterPurchaseDateTo, sortBy, sortOrder]);
 
     const handleView = (ej) => {
         setModalMode("view");
@@ -1466,19 +1487,34 @@ export default function InventoryPage() {
                                 <option value="crítico">Crítico</option>
                             </select>
 
-                            <input
-                                type="date"
-                                placeholder="Fecha de compra..."
-                                value={filterPurchaseDate}
-                                onChange={(e) => setFilterPurchaseDate(e.target.value)}
-                                style={{
-                                    padding: "10px 12px",
-                                    border: "1px solid #d1d5db",
-                                    borderRadius: "8px",
-                                    fontSize: "14px",
-                                    outline: "none"
-                                }}
-                            />
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <input
+                                    type="date"
+                                    placeholder="Fecha compra desde"
+                                    value={filterPurchaseDateFrom}
+                                    onChange={(e) => setFilterPurchaseDateFrom(e.target.value)}
+                                    style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                />
+                                <input
+                                    type="date"
+                                    placeholder="Fecha compra hasta"
+                                    value={filterPurchaseDateTo}
+                                    onChange={(e) => setFilterPurchaseDateTo(e.target.value)}
+                                    style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
+                                    }}
+                                />
+                            </div>
 
                             <div style={{ display: "flex", gap: "8px" }}>
                                 <select
@@ -1522,7 +1558,7 @@ export default function InventoryPage() {
                             </div>
                         </div>
 
-                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterPurchaseDate) && (
+                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterPurchaseDateFrom || filterPurchaseDateTo) && (
                             <button
                                 onClick={() => {
                                     setSearchQuery("");
@@ -1532,7 +1568,8 @@ export default function InventoryPage() {
                                     setFilterTamaño("");
                                     setFilterSector("");
                                     setFilterHealth("");
-                                    setFilterPurchaseDate("");
+                                    setFilterPurchaseDateFrom("");
+                                    setFilterPurchaseDateTo("");
                                 }}
                                 style={{
                                     padding: "8px 16px",

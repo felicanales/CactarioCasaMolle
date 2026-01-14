@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -17,6 +17,10 @@ export default function EspecieDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const modalTouchStartXRef = useRef(null);
+  const modalTouchStartYRef = useRef(null);
+  const modalTouchLastXRef = useRef(null);
+  const modalIsSwipingRef = useRef(false);
 
   useEffect(() => {
     if (slug) {
@@ -41,6 +45,62 @@ export default function EspecieDetail() {
   // Preparar fotos desde el array photos
   const photos = especie?.photos || [];
   const coverPhoto = resolvePhotoUrl(especie?.cover_photo || (photos.length > 0 ? photos[0] : null));
+
+  const resetModalTouch = () => {
+    modalTouchStartXRef.current = null;
+    modalTouchStartYRef.current = null;
+    modalTouchLastXRef.current = null;
+    modalIsSwipingRef.current = false;
+  };
+
+  const handleModalTouchStart = (event) => {
+    if (photos.length <= 1 || selectedImageIndex === null) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    modalTouchStartXRef.current = touch.clientX;
+    modalTouchStartYRef.current = touch.clientY;
+    modalTouchLastXRef.current = touch.clientX;
+    modalIsSwipingRef.current = false;
+  };
+
+  const handleModalTouchMove = (event) => {
+    if (modalTouchStartXRef.current === null) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    modalTouchLastXRef.current = touch.clientX;
+
+    const deltaX = touch.clientX - modalTouchStartXRef.current;
+    const deltaY = touch.clientY - modalTouchStartYRef.current;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      modalIsSwipingRef.current = true;
+    }
+  };
+
+  const handleModalTouchEnd = () => {
+    if (modalTouchStartXRef.current === null || modalTouchLastXRef.current === null) {
+      resetModalTouch();
+      return;
+    }
+
+    const deltaX = modalTouchLastXRef.current - modalTouchStartXRef.current;
+    if (modalIsSwipingRef.current && Math.abs(deltaX) > 40) {
+      setSelectedImageIndex((prev) => {
+        if (prev === null || photos.length <= 1) {
+          return prev;
+        }
+        if (deltaX < 0) {
+          return (prev + 1) % photos.length;
+        }
+        return (prev - 1 + photos.length) % photos.length;
+      });
+    }
+
+    resetModalTouch();
+  };
 
   const renderInfoCard = (icon, title, content, onClick = null) => {
     if (!content || (typeof content === 'string' && content.trim() === '')) {
@@ -411,6 +471,10 @@ export default function EspecieDetail() {
             >
               <div
                 onClick={(e) => e.stopPropagation()}
+                onTouchStart={handleModalTouchStart}
+                onTouchMove={handleModalTouchMove}
+                onTouchEnd={handleModalTouchEnd}
+                onTouchCancel={resetModalTouch}
                 style={{
                   position: 'relative',
                   maxWidth: '100%',

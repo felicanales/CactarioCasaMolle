@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
+const OTP_ATTEMPT_LIMIT = 3;
+const RESEND_COOLDOWN_SECONDS = 30;
+
 // Utilidades de sanitización y validación
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return '';
@@ -184,9 +187,21 @@ export default function LoginPage() {
   // Rate limiting simple (cliente)
   const [attempts, setAttempts] = useState(0);
   const [lastAttempt, setLastAttempt] = useState(null);
+  const [otpAttempts, setOtpAttempts] = useState(0);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Prevenir múltiples submits automáticos
   const submittedRef = useRef(false);
+
+  const attemptsLeft = Math.max(OTP_ATTEMPT_LIMIT - otpAttempts, 0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   const checkRateLimit = () => {
     const now = Date.now();
@@ -232,6 +247,8 @@ export default function LoginPage() {
       setEmail(emailValidation.sanitized); // Usar email sanitizado
       setSuccess("✅ Código enviado a tu correo");
       setStep("code");
+      setOtpAttempts(0);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setAttempts(0); // Resetear intentos en éxito
     } catch (err) {
       setError(err.message || "Error al solicitar código");
@@ -240,9 +257,48 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendOtp = async () => {
+    setError("");
+    setSuccess("");
+
+    if (loading || resendCooldown > 0) return;
+
+    // Validar rate limiting
+    if (!checkRateLimit()) return;
+
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      setError(emailValidation.error);
+      return;
+    }
+
+    setLoading(true);
+    setAttempts(prev => prev + 1);
+    setLastAttempt(Date.now());
+
+    try {
+      await requestOtp(emailValidation.sanitized);
+      setEmail(emailValidation.sanitized);
+      setSuccess("Codigo reenviado a tu correo");
+      setCode("");
+      setOtpAttempts(0);
+      submittedRef.current = false;
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setError(err.message || "Error al reenviar codigo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (otpAttempts >= OTP_ATTEMPT_LIMIT) {
+      setError("Maximo de intentos alcanzado. Reenvia el codigo.");
+      return;
+    }
 
     // Validar rate limiting
     if (!checkRateLimit()) return;
@@ -264,6 +320,7 @@ export default function LoginPage() {
     try {
       await verifyOtp(email, codeValidation.sanitized);
       setSuccess("✅ Autenticación exitosa");
+      setOtpAttempts(0);
       setAttempts(0); // Resetear intentos en éxito
       
       // Esperar un momento para que el estado se actualice antes de redirigir
@@ -271,7 +328,13 @@ export default function LoginPage() {
       router.push("/staff");
       }, 300);
     } catch (err) {
-      setError(err.message || "Código inválido");
+      const nextAttempts = otpAttempts + 1;
+      setOtpAttempts(nextAttempts);
+      if (nextAttempts >= OTP_ATTEMPT_LIMIT) {
+        setError("Maximo de intentos alcanzado. Reenvia el codigo.");
+      } else {
+        setError(err.message || "Código inválido");
+      }
       // Limpiar código en error
       setCode("");
     } finally {
@@ -485,28 +548,65 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || code.length !== 6}
+              disabled={loading || code.length !== 6 || otpAttempts >= OTP_ATTEMPT_LIMIT}
               style={{
                 width: "100%",
                 padding: "12px",
                 fontSize: "16px",
                 fontWeight: "600",
                 color: "white",
-                backgroundColor: (loading || code.length !== 6) ? "#9ca3af" : "#3b82f6",
+                backgroundColor: (loading || code.length !== 6 || otpAttempts >= OTP_ATTEMPT_LIMIT) ? "#9ca3af" : "#3b82f6",
                 border: "none",
                 borderRadius: "8px",
-                cursor: (loading || code.length !== 6) ? "not-allowed" : "pointer",
+                cursor: (loading || code.length !== 6 || otpAttempts >= OTP_ATTEMPT_LIMIT) ? "not-allowed" : "pointer",
                 transition: "background-color 0.2s",
                 marginBottom: "12px"
               }}
               onMouseEnter={(e) => {
-                if (!loading && code.length === 6) e.target.style.backgroundColor = "#2563eb";
+                if (!loading && code.length === 6 && otpAttempts < OTP_ATTEMPT_LIMIT) e.target.style.backgroundColor = "#2563eb";
               }}
               onMouseLeave={(e) => {
-                if (!loading && code.length === 6) e.target.style.backgroundColor = "#3b82f6";
+                if (!loading && code.length === 6 && otpAttempts < OTP_ATTEMPT_LIMIT) e.target.style.backgroundColor = "#3b82f6";
               }}
             >
               {loading ? "Conectando..." : "Verificar código"}
+            </button>
+
+            <div style={{
+              fontSize: "12px",
+              color: attemptsLeft === 0 ? "#dc2626" : "#6b7280",
+              textAlign: "center",
+              marginBottom: "10px"
+            }}>
+              {attemptsLeft > 0
+                ? `Intentos restantes: ${attemptsLeft}`
+                : "Alcanzaste el maximo de intentos. Reenvia el codigo."}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading || resendCooldown > 0}
+              style={{
+                width: "100%",
+                padding: "10px",
+                fontSize: "14px",
+                color: "#1f2937",
+                backgroundColor: (loading || resendCooldown > 0) ? "#e5e7eb" : "#f3f4f6",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                cursor: (loading || resendCooldown > 0) ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+                marginBottom: "12px"
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && resendCooldown === 0) e.target.style.backgroundColor = "#e5e7eb";
+              }}
+              onMouseLeave={(e) => {
+                if (!loading && resendCooldown === 0) e.target.style.backgroundColor = "#f3f4f6";
+              }}
+            >
+              {resendCooldown > 0 ? `Reenviar codigo en ${resendCooldown}s` : "Reenviar codigo"}
             </button>
 
             <button
@@ -517,6 +617,8 @@ export default function LoginPage() {
                 setError("");
                 setSuccess("");
                 setAttempts(0);
+                setOtpAttempts(0);
+                setResendCooldown(0);
                 submittedRef.current = false; // Reset del ref
               }}
               style={{
