@@ -209,6 +209,32 @@ body {
   overflow-y: auto;
 }
 
+.home-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home-sidebar {
+  background-color: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid var(--color-gray-light);
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.home-sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-black);
+  margin-bottom: 16px;
+}
+
+.home-main {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Back Button */
 .back-button {
   background: none;
@@ -332,6 +358,111 @@ body {
   font-weight: 500;
   color: var(--color-black);
   text-align: center;
+}
+
+/* Vertical Species Carousel */
+.vertical-carousel {
+  --carousel-item-height: 260px;
+  position: relative;
+}
+
+.vertical-carousel-viewport {
+  height: var(--carousel-item-height);
+  overflow: hidden;
+  position: relative;
+}
+
+.vertical-carousel-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s ease;
+}
+
+.vertical-carousel-slide {
+  height: var(--carousel-item-height);
+  padding: 4px;
+  display: flex;
+}
+
+.vertical-carousel-item {
+  height: 100%;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  background-color: var(--color-beige);
+  border: 1px solid #e5e7eb;
+}
+
+.vertical-carousel-item .grid-item-image {
+  padding-top: 65%;
+}
+
+.vertical-carousel-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  border-radius: 8px;
+}
+
+.vertical-carousel-arrow {
+  position: absolute;
+  right: 12px;
+  background: rgba(17, 24, 39, 0.65);
+  color: var(--color-white);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 2;
+}
+
+.vertical-carousel-arrow-up {
+  top: 12px;
+}
+
+.vertical-carousel-arrow-down {
+  bottom: 12px;
+}
+
+.vertical-carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.vertical-carousel-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--color-gray-placeholder);
+}
+
+.vertical-carousel-indicator.active {
+  background-color: var(--color-black);
+}
+
+.vertical-carousel-loading,
+.vertical-carousel-empty {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  padding: 12px;
 }
 
 /* QR Scanner */
@@ -472,6 +603,18 @@ p {
 }
 
 @media (min-width: 1024px) {
+  .home-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .home-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+  }
+
   .grid-2-col {
     grid-template-columns: repeat(3, 1fr);
   }

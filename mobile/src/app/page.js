@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ImageCarousel from '@/components/ImageCarousel';
+import SpeciesVerticalCarousel from '@/components/SpeciesVerticalCarousel';
+import { speciesApi } from '@/utils/api';
 import { resolvePhotoUrl } from '@/utils/images';
 
 export default function Home() {
@@ -11,6 +13,9 @@ export default function Home() {
   const [welcomeText, setWelcomeText] = useState('Bienvenido al Cactario CasaMolle');
   const [carouselImages, setCarouselImages] = useState([]);
   const [sections, setSections] = useState([]);
+  const [featuredSpecies, setFeaturedSpecies] = useState([]);
+  const [speciesLoading, setSpeciesLoading] = useState(true);
+  const [speciesError, setSpeciesError] = useState(false);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('es'); // 'es' o 'en'
 
@@ -36,6 +41,10 @@ export default function Home() {
       loadHomeContent();
     }
   }, [language]);
+
+  useEffect(() => {
+    loadFeaturedSpecies();
+  }, []);
 
   const loadHomeContent = async () => {
     try {
@@ -74,6 +83,22 @@ export default function Home() {
       // Mantener valores por defecto
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFeaturedSpecies = async () => {
+    try {
+      setSpeciesLoading(true);
+      setSpeciesError(false);
+      const response = await speciesApi.list();
+      const data = Array.isArray(response?.data) ? response.data : [];
+      setFeaturedSpecies(data.slice(0, 8));
+    } catch (err) {
+      console.error('Error loading featured species:', err);
+      setSpeciesError(true);
+      setFeaturedSpecies([]);
+    } finally {
+      setSpeciesLoading(false);
     }
   };
 
@@ -327,82 +352,99 @@ export default function Home() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
       <main className="main-content">
-        <div>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '24px'
-          }}>
-            <h1 style={{ 
-              fontSize: '24px', 
-              fontWeight: '700', 
-              margin: 0,
-              color: '#111827'
+        <div className="home-layout">
+          <aside className="home-sidebar">
+            <h2 className="home-sidebar-title">
+              {language === 'es' ? 'Especies destacadas' : 'Featured species'}
+            </h2>
+            <SpeciesVerticalCarousel
+              species={featuredSpecies}
+              loading={speciesLoading}
+              emptyText={speciesError
+                ? (language === 'es'
+                  ? 'No se pudieron cargar las especies destacadas.'
+                  : 'Featured species could not be loaded.')
+                : (language === 'es'
+                  ? 'No hay especies para mostrar.'
+                  : 'No species to show.')}
+            />
+          </aside>
+          <section className="home-main">
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '24px'
             }}>
-              {welcomeText} 🌵
-            </h1>
-            <button
-              onClick={toggleLanguage}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#5a6b3d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              {language === 'es' ? 'EN' : 'ES'}
-            </button>
-          </div>
-          
-          {carouselImages.length > 0 && (
-            <div style={{ marginBottom: '32px' }}>
-              <ImageCarousel 
-                images={carouselImages} 
-                placeholderText="Fotos de cactus"
-                autoRotate={true}
-                rotationInterval={5000}
-              />
-            </div>
-          )}
-
-          {error && (
-            <div style={{
-              backgroundColor: '#fef3c7',
-              border: '1px solid #fbbf24',
-              color: '#92400e',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              fontSize: '14px'
-            }}>
-              {error}
-            </div>
-          )}
-
-          {sections.length > 0 ? (
-            <div>
-              {sections.map((section, index) => renderSection(section, index, sections.length))}
-            </div>
-          ) : (
-          <div style={{ marginTop: '24px' }}>
-              <p style={{ 
-                fontSize: '16px',
-                color: '#6b7280',
-                fontStyle: 'italic'
+              <h1 style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                margin: 0,
+                color: '#111827'
               }}>
-                No hay contenido disponible en este momento.
-              </p>
-          </div>
-          )}
+                {welcomeText} 🌵
+              </h1>
+              <button
+                onClick={toggleLanguage}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#5a6b3d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                {language === 'es' ? 'EN' : 'ES'}
+              </button>
+            </div>
+            
+            {carouselImages.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <ImageCarousel 
+                  images={carouselImages} 
+                  placeholderText="Fotos de cactus"
+                  autoRotate={true}
+                  rotationInterval={5000}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                color: '#92400e',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                marginBottom: '24px',
+                fontSize: '14px'
+              }}>
+                {error}
+              </div>
+            )}
+
+            {sections.length > 0 ? (
+              <div>
+                {sections.map((section, index) => renderSection(section, index, sections.length))}
+              </div>
+            ) : (
+            <div style={{ marginTop: '24px' }}>
+                <p style={{ 
+                  fontSize: '16px',
+                  color: '#6b7280',
+                  fontStyle: 'italic'
+                }}>
+                  No hay contenido disponible en este momento.
+                </p>
+            </div>
+            )}
+          </section>
         </div>
       </main>
       <BottomNavigation />
     </div>
   );
 }
-
