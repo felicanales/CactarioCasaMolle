@@ -419,6 +419,7 @@ body {
 .vertical-carousel-track {
   display: flex;
   flex-direction: column;
+  will-change: transform;
 }
 
 .vertical-carousel-track-scroll {

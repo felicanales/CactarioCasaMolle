@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ImageCarousel from '@/components/ImageCarousel';
-import SpeciesVerticalCarousel from '@/components/SpeciesVerticalCarousel';
-import { speciesApi } from '@/utils/api';
 import { resolvePhotoUrl } from '@/utils/images';
 
 export default function Home() {
@@ -13,9 +11,6 @@ export default function Home() {
   const [welcomeText, setWelcomeText] = useState('Bienvenido al Cactario CasaMolle');
   const [carouselImages, setCarouselImages] = useState([]);
   const [sections, setSections] = useState([]);
-  const [featuredSpecies, setFeaturedSpecies] = useState([]);
-  const [speciesLoading, setSpeciesLoading] = useState(true);
-  const [speciesError, setSpeciesError] = useState(false);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('es'); // 'es' o 'en'
 
@@ -41,10 +36,6 @@ export default function Home() {
       loadHomeContent();
     }
   }, [language]);
-
-  useEffect(() => {
-    loadFeaturedSpecies();
-  }, []);
 
   const loadHomeContent = async () => {
     try {
@@ -83,22 +74,6 @@ export default function Home() {
       // Mantener valores por defecto
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadFeaturedSpecies = async () => {
-    try {
-      setSpeciesLoading(true);
-      setSpeciesError(false);
-      const response = await speciesApi.list();
-      const data = Array.isArray(response?.data) ? response.data : [];
-      setFeaturedSpecies(data.slice(0, 8));
-    } catch (err) {
-      console.error('Error loading featured species:', err);
-      setSpeciesError(true);
-      setFeaturedSpecies([]);
-    } finally {
-      setSpeciesLoading(false);
     }
   };
 
@@ -355,22 +330,6 @@ export default function Home() {
       <Header />
       <main className="main-content">
         <div className="home-layout">
-          <aside className="home-sidebar">
-            <h2 className="home-sidebar-title">
-              {language === 'es' ? 'Especies destacadas' : 'Featured species'}
-            </h2>
-            <SpeciesVerticalCarousel
-              species={featuredSpecies}
-              loading={speciesLoading}
-              emptyText={speciesError
-                ? (language === 'es'
-                  ? 'No se pudieron cargar las especies destacadas.'
-                  : 'Featured species could not be loaded.')
-                : (language === 'es'
-                  ? 'No hay especies para mostrar.'
-                  : 'No species to show.')}
-            />
-          </aside>
           <section className="home-main">
             <div style={{ 
               display: 'flex', 
