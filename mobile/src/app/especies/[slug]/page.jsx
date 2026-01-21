@@ -116,9 +116,6 @@ export default function EspecieDetail() {
           padding: '16px',
           marginBottom: '12px',
           width: '100%',
-          maxWidth: '960px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
           border: '1px solid var(--color-border)',
           cursor: onClick ? 'pointer' : 'default',
           display: 'flex',
@@ -186,13 +183,16 @@ export default function EspecieDetail() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        backgroundColor: 'var(--color-beige-soft)',
-        color: 'var(--color-black)',
-      }}>
+      <div
+        className="species-detail-page"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundColor: 'var(--color-beige-soft)',
+          color: 'var(--color-black)',
+      }}
+      >
         <Header />
         <main style={{ flex: 1, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: 'var(--color-brown-medium)' }}>Cargando información...</div>
@@ -204,13 +204,16 @@ export default function EspecieDetail() {
 
   if (error || !especie) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        backgroundColor: 'var(--color-beige-soft)',
-        color: 'var(--color-black)',
-      }}>
+      <div
+        className="species-detail-page"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          backgroundColor: 'var(--color-beige-soft)',
+          color: 'var(--color-black)',
+      }}
+      >
         <Header />
         <main style={{ flex: 1, padding: '20px' }}>
           <button
@@ -234,13 +237,16 @@ export default function EspecieDetail() {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: 'var(--color-beige-soft)',
-      color: 'var(--color-black)',
-    }}>
+    <div
+      className="species-detail-page"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        backgroundColor: 'var(--color-beige-soft)',
+        color: 'var(--color-black)',
+      }}
+    >
       <Header />
 
       {/* Header con imagen de fondo */}
@@ -295,7 +301,7 @@ export default function EspecieDetail() {
           padding: '20px',
           paddingTop: '60px',
           width: '100%',
-          maxWidth: '960px',
+          maxWidth: 'var(--species-detail-content-max-width, 960px)',
           margin: '0 auto',
         }}>
           <button
@@ -367,7 +373,7 @@ export default function EspecieDetail() {
         paddingBottom: '100px',
         backgroundColor: 'var(--color-beige-soft)',
       }}>
-        <div style={{ width: '100%', maxWidth: '960px', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: 'var(--species-detail-content-max-width, 960px)', margin: '0 auto' }}>
           {/* Badges de información básica */}
           <div style={{
             marginBottom: '24px',

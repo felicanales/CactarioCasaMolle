@@ -263,6 +263,10 @@ body {
   min-width: 0;
 }
 
+.species-detail-page {
+  --species-detail-content-max-width: 960px;
+}
+
 /* Back Button */
 .back-button {
   background: none;
@@ -647,6 +651,10 @@ p {
 }
 
 @media (min-width: 1024px) {
+  .species-detail-page {
+    --species-detail-content-max-width: calc(100% - 408px);
+  }
+
   .home-layout {
     flex-direction: row;
     align-items: flex-start;
@@ -675,6 +683,7 @@ p {
     justify-content: space-between;
     padding: 20px 12px;
     border-radius: 0;
+    gap: 12px;
   }
 
   .header-logo-container {
@@ -695,12 +704,13 @@ p {
   }
 
   .header-cactus {
-    font-size: 64px;
+    display: none;
   }
 
   .header-species-carousel {
     display: flex;
     flex: 1;
+    width: 100%;
     align-items: center;
   }
 
