@@ -252,6 +252,30 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
     # 5) Configurar cookies seguras de Supabase
     set_supabase_session_cookies(response, res.session)
 
+    # Registrar inicio de sesion en auditoria
+    try:
+        from app.services.audit_service import log_change
+        user_row_id = row.get("id")
+        if user_row_id:
+            ip_address = request.client.host if request.client else None
+            user_agent = request.headers.get("user-agent")
+            log_change(
+                table_name="usuarios",
+                record_id=user_row_id,
+                action="LOGIN",
+                user_id=user_row_id,
+                user_email=email,
+                user_name=None,
+                old_values=None,
+                new_values=None,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+    except Exception as audit_error:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"[verify_otp] Error logging login audit: {str(audit_error)}")
+
     return {
         "access_token": res.session.access_token,
         "token_type": "bearer",

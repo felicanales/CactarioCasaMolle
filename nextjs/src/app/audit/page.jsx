@@ -139,6 +139,8 @@ export default function AuditPage() {
                 return "#3b82f6"; // azul
             case "DELETE":
                 return "#ef4444"; // rojo
+            case "LOGIN":
+                return "#f59e0b"; // amarillo
             default:
                 return "#6b7280"; // gris
         }
@@ -152,6 +154,8 @@ export default function AuditPage() {
                 return "Actualizar";
             case "DELETE":
                 return "Eliminar";
+            case "LOGIN":
+                return "Login";
             default:
                 return action;
         }
@@ -226,7 +230,7 @@ export default function AuditPage() {
                                     fontSize: "clamp(11px, 3vw, 13px)",
                                     color: "#6b7280", margin: 0
                                 }}>
-                                    Historial de cambios en especies y sectores
+                                    Historial de cambios y accesos al sistema
                                 </p>
                             </div>
                             <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
@@ -367,6 +371,7 @@ export default function AuditPage() {
                                     <option value="ejemplar">Ejemplares</option>
                                     <option value="fotos">Fotos</option>
                                     <option value="sectores_especies">Relaciones Sector-Especie</option>
+                                    <option value="usuarios">Usuarios / Accesos</option>
                                 </select>
                             </div>
                             <div>
@@ -687,6 +692,18 @@ export default function AuditPage() {
                                                                 fontWeight: "500"
                                                             }}>
                                                                 Nuevo registro
+                                                            </span>
+                                                        ) : log.accion === "LOGIN" ? (
+                                                            <span style={{
+                                                                display: "inline-block",
+                                                                padding: "4px 8px",
+                                                                borderRadius: "4px",
+                                                                backgroundColor: "#fff7ed",
+                                                                color: "#9a3412",
+                                                                fontSize: "12px",
+                                                                fontWeight: "500"
+                                                            }}>
+                                                                Inicio de sesion
                                                             </span>
                                                         ) : (
                                                             <span style={{ color: "#9ca3af" }}>-</span>
