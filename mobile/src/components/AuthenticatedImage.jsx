@@ -135,8 +135,8 @@ export default function AuthenticatedImage({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#f3f4f6',
-                    color: '#9ca3af',
+                    backgroundColor: 'var(--color-beige-soft)',
+                    color: 'var(--color-muted)',
                     borderRadius: style?.borderRadius || '8px',
                 }}
                 {...props}
@@ -155,8 +155,8 @@ export default function AuthenticatedImage({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#f3f4f6',
-                    color: '#9ca3af',
+                    backgroundColor: 'var(--color-beige-soft)',
+                    color: 'var(--color-muted)',
                     borderRadius: style?.borderRadius || '8px',
                 }}
                 {...props}

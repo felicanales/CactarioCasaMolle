@@ -155,7 +155,7 @@ export default function SectorEspecies() {
         ) : error ? (
           <div className="error">{error}</div>
         ) : especies.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9CA3AF' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-muted)' }}>
             No hay especies registradas en este sector
           </div>
         ) : (
@@ -187,9 +187,9 @@ export default function SectorEspecies() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: '#f3f4f6',
+                      backgroundColor: 'var(--color-beige-soft)',
                       borderRadius: '8px',
-                      color: '#9ca3af',
+                      color: 'var(--color-muted)',
                       fontSize: '48px',
                     }}>
                       🌵

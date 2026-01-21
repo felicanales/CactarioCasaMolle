@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +31,7 @@ export default function QRScanner() {
             background: transparent !important;
           }
           
-          /* Video de la cámara */
+          /* Video de la cÃ¡mara */
           #qr-reader video {
             position: absolute !important;
             top: 0 !important;
@@ -43,7 +43,7 @@ export default function QRScanner() {
             background: transparent !important;
           }
           
-          /* Región de escaneo */
+          /* RegiÃ³n de escaneo */
           #qr-reader__scan_region {
             background: transparent !important;
             position: absolute !important;
@@ -85,7 +85,7 @@ export default function QRScanner() {
             display: none !important;
           }
           
-          /* Asegurar que el contenedor de la cámara no tenga fondo */
+          /* Asegurar que el contenedor de la cÃ¡mara no tenga fondo */
           #qr-reader__camera_selection,
           #qr-reader__dashboard {
             background: transparent !important;
@@ -97,25 +97,25 @@ export default function QRScanner() {
   }, []);
 
   useEffect(() => {
-    // Auto-iniciar el escáner cuando el componente se monta
+    // Auto-iniciar el escÃ¡ner cuando el componente se monta
     if (typeof window !== 'undefined' && !scanning) {
       startScanning();
     }
 
-    // Inicializar el escáner QR cuando está activo
+    // Inicializar el escÃ¡ner QR cuando estÃ¡ activo
     if (typeof window !== 'undefined' && scanning) {
       const initScanner = async () => {
         try {
           const { Html5Qrcode } = await import('html5-qrcode');
           const html5QrCode = new Html5Qrcode('qr-reader');
           
-          // Configurar el escáner para mostrar toda la cámara sin desenfoque
+          // Configurar el escÃ¡ner para mostrar toda la cÃ¡mara sin desenfoque
           await html5QrCode.start(
             { facingMode: 'environment' },
             {
               fps: 10,
               qrbox: function(viewfinderWidth, viewfinderHeight) {
-                // Calcular el tamaño del qrbox (70% del área visible)
+                // Calcular el tamaÃ±o del qrbox (70% del Ã¡rea visible)
                 const minEdgePercentage = 0.7;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
                 const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
@@ -143,7 +143,7 @@ export default function QRScanner() {
             }
           );
           
-          // Asegurar que el video se muestre después de iniciar
+          // Asegurar que el video se muestre despuÃ©s de iniciar
           setTimeout(() => {
             const video = document.querySelector('#qr-reader video');
             if (video) {
@@ -160,8 +160,8 @@ export default function QRScanner() {
           scannerRef.current = html5QrCode;
           setRecognitionError(false);
         } catch (err) {
-          console.error('Error al inicializar escáner:', err);
-          setError('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
+          console.error('Error al inicializar escÃ¡ner:', err);
+          setError('No se pudo acceder a la cÃ¡mara. Por favor, verifica los permisos.');
           setScanning(false);
         }
       };
@@ -186,7 +186,7 @@ export default function QRScanner() {
       // Verificar que el QR code corresponde a un sector
       const response = await sectorsApi.getByQr(qrCodeValue);
       if (response.data) {
-        // Redirigir a la página de especies del sector
+        // Redirigir a la pÃ¡gina de especies del sector
         router.push(`/sectores/${qrCodeValue}/especies`);
       } else {
         setRecognitionError(true);
@@ -234,14 +234,14 @@ export default function QRScanner() {
       display: 'flex', 
       flexDirection: 'column', 
       minHeight: '100vh',
-      backgroundColor: scanning ? 'transparent' : '#4A2C1A',
-      color: '#F5E6D3',
+      backgroundColor: scanning ? 'transparent' : 'var(--color-black)',
+      color: 'var(--color-beige-soft)',
       position: 'relative',
       overflow: scanning ? 'hidden' : 'visible',
     }}>
       {!scanning && <Header />}
       
-      {/* Vista principal con cámara */}
+      {/* Vista principal con cÃ¡mara */}
       {scanning ? (
         <div style={{
           position: 'fixed',
@@ -257,7 +257,7 @@ export default function QRScanner() {
           overflow: 'hidden',
           zIndex: 10,
         }}>
-          {/* Contenedor de la cámara - full screen */}
+          {/* Contenedor de la cÃ¡mara - full screen */}
           <div
             id="qr-reader"
             style={{
@@ -286,7 +286,7 @@ export default function QRScanner() {
             flexDirection: 'column',
             pointerEvents: 'none',
           }}>
-            {/* Barra superior con botón de ayuda */}
+            {/* Barra superior con botÃ³n de ayuda */}
             <div style={{
               display: 'flex',
               justifyContent: 'flex-end',
@@ -304,7 +304,7 @@ export default function QRScanner() {
                   borderRadius: '50%',
                   width: '40px',
                   height: '40px',
-                  color: '#F5E6D3',
+                  color: 'var(--color-beige-soft)',
                   fontSize: '20px',
                   cursor: 'pointer',
                   display: 'flex',
@@ -327,7 +327,7 @@ export default function QRScanner() {
                 <div style={{
                   backgroundColor: 'rgba(62, 39, 35, 0.9)',
                   backdropFilter: 'blur(10px)',
-                  color: '#F5E6D3',
+                  color: 'var(--color-beige-soft)',
                   padding: '12px 20px',
                   borderRadius: '12px',
                   display: 'inline-block',
@@ -360,8 +360,8 @@ export default function QRScanner() {
                   left: 0,
                   width: '40px',
                   height: '40px',
-                  borderTop: '3px solid #F5E6D3',
-                  borderLeft: '3px solid #F5E6D3',
+                  borderTop: '3px solid var(--color-beige-soft)',
+                  borderLeft: '3px solid var(--color-beige-soft)',
                   borderTopLeftRadius: '12px',
                 }} />
                 {/* Esquina superior derecha */}
@@ -371,8 +371,8 @@ export default function QRScanner() {
                   right: 0,
                   width: '40px',
                   height: '40px',
-                  borderTop: '3px solid #F5E6D3',
-                  borderRight: '3px solid #F5E6D3',
+                  borderTop: '3px solid var(--color-beige-soft)',
+                  borderRight: '3px solid var(--color-beige-soft)',
                   borderTopRightRadius: '12px',
                 }} />
                 {/* Esquina inferior izquierda */}
@@ -382,8 +382,8 @@ export default function QRScanner() {
                   left: 0,
                   width: '40px',
                   height: '40px',
-                  borderBottom: '3px solid #F5E6D3',
-                  borderLeft: '3px solid #F5E6D3',
+                  borderBottom: '3px solid var(--color-beige-soft)',
+                  borderLeft: '3px solid var(--color-beige-soft)',
                   borderBottomLeftRadius: '12px',
                 }} />
                 {/* Esquina inferior derecha */}
@@ -393,14 +393,14 @@ export default function QRScanner() {
                   right: 0,
                   width: '40px',
                   height: '40px',
-                  borderBottom: '3px solid #F5E6D3',
-                  borderRight: '3px solid #F5E6D3',
+                  borderBottom: '3px solid var(--color-beige-soft)',
+                  borderRight: '3px solid var(--color-beige-soft)',
                   borderBottomRightRadius: '12px',
                 }} />
               </div>
             </div>
 
-            {/* Botón para detener */}
+            {/* BotÃ³n para detener */}
             <div style={{
               padding: '20px',
               paddingBottom: '100px',
@@ -419,7 +419,7 @@ export default function QRScanner() {
                   border: '1px solid rgba(245, 230, 211, 0.3)',
                   borderRadius: '12px',
                   padding: '12px 24px',
-                  color: '#F5E6D3',
+                  color: 'var(--color-beige-soft)',
                   fontSize: '16px',
                   fontWeight: '500',
                   cursor: 'pointer',
@@ -434,8 +434,8 @@ export default function QRScanner() {
         <main className="main-content" style={{
           flex: 1,
           padding: '20px',
-          backgroundColor: '#4A2C1A',
-          color: '#F5E6D3',
+          backgroundColor: 'var(--color-black)',
+          color: 'var(--color-beige-soft)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -443,8 +443,8 @@ export default function QRScanner() {
         }}>
           {error && (
             <div style={{
-              backgroundColor: '#8B7355',
-              color: '#F5E6D3',
+              backgroundColor: 'var(--color-brown-medium)',
+              color: 'var(--color-beige-soft)',
               padding: '16px',
               borderRadius: '12px',
               marginBottom: '20px',
@@ -459,8 +459,8 @@ export default function QRScanner() {
           <button
             onClick={startScanning}
             style={{
-              backgroundColor: '#A0522D',
-              color: '#F5E6D3',
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-beige-soft)',
               padding: '16px 32px',
               borderRadius: '12px',
               border: 'none',
@@ -478,31 +478,31 @@ export default function QRScanner() {
             marginTop: '20px', 
             width: '100%', 
             maxWidth: '300px',
-            color: '#EDD4A6',
+            color: 'var(--color-beige)',
           }}>
-            <p style={{ marginBottom: '8px', textAlign: 'center' }}>O ingresa el código manualmente:</p>
+            <p style={{ marginBottom: '8px', textAlign: 'center' }}>O ingresa el cÃ³digo manualmente:</p>
             <form onSubmit={handleManualInput}>
               <input
                 type="text"
                 value={qrCode}
                 onChange={(e) => setQrCode(e.target.value)}
-                placeholder="Código QR"
+                placeholder="CÃ³digo QR"
                 style={{
                   width: '100%',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid #8B7355',
+                  border: '1px solid var(--color-brown-medium)',
                   marginBottom: '8px',
-                  backgroundColor: '#3E2723',
-                  color: '#F5E6D3',
+                  backgroundColor: 'var(--color-black)',
+                  color: 'var(--color-beige-soft)',
                 }}
               />
               <button 
                 type="submit" 
                 style={{
                   width: '100%',
-                  backgroundColor: '#A0522D',
-                  color: '#F5E6D3',
+                  backgroundColor: 'var(--color-accent)',
+                  color: 'var(--color-beige-soft)',
                   padding: '12px',
                   borderRadius: '8px',
                   border: 'none',
@@ -539,13 +539,13 @@ export default function QRScanner() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#3E2723',
+              backgroundColor: 'var(--color-black)',
               borderRadius: '16px',
               padding: '24px',
               maxWidth: '400px',
               width: '100%',
-              color: '#F5E6D3',
-              border: '1px solid #8B7355',
+              color: 'var(--color-beige-soft)',
+              border: '1px solid var(--color-brown-medium)',
             }}
           >
             <div style={{
@@ -557,17 +557,17 @@ export default function QRScanner() {
               <h2 style={{
                 fontSize: '24px',
                 fontWeight: '700',
-                color: '#F5E6D3',
+                color: 'var(--color-beige-soft)',
                 margin: 0,
               }}>
-                Sacándole el máximo partido a escanear
+                SacÃ¡ndole el mÃ¡ximo partido a escanear
               </h2>
               <button
                 onClick={() => setShowInstructions(false)}
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#F5E6D3',
+                  color: 'var(--color-beige-soft)',
                   fontSize: '28px',
                   cursor: 'pointer',
                   padding: '0',
@@ -578,7 +578,7 @@ export default function QRScanner() {
                   justifyContent: 'center',
                 }}
               >
-                ×
+                Ã—
               </button>
             </div>
 
@@ -588,16 +588,16 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  ⬜
+                  â¬œ
                 </div>
                 <div>
                   <p style={{
                     fontSize: '14px',
-                    color: '#EDD4A6',
+                    color: 'var(--color-beige)',
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Haga zoom para llenar la mayor parte posible de la pantalla con el objeto. Cuantos menos objetos y espacio en blanco haya en la pantalla, más rápida será reconocida.
+                    Haga zoom para llenar la mayor parte posible de la pantalla con el objeto. Cuantos menos objetos y espacio en blanco haya en la pantalla, mÃ¡s rÃ¡pida serÃ¡ reconocida.
                   </p>
                 </div>
               </div>
@@ -607,16 +607,16 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  👆
+                  ðŸ‘†
                 </div>
                 <div>
                   <p style={{
                     fontSize: '14px',
-                    color: '#EDD4A6',
+                    color: 'var(--color-beige)',
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Si la pantalla está borrosa, toque la pantalla como lo haría con la aplicación de cámara de su teléfono.
+                    Si la pantalla estÃ¡ borrosa, toque la pantalla como lo harÃ­a con la aplicaciÃ³n de cÃ¡mara de su telÃ©fono.
                   </p>
                 </div>
               </div>
@@ -626,16 +626,16 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  📶
+                  ðŸ“¶
                 </div>
                 <div>
                   <p style={{
                     fontSize: '14px',
-                    color: '#EDD4A6',
+                    color: 'var(--color-beige)',
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Algunas veces, la velocidad de conexión puede repercutir en la velocidad de reconocimiento. Dele unos momentos a la aplicación para poder reconocer la obra en caso que esté en zonas con poca cobertura.
+                    Algunas veces, la velocidad de conexiÃ³n puede repercutir en la velocidad de reconocimiento. Dele unos momentos a la aplicaciÃ³n para poder reconocer la obra en caso que estÃ© en zonas con poca cobertura.
                   </p>
                 </div>
               </div>
@@ -646,8 +646,8 @@ export default function QRScanner() {
               style={{
                 marginTop: '24px',
                 width: '100%',
-                backgroundColor: '#A0522D',
-                color: '#F5E6D3',
+                backgroundColor: 'var(--color-accent)',
+                color: 'var(--color-beige-soft)',
                 padding: '12px',
                 borderRadius: '8px',
                 border: 'none',
@@ -666,3 +666,5 @@ export default function QRScanner() {
     </div>
   );
 }
+
+

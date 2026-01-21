@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -35,7 +35,7 @@ export default function EspecieDetail() {
       setEspecie(response.data);
     } catch (err) {
       console.error('Error al cargar especie:', err);
-      setError('No se pudo cargar la información de la especie');
+      setError('No se pudo cargar la informaciÃ³n de la especie');
       setEspecie(null);
     } finally {
       setLoading(false);
@@ -111,7 +111,7 @@ export default function EspecieDetail() {
       <div
         onClick={onClick}
         style={{
-          backgroundColor: '#EDD4A6',
+          backgroundColor: 'var(--color-beige)',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '12px',
@@ -119,7 +119,7 @@ export default function EspecieDetail() {
           maxWidth: '960px',
           marginLeft: 'auto',
           marginRight: 'auto',
-          border: '1px solid #D4B896',
+          border: '1px solid var(--color-border)',
           cursor: onClick ? 'pointer' : 'default',
           display: 'flex',
           alignItems: 'flex-start',
@@ -139,7 +139,7 @@ export default function EspecieDetail() {
           <div style={{
             fontSize: '14px',
             fontWeight: '600',
-            color: '#3E2723',
+            color: 'var(--color-black)',
             marginBottom: '8px',
             display: 'flex',
             alignItems: 'center',
@@ -147,12 +147,12 @@ export default function EspecieDetail() {
           }}>
             <span>{title}</span>
             {onClick && (
-              <span style={{ color: '#A0522D', fontSize: '18px' }}>›</span>
+              <span style={{ color: 'var(--color-accent)', fontSize: '18px' }}>â€º</span>
             )}
           </div>
           <div style={{
             fontSize: '14px',
-            color: '#5D4037',
+            color: 'var(--color-black)',
             lineHeight: '1.6',
             whiteSpace: 'pre-wrap',
           }}>
@@ -163,7 +163,7 @@ export default function EspecieDetail() {
     );
   };
 
-  const renderBadge = (label, value, color = '#A0522D') => {
+  const renderBadge = (label, value, color = 'var(--color-accent)') => {
     if (!value) return null;
     return (
       <div style={{
@@ -171,7 +171,7 @@ export default function EspecieDetail() {
         alignItems: 'center',
         padding: '6px 12px',
         borderRadius: '16px',
-        backgroundColor: color === '#A0522D' ? 'rgba(160, 82, 45, 0.2)' : 'rgba(139, 115, 85, 0.2)',
+        backgroundColor: color === 'var(--color-accent)' ? 'rgba(154, 132, 101, 0.2)' : 'rgba(138, 122, 104, 0.2)',
         color: color,
         fontSize: '12px',
         fontWeight: '500',
@@ -190,12 +190,12 @@ export default function EspecieDetail() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#F5E6D3',
-        color: '#5D4037',
+        backgroundColor: 'var(--color-beige-soft)',
+        color: 'var(--color-black)',
       }}>
         <Header />
         <main style={{ flex: 1, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#8B7355' }}>Cargando información...</div>
+          <div style={{ color: 'var(--color-brown-medium)' }}>Cargando informaciÃ³n...</div>
         </main>
         <BottomNavigation />
       </div>
@@ -208,8 +208,8 @@ export default function EspecieDetail() {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#F5E6D3',
-        color: '#5D4037',
+        backgroundColor: 'var(--color-beige-soft)',
+        color: 'var(--color-black)',
       }}>
         <Header />
         <main style={{ flex: 1, padding: '20px' }}>
@@ -218,13 +218,13 @@ export default function EspecieDetail() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#5D4037',
+              color: 'var(--color-black)',
               fontSize: '24px',
               cursor: 'pointer',
               marginBottom: '20px',
             }}
           >
-            ←
+            â†
           </button>
           <div style={{ color: '#C62828' }}>{error || 'Especie no encontrada'}</div>
         </main>
@@ -238,8 +238,8 @@ export default function EspecieDetail() {
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
-      backgroundColor: '#F5E6D3',
-      color: '#3E2723',
+      backgroundColor: 'var(--color-beige-soft)',
+      color: 'var(--color-black)',
     }}>
       <Header />
 
@@ -266,7 +266,7 @@ export default function EspecieDetail() {
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               filter: 'brightness(1.1) sepia(0.3)',
-              backgroundColor: '#F5E6D3',
+              backgroundColor: 'var(--color-beige-soft)',
             }} />
             {/* Overlay oscuro para mejorar contraste del texto */}
             <div style={{
@@ -286,7 +286,7 @@ export default function EspecieDetail() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: '#E8D5B7',
+            backgroundColor: 'var(--color-beige)',
           }} />
         )}
         <div style={{
@@ -323,7 +323,7 @@ export default function EspecieDetail() {
               zIndex: 2,
             }}
           >
-            ←
+            â†
           </button>
 
           <h1 style={{
@@ -333,13 +333,13 @@ export default function EspecieDetail() {
             marginBottom: '8px',
             textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.6)',
           }}>
-            {especie.nombre_común || especie.scientific_name}
+            {especie.nombre_comÃºn || especie.scientific_name}
           </h1>
 
           {especie.scientific_name && (
             <div style={{
               fontSize: '16px',
-              color: '#F5E6D3',
+              color: 'var(--color-beige-soft)',
               fontStyle: 'italic',
               marginBottom: '8px',
               textShadow: '0 2px 6px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.6)',
@@ -351,11 +351,11 @@ export default function EspecieDetail() {
           {especie.nombres_comunes && (
             <div style={{
               fontSize: '14px',
-              color: '#EDD4A6',
+              color: 'var(--color-beige)',
               marginTop: '8px',
               textShadow: '0 2px 6px rgba(0,0,0,0.8), 0 3px 8px rgba(0,0,0,0.6)',
             }}>
-              También conocida como: {especie.nombres_comunes}
+              TambiÃ©n conocida como: {especie.nombres_comunes}
             </div>
           )}
         </div>
@@ -365,49 +365,49 @@ export default function EspecieDetail() {
         flex: 1,
         padding: '20px',
         paddingBottom: '100px',
-        backgroundColor: '#F5E6D3',
+        backgroundColor: 'var(--color-beige-soft)',
       }}>
         <div style={{ width: '100%', maxWidth: '960px', margin: '0 auto' }}>
-          {/* Badges de información básica */}
+          {/* Badges de informaciÃ³n bÃ¡sica */}
           <div style={{
             marginBottom: '24px',
             display: 'flex',
             flexWrap: 'wrap',
             gap: '8px',
           }}>
-            {(especie.categoría_de_conservación || especie.categoria_conservacion) &&
-              renderBadge('Conservación', especie.categoría_de_conservación || especie.categoria_conservacion)}
-            {especie.Endémica && (
+            {(especie.categorÃ­a_de_conservaciÃ³n || especie.categoria_conservacion) &&
+              renderBadge('ConservaciÃ³n', especie.categorÃ­a_de_conservaciÃ³n || especie.categoria_conservacion)}
+            {especie.EndÃ©mica && (
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 padding: '6px 12px',
                 borderRadius: '16px',
-                backgroundColor: 'rgba(160, 82, 45, 0.2)',
-                color: '#A0522D',
+                backgroundColor: 'rgba(154, 132, 101, 0.2)',
+                color: 'var(--color-accent)',
                 fontSize: '12px',
                 fontWeight: '500',
                 marginRight: '8px',
                 marginBottom: '8px',
-                border: '1px solid #A0522D40',
+                border: '1px solid rgba(154, 132, 101, 0.25)',
               }}>
-                🇨🇱 Endémica de Chile
+                ðŸ‡¨ðŸ‡± EndÃ©mica de Chile
               </div>
             )}
-            {especie.tipo_morfología && renderBadge('Morfología', especie.tipo_morfología, '#8B7355')}
-            {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, '#8B7355')}
+            {especie.tipo_morfologÃ­a && renderBadge('MorfologÃ­a', especie.tipo_morfologÃ­a, 'var(--color-brown-medium)')}
+            {especie.tipo_planta && renderBadge('Tipo', especie.tipo_planta, 'var(--color-brown-medium)')}
           </div>
 
-          {/* Galería de imágenes */}
+          {/* GalerÃ­a de imÃ¡genes */}
           {photos.length > 0 && (
             <div style={{ marginBottom: '32px' }}>
               <h2 style={{
                 fontSize: '18px',
                 fontWeight: '600',
-                color: '#3E2723',
+                color: 'var(--color-black)',
                 marginBottom: '16px',
               }}>
-                Imágenes
+                ImÃ¡genes
               </h2>
               <div style={{
                 display: 'flex',
@@ -438,7 +438,7 @@ export default function EspecieDetail() {
                   >
                     <AuthenticatedImage
                       src={resolvePhotoUrl(photo)}
-                      alt={`Foto ${index + 1} de ${especie.nombre_común || especie.scientific_name}`}
+                      alt={`Foto ${index + 1} de ${especie.nombre_comÃºn || especie.scientific_name}`}
                       style={{
                         width: '100%',
                         height: '100%',
@@ -484,7 +484,7 @@ export default function EspecieDetail() {
                   justifyContent: 'center',
                 }}
               >
-                {/* Botón cerrar */}
+                {/* BotÃ³n cerrar */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -511,10 +511,10 @@ export default function EspecieDetail() {
                     lineHeight: 1,
                   }}
                 >
-                  ×
+                  Ã—
                 </button>
 
-                {/* Navegación anterior/siguiente */}
+                {/* NavegaciÃ³n anterior/siguiente */}
                 {photos.length > 1 && (
                   <>
                     <button
@@ -541,7 +541,7 @@ export default function EspecieDetail() {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                       }}
                     >
-                      ‹
+                      â€¹
                     </button>
                     <button
                       onClick={(e) => {
@@ -567,7 +567,7 @@ export default function EspecieDetail() {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                       }}
                     >
-                      ›
+                      â€º
                     </button>
                   </>
                 )}
@@ -575,7 +575,7 @@ export default function EspecieDetail() {
                 {/* Imagen ampliada */}
                 <AuthenticatedImage
                   src={resolvePhotoUrl(photos[selectedImageIndex])}
-                  alt={`Foto ${selectedImageIndex + 1} de ${especie.nombre_común || especie.scientific_name}`}
+                  alt={`Foto ${selectedImageIndex + 1} de ${especie.nombre_comÃºn || especie.scientific_name}`}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '90vh',
@@ -616,21 +616,21 @@ export default function EspecieDetail() {
             </div>
           )}
 
-          {/* Secciones de información */}
-          {especie.estado_conservación && renderInfoCard('ⓘ', 'Estado de Conservación', especie.estado_conservación)}
-          {especie.habitat && renderInfoCard('🌍', 'Hábitat', especie.habitat)}
-          {especie.distribución && renderInfoCard('🗺️', 'Distribución', especie.distribución)}
-          {especie.expectativa_vida && renderInfoCard('⏱️', 'Expectativa de Vida', especie.expectativa_vida)}
-          {especie.floración && renderInfoCard('🌸', 'Floración', especie.floración)}
-          {especie.cuidado && renderInfoCard('💧', 'Cuidado y Recomendaciones', especie.cuidado)}
-          {especie.usos && renderInfoCard('🔧', 'Usos', especie.usos)}
-          {especie.historia_nombre && renderInfoCard('📖', 'Historia del Nombre', especie.historia_nombre)}
-          {especie.historia_y_leyendas && renderInfoCard('📚', 'Historia y Leyendas', especie.historia_y_leyendas)}
+          {/* Secciones de informaciÃ³n */}
+          {especie.estado_conservaciÃ³n && renderInfoCard('â“˜', 'Estado de ConservaciÃ³n', especie.estado_conservaciÃ³n)}
+          {especie.habitat && renderInfoCard('ðŸŒ', 'HÃ¡bitat', especie.habitat)}
+          {especie.distribuciÃ³n && renderInfoCard('ðŸ—ºï¸', 'DistribuciÃ³n', especie.distribuciÃ³n)}
+          {especie.expectativa_vida && renderInfoCard('â±ï¸', 'Expectativa de Vida', especie.expectativa_vida)}
+          {especie.floraciÃ³n && renderInfoCard('ðŸŒ¸', 'FloraciÃ³n', especie.floraciÃ³n)}
+          {especie.cuidado && renderInfoCard('ðŸ’§', 'Cuidado y Recomendaciones', especie.cuidado)}
+          {especie.usos && renderInfoCard('ðŸ”§', 'Usos', especie.usos)}
+          {especie.historia_nombre && renderInfoCard('ðŸ“–', 'Historia del Nombre', especie.historia_nombre)}
+          {especie.historia_y_leyendas && renderInfoCard('ðŸ“š', 'Historia y Leyendas', especie.historia_y_leyendas)}
 
-          {/* Mensaje si no hay información */}
+          {/* Mensaje si no hay informaciÃ³n */}
           {!especie.habitat &&
-            !especie.distribución &&
-            !especie.floración &&
+            !especie.distribuciÃ³n &&
+            !especie.floraciÃ³n &&
             !especie.cuidado &&
             !especie.usos &&
             !especie.historia_nombre &&
@@ -638,10 +638,10 @@ export default function EspecieDetail() {
               <div style={{
                 padding: '40px 20px',
                 textAlign: 'center',
-                color: '#8B7355',
+                color: 'var(--color-brown-medium)',
                 fontStyle: 'italic',
               }}>
-                No hay información adicional disponible para esta especie.
+                No hay informaciÃ³n adicional disponible para esta especie.
               </div>
             )}
         </div>
@@ -651,3 +651,5 @@ export default function EspecieDetail() {
     </div>
   );
 }
+
+

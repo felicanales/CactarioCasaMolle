@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
@@ -54,7 +54,7 @@ export default function Home() {
       // Obtener la URL de la API desde las variables de entorno
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
       
-      // Pasar el parámetro de idioma
+      // Pasar el parÃ¡metro de idioma
       const response = await fetch(`${API_URL}/home-content/public?lang=${language}`);
       
       if (!response.ok) {
@@ -65,7 +65,7 @@ export default function Home() {
       
       setWelcomeText(data.welcome_text || (language === 'es' ? 'Bienvenido al Cactario CasaMolle' : 'Welcome to Cactario CasaMolle'));
       
-      // Procesar imágenes del carrusel con alt text según idioma
+      // Procesar imÃ¡genes del carrusel con alt text segÃºn idioma
       const images = (data.carousel_images || []).map((img, index) => ({
         id: index + 1,
         url: img.url || img,
@@ -111,16 +111,16 @@ export default function Home() {
   };
 
   const renderSection = (section, index, totalSections) => {
-    // Nueva estructura: sección con título y array de items
+    // Nueva estructura: secciÃ³n con tÃ­tulo y array de items
     if (section.title || (section.items && section.items.length > 0)) {
       return (
         <div key={index}>
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
-            backgroundColor: '#f9fafb',
+            backgroundColor: 'var(--color-card)',
             borderRadius: '12px',
-            border: '2px solid #e5e7eb',
+            border: '2px solid var(--color-border)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}>
             {section.title && (
@@ -128,9 +128,9 @@ export default function Home() {
                 fontSize: '22px', 
                 fontWeight: '700', 
                 marginBottom: '20px',
-                color: '#111827',
+                color: 'var(--color-brown-dark)',
                 paddingBottom: '12px',
-                borderBottom: '3px solid #5a6b3d',
+                borderBottom: '3px solid var(--color-accent)',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -138,7 +138,7 @@ export default function Home() {
               </h2>
             )}
           
-          {/* Renderizar items (párrafos e imágenes intercalados) */}
+          {/* Renderizar items (pÃ¡rrafos e imÃ¡genes intercalados) */}
           {section.items && section.items.length > 0 && (
             <div>
               {section.items.map((item, itemIndex) => {
@@ -149,7 +149,7 @@ export default function Home() {
                         <p style={{ 
                           fontSize: '16px', 
                           lineHeight: '1.6',
-                          color: '#374151',
+                          color: 'var(--color-black)',
                           marginBottom: '16px'
                         }}>
                           {item.content}
@@ -168,10 +168,11 @@ export default function Home() {
                           alt={item.alt || section.title || `Imagen ${itemIndex + 1}`}
                           style={{
                             width: '100%',
-                            maxHeight: '400px',
-                            objectFit: 'cover',
+                            maxWidth: '240px',
+                            height: 'auto',
                             borderRadius: '8px',
-                            marginBottom: '16px'
+                            margin: '0 auto 16px',
+                            display: 'block'
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';
@@ -191,16 +192,16 @@ export default function Home() {
       );
     }
     
-    // Compatibilidad hacia atrás: estructura antigua (type: text, bullets, image)
+    // Compatibilidad hacia atrÃ¡s: estructura antigua (type: text, bullets, image)
     if (section.type === 'text') {
       return (
         <div key={index}>
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
-            backgroundColor: '#f9fafb',
+            backgroundColor: 'var(--color-card)',
             borderRadius: '12px',
-            border: '2px solid #e5e7eb',
+            border: '2px solid var(--color-border)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}>
             {section.title && (
@@ -208,9 +209,9 @@ export default function Home() {
                 fontSize: '22px', 
                 fontWeight: '700', 
                 marginBottom: '20px',
-                color: '#111827',
+                color: 'var(--color-brown-dark)',
                 paddingBottom: '12px',
-                borderBottom: '3px solid #5a6b3d',
+                borderBottom: '3px solid var(--color-accent)',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -221,7 +222,7 @@ export default function Home() {
               <p style={{ 
                 fontSize: '16px', 
                 lineHeight: '1.6',
-                color: '#374151',
+                color: 'var(--color-black)',
                 marginBottom: '16px'
               }}>
                 {section.content}
@@ -238,9 +239,9 @@ export default function Home() {
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
-            backgroundColor: '#f9fafb',
+            backgroundColor: 'var(--color-card)',
             borderRadius: '12px',
-            border: '2px solid #e5e7eb',
+            border: '2px solid var(--color-border)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}>
             {section.title && (
@@ -248,9 +249,9 @@ export default function Home() {
                 fontSize: '22px', 
                 fontWeight: '700', 
                 marginBottom: '20px',
-                color: '#111827',
+                color: 'var(--color-brown-dark)',
                 paddingBottom: '12px',
-                borderBottom: '3px solid #5a6b3d',
+                borderBottom: '3px solid var(--color-accent)',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -268,7 +269,7 @@ export default function Home() {
                     marginBottom: '8px',
                     fontSize: '16px',
                     lineHeight: '1.6',
-                    color: '#374151'
+                    color: 'var(--color-black)'
                   }}>
                     {bullet}
                   </li>
@@ -286,9 +287,9 @@ export default function Home() {
           <div style={{ 
             marginBottom: '32px',
             padding: '20px',
-            backgroundColor: '#f9fafb',
+            backgroundColor: 'var(--color-card)',
             borderRadius: '12px',
-            border: '2px solid #e5e7eb',
+            border: '2px solid var(--color-border)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}>
             {section.title && (
@@ -296,9 +297,9 @@ export default function Home() {
                 fontSize: '22px', 
                 fontWeight: '700', 
                 marginBottom: '20px',
-                color: '#111827',
+                color: 'var(--color-brown-dark)',
                 paddingBottom: '12px',
-                borderBottom: '3px solid #5a6b3d',
+                borderBottom: '3px solid var(--color-accent)',
                 display: 'inline-block',
                 width: '100%'
               }}>
@@ -311,10 +312,11 @@ export default function Home() {
                 alt={section.title || `Imagen ${index + 1}`}
                 style={{
                   width: '100%',
-                  maxHeight: '400px',
-                  objectFit: 'cover',
+                  maxWidth: '240px',
+                  height: 'auto',
                   borderRadius: '8px',
-                  marginTop: '12px'
+                  margin: '12px auto 0',
+                  display: 'block'
                 }}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -340,7 +342,7 @@ export default function Home() {
             alignItems: 'center',
             minHeight: '200px'
           }}>
-            <p style={{ color: '#6b7280' }}>Cargando...</p>
+            <p style={{ color: 'var(--color-black)' }}>Cargando...</p>
           </div>
         </main>
         <BottomNavigation />
@@ -377,19 +379,19 @@ export default function Home() {
               marginBottom: '24px'
             }}>
               <h1 style={{ 
-                fontSize: '24px', 
+                fontSize: '32px', 
                 fontWeight: '700', 
                 margin: 0,
-                color: '#111827'
+                color: 'var(--color-brown-dark)'
               }}>
-                {welcomeText} 🌵
+                {welcomeText}
               </h1>
               <button
                 onClick={toggleLanguage}
                 style={{
                   padding: '8px 12px',
-                  backgroundColor: '#5a6b3d',
-                  color: 'white',
+                  backgroundColor: 'var(--color-brown-medium)',
+                  color: 'var(--color-white)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -414,9 +416,9 @@ export default function Home() {
 
             {error && (
               <div style={{
-                backgroundColor: '#fef3c7',
-                border: '1px solid #fbbf24',
-                color: '#92400e',
+                backgroundColor: 'var(--color-beige-soft)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-brown-dark)',
                 padding: '12px 16px',
                 borderRadius: '8px',
                 marginBottom: '24px',
@@ -434,7 +436,7 @@ export default function Home() {
             <div style={{ marginTop: '24px' }}>
                 <p style={{ 
                   fontSize: '16px',
-                  color: '#6b7280',
+                  color: 'var(--color-black)',
                   fontStyle: 'italic'
                 }}>
                   No hay contenido disponible en este momento.
@@ -448,3 +450,4 @@ export default function Home() {
     </div>
   );
 }
+

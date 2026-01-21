@@ -136,7 +136,7 @@ export default function Sectores() {
         ) : error ? (
           <div className="error">{error}</div>
         ) : sectores.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-muted)' }}>
             No se encontraron sectores
           </div>
         ) : (

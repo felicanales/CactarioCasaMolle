@@ -96,7 +96,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
           justifyContent: 'center',
           width: '100%',
           height: '100%',
-          color: '#9CA3AF',
+          color: 'var(--color-muted)',
           fontSize: '14px',
         }}>
           {placeholderText}
@@ -123,7 +123,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
               justifyContent: 'center',
               width: '100%',
               height: '100%',
-              color: '#9CA3AF',
+              color: 'var(--color-muted)',
               fontSize: '14px',
               position: 'relative',
             }}

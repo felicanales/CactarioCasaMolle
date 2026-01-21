@@ -18,7 +18,7 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <meta name="theme-color" content="#6B5A4F" />
+        <meta name="theme-color" content="#6f5f50" />
       </head>
       <body>
         <ConsoleSilencer />

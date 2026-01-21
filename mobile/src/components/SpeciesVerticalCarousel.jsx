@@ -1,143 +1,226 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { resolvePhotoUrl } from '@/utils/images';
 
+const MIN_VISIBLE_ITEMS = 3;
+const DEFAULT_SECONDS_PER_ITEM = 4;
+
+const getDisplayName = (specie, index) => {
+  return (
+    specie?.nombre_comun ||
+    specie?.['nombre_com\u00fan'] ||
+    specie?.nombre ||
+    specie?.scientific_name ||
+    specie?.name ||
+    `Especie ${specie?.id || index + 1}`
+  );
+};
+
+const getCoverPhoto = (specie) => {
+  return resolvePhotoUrl(
+    specie?.cover_photo ||
+      specie?.coverPhoto ||
+      specie?.photo ||
+      (Array.isArray(specie?.photos) ? specie.photos[0] : null)
+  );
+};
+
 export default function SpeciesVerticalCarousel({
   species = [],
   loading = false,
-  autoRotate = true,
-  rotationInterval = 5000,
   emptyText = 'No hay especies para mostrar.',
+  secondsPerItem = DEFAULT_SECONDS_PER_ITEM,
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const touchStartYRef = useRef(null);
-  const touchLastYRef = useRef(null);
-  const isSwipingRef = useRef(false);
   const router = useRouter();
+  const viewportRef = useRef(null);
+  const trackRef = useRef(null);
+  const animationRef = useRef(null);
+  const lastTimeRef = useRef(null);
+  const resumeTimeoutRef = useRef(null);
+  const halfHeightRef = useRef(0);
+  const itemHeightRef = useRef(0);
+  const userInteractingRef = useRef(false);
 
-  const resetTouchState = () => {
-    touchStartYRef.current = null;
-    touchLastYRef.current = null;
-    isSwipingRef.current = false;
-  };
-
-  const nextSpecie = () => {
-    setCurrentIndex((prev) => (prev + 1) % species.length);
-  };
-
-  const prevSpecie = () => {
-    setCurrentIndex((prev) => (prev - 1 + species.length) % species.length);
-  };
-
-  const goToSpecie = (index) => {
-    setCurrentIndex(index);
-  };
-
-  const handleTouchStart = (event) => {
-    if (!species || species.length <= 1) {
-      return;
-    }
-
-    const touch = event.touches[0];
-    touchStartYRef.current = touch.clientY;
-    touchLastYRef.current = touch.clientY;
-    isSwipingRef.current = false;
-  };
-
-  const handleTouchMove = (event) => {
-    if (touchStartYRef.current === null) {
-      return;
-    }
-
-    const touch = event.touches[0];
-    touchLastYRef.current = touch.clientY;
-
-    const deltaY = touch.clientY - touchStartYRef.current;
-    if (Math.abs(deltaY) > 10) {
-      isSwipingRef.current = true;
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartYRef.current === null || touchLastYRef.current === null) {
-      resetTouchState();
-      return;
-    }
-
-    const deltaY = touchLastYRef.current - touchStartYRef.current;
-    if (isSwipingRef.current && Math.abs(deltaY) > 40) {
-      if (deltaY < 0) {
-        nextSpecie();
-      } else {
-        prevSpecie();
+  useEffect(() => {
+    return () => {
+      if (resumeTimeoutRef.current) {
+        clearTimeout(resumeTimeoutRef.current);
       }
+
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  const normalizedSpecies = useMemo(() => {
+    if (!Array.isArray(species) || species.length === 0) {
+      return [];
     }
 
-    resetTouchState();
-  };
-
-  useEffect(() => {
-    if (!autoRotate || !species || species.length <= 1) {
-      return;
+    if (species.length >= MIN_VISIBLE_ITEMS) {
+      return species;
     }
 
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % species.length);
-    }, rotationInterval);
-
-    return () => clearInterval(interval);
-  }, [species, autoRotate, rotationInterval]);
-
-  useEffect(() => {
-    setCurrentIndex(0);
+    const repeats = Math.ceil(MIN_VISIBLE_ITEMS / species.length);
+    return Array.from({ length: repeats }, () => species).flat();
   }, [species]);
 
+  const scrollSpecies = useMemo(() => {
+    if (normalizedSpecies.length === 0) {
+      return [];
+    }
+
+    return [...normalizedSpecies, ...normalizedSpecies];
+  }, [normalizedSpecies]);
+
+  const updateMeasurements = useCallback(() => {
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    if (!viewport || !track) {
+      return;
+    }
+
+    const firstSlide = track.querySelector('.vertical-carousel-slide');
+    itemHeightRef.current = firstSlide ? firstSlide.offsetHeight : 0;
+    halfHeightRef.current = track.scrollHeight / 2;
+
+    if (halfHeightRef.current > 0 && viewport.scrollTop === 0) {
+      viewport.scrollTop = halfHeightRef.current;
+    }
+  }, []);
+
+  const stopAutoScroll = useCallback(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    lastTimeRef.current = null;
+  }, []);
+
+  const startAutoScroll = useCallback(() => {
+    if (animationRef.current) {
+      return;
+    }
+
+    const step = (time) => {
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        animationRef.current = null;
+        return;
+      }
+
+      if (lastTimeRef.current == null) {
+        lastTimeRef.current = time;
+        animationRef.current = requestAnimationFrame(step);
+        return;
+      }
+
+      const deltaSeconds = (time - lastTimeRef.current) / 1000;
+      lastTimeRef.current = time;
+
+      const speed = itemHeightRef.current > 0 ? itemHeightRef.current / secondsPerItem : 0;
+      viewport.scrollTop += speed * deltaSeconds;
+
+      const halfHeight = halfHeightRef.current;
+      if (halfHeight > 0) {
+        if (viewport.scrollTop >= halfHeight) {
+          viewport.scrollTop -= halfHeight;
+        } else if (viewport.scrollTop <= 0) {
+          viewport.scrollTop += halfHeight;
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(step);
+    };
+
+    animationRef.current = requestAnimationFrame(step);
+  }, [secondsPerItem]);
+
+  const scheduleResume = useCallback(() => {
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+    }
+
+    resumeTimeoutRef.current = setTimeout(() => {
+      userInteractingRef.current = false;
+      startAutoScroll();
+    }, 1500);
+  }, [startAutoScroll]);
+
+  const handleWheel = useCallback(() => {
+    userInteractingRef.current = true;
+    stopAutoScroll();
+    scheduleResume();
+  }, [scheduleResume, stopAutoScroll]);
+
+  const handleScroll = useCallback(() => {
+    const viewport = viewportRef.current;
+    const halfHeight = halfHeightRef.current;
+
+    if (!viewport || halfHeight === 0) {
+      return;
+    }
+
+    if (viewport.scrollTop >= halfHeight) {
+      viewport.scrollTop -= halfHeight;
+    } else if (viewport.scrollTop <= 0) {
+      viewport.scrollTop += halfHeight;
+    }
+
+    if (userInteractingRef.current) {
+      scheduleResume();
+    }
+  }, [scheduleResume]);
+
+  useEffect(() => {
+    if (!normalizedSpecies.length || loading) {
+      return;
+    }
+
+    updateMeasurements();
+    startAutoScroll();
+    return () => {
+      stopAutoScroll();
+    };
+  }, [loading, normalizedSpecies.length, startAutoScroll, stopAutoScroll, updateMeasurements]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateMeasurements();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateMeasurements]);
+
   if (loading) {
-    return (
-      <div className="vertical-carousel-loading">
-        Cargando especies...
-      </div>
-    );
+    return <div className="vertical-carousel-loading">Cargando especies...</div>;
   }
 
-  if (!species || species.length === 0) {
-    return (
-      <div className="vertical-carousel-empty">
-        {emptyText}
-      </div>
-    );
+  if (!normalizedSpecies.length) {
+    return <div className="vertical-carousel-empty">{emptyText}</div>;
   }
 
   return (
     <div className="vertical-carousel">
       <div
         className="vertical-carousel-viewport"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={resetTouchState}
+        ref={viewportRef}
+        onWheel={handleWheel}
+        onScroll={handleScroll}
       >
-        <div
-          className="vertical-carousel-track"
-          style={{ transform: `translateY(-${currentIndex * 100}%)` }}
-        >
-          {species.map((specie, index) => {
-            const coverPhoto = resolvePhotoUrl(
-              specie.cover_photo || specie.coverPhoto || specie.photo || (Array.isArray(specie.photos) ? specie.photos[0] : null)
-            );
-            const name =
-              specie.nombre_común ||
-              specie.nombre ||
-              specie.scientific_name ||
-              specie.name ||
-              `Especie ${specie.id || index + 1}`;
-            const slug = specie.slug || `especie-${specie.id || index + 1}`;
+        <div className="vertical-carousel-track" ref={trackRef}>
+          {scrollSpecies.map((specie, index) => {
+            const coverPhoto = getCoverPhoto(specie);
+            const name = getDisplayName(specie, index);
+            const slug = specie?.slug || `especie-${specie?.id || index + 1}`;
 
             return (
-              <div key={specie.id || slug} className="vertical-carousel-slide">
+              <div key={`${specie?.id || slug}-${index}`} className="vertical-carousel-slide">
                 <div
                   className="grid-item vertical-carousel-item"
                   role="button"
@@ -158,13 +241,12 @@ export default function SpeciesVerticalCarousel({
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
+                          objectPosition: 'center',
                           borderRadius: '8px',
                         }}
                       />
                     ) : (
-                      <div className="vertical-carousel-placeholder">
-                        🌵
-                      </div>
+                      <div className="vertical-carousel-placeholder">Sin imagen</div>
                     )}
                   </div>
                   <div className="grid-item-text">{name}</div>
@@ -174,34 +256,6 @@ export default function SpeciesVerticalCarousel({
           })}
         </div>
       </div>
-      {species.length > 1 && (
-        <>
-          <button
-            className="vertical-carousel-arrow vertical-carousel-arrow-up"
-            onClick={prevSpecie}
-            aria-label="Especie anterior"
-          >
-            ↑
-          </button>
-          <button
-            className="vertical-carousel-arrow vertical-carousel-arrow-down"
-            onClick={nextSpecie}
-            aria-label="Siguiente especie"
-          >
-            ↓
-          </button>
-          <div className="vertical-carousel-indicators">
-            {species.map((_, index) => (
-              <button
-                key={index}
-                className={`vertical-carousel-indicator ${index === currentIndex ? 'active' : ''}`}
-                onClick={() => goToSpecie(index)}
-                aria-label={`Ir a especie ${index + 1}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
