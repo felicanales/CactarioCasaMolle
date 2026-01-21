@@ -424,6 +424,8 @@ body {
 .vertical-carousel-track-scroll {
   animation: vertical-carousel-scroll var(--carousel-scroll-duration) linear infinite;
   will-change: transform;
+  animation-play-state: running;
+  animation-fill-mode: both;
 }
 
 .vertical-carousel-slide {
@@ -502,11 +504,6 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .vertical-carousel-track-scroll {
-    animation: none;
-  }
-}
 
 /* QR Scanner */
 .qr-scanner-container {
