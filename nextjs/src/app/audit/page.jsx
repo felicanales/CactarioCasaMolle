@@ -141,6 +141,10 @@ export default function AuditPage() {
                 return "#ef4444"; // rojo
             case "LOGIN":
                 return "#f59e0b"; // amarillo
+            case "PURCHASE":
+                return "#14b8a6"; // teal
+            case "SALE":
+                return "#f97316"; // naranja
             default:
                 return "#6b7280"; // gris
         }
@@ -156,6 +160,10 @@ export default function AuditPage() {
                 return "Eliminar";
             case "LOGIN":
                 return "Login";
+            case "PURCHASE":
+                return "Compra";
+            case "SALE":
+                return "Venta";
             default:
                 return action;
         }
@@ -372,6 +380,7 @@ export default function AuditPage() {
                                     <option value="fotos">Fotos</option>
                                     <option value="sectores_especies">Relaciones Sector-Especie</option>
                                     <option value="usuarios">Usuarios / Accesos</option>
+                                    <option value="home_content">Contenido Home</option>
                                 </select>
                             </div>
                             <div>
@@ -704,6 +713,30 @@ export default function AuditPage() {
                                                                 fontWeight: "500"
                                                             }}>
                                                                 Inicio de sesion
+                                                            </span>
+                                                        ) : log.accion === "PURCHASE" ? (
+                                                            <span style={{
+                                                                display: "inline-block",
+                                                                padding: "4px 8px",
+                                                                borderRadius: "4px",
+                                                                backgroundColor: "#f0fdfa",
+                                                                color: "#115e59",
+                                                                fontSize: "12px",
+                                                                fontWeight: "500"
+                                                            }}>
+                                                                Compra registrada
+                                                            </span>
+                                                        ) : log.accion === "SALE" ? (
+                                                            <span style={{
+                                                                display: "inline-block",
+                                                                padding: "4px 8px",
+                                                                borderRadius: "4px",
+                                                                backgroundColor: "#fff7ed",
+                                                                color: "#9a3412",
+                                                                fontSize: "12px",
+                                                                fontWeight: "500"
+                                                            }}>
+                                                                Venta registrada
                                                             </span>
                                                         ) : (
                                                             <span style={{ color: "#9ca3af" }}>-</span>

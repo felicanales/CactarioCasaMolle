@@ -1,6 +1,6 @@
 # app/services/sectors_service.py
 from typing import List, Optional, Dict, Any, Set
-from app.core.supabase_auth import get_public, get_public_clean
+from app.core.supabase_auth import get_public, get_public_clean, get_service
 from app.services import photos_service
 
 PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "qr_code"]
@@ -398,9 +398,10 @@ def delete_admin(sector_id: int, user_id: Optional[int] = None, user_email: Opti
     logger = logging.getLogger(__name__)
     
     sb = get_public()
+    sb_admin = get_service()
     
     # Obtener el sector antes de eliminarlo para auditoría
-    old_sector_res = sb.table("sectores").select("*").eq("id", sector_id).limit(1).execute()
+    old_sector_res = sb_admin.table("sectores").select("*").eq("id", sector_id).limit(1).execute()
     old_values = old_sector_res.data[0] if old_sector_res.data else None
     
     # (Opcional: validar que no tenga ejemplares asociados)

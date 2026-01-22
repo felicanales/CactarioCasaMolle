@@ -1,6 +1,6 @@
 # app/services/ejemplar_service.py
 from typing import List, Optional, Dict, Any
-from app.core.supabase_auth import get_public
+from app.core.supabase_auth import get_public, get_service
 
 def _ensure_sector_species_relation(sector_id: int, species_id: int) -> None:
     """
@@ -312,6 +312,24 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
                     ip_address=ip_address,
                     user_agent=user_agent
                 )
+                if created_ejemplar.get("purchase_date"):
+                    log_change(
+                        table_name='ejemplar',
+                        record_id=ejemplar_id,
+                        action='PURCHASE',
+                        user_id=user_id,
+                        user_email=user_email,
+                        user_name=user_name,
+                        old_values=None,
+                        new_values={
+                            "purchase_date": created_ejemplar.get("purchase_date"),
+                            "purchase_price": created_ejemplar.get("purchase_price"),
+                            "invoice_number": created_ejemplar.get("invoice_number"),
+                            "nursery": created_ejemplar.get("nursery")
+                        },
+                        ip_address=ip_address,
+                        user_agent=user_agent
+                    )
             except Exception as audit_error:
                 logger.warning(f"[create_staff] Error al registrar auditoría: {str(audit_error)}")
         
@@ -398,6 +416,50 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
                     ip_address=ip_address,
                     user_agent=user_agent
                 )
+                purchase_date_old = old_values.get("purchase_date")
+                purchase_date_new = updated_ejemplar.get("purchase_date")
+                if purchase_date_new and purchase_date_new != purchase_date_old:
+                    log_change(
+                        table_name='ejemplar',
+                        record_id=ejemplar_id,
+                        action='PURCHASE',
+                        user_id=user_id,
+                        user_email=user_email,
+                        user_name=user_name,
+                        old_values={
+                            "purchase_date": purchase_date_old,
+                            "purchase_price": old_values.get("purchase_price")
+                        },
+                        new_values={
+                            "purchase_date": purchase_date_new,
+                            "purchase_price": updated_ejemplar.get("purchase_price"),
+                            "invoice_number": updated_ejemplar.get("invoice_number"),
+                            "nursery": updated_ejemplar.get("nursery")
+                        },
+                        ip_address=ip_address,
+                        user_agent=user_agent
+                    )
+                sale_date_old = old_values.get("sale_date")
+                sale_date_new = updated_ejemplar.get("sale_date")
+                if sale_date_new and sale_date_new != sale_date_old:
+                    log_change(
+                        table_name='ejemplar',
+                        record_id=ejemplar_id,
+                        action='SALE',
+                        user_id=user_id,
+                        user_email=user_email,
+                        user_name=user_name,
+                        old_values={
+                            "sale_date": sale_date_old,
+                            "sale_price": old_values.get("sale_price")
+                        },
+                        new_values={
+                            "sale_date": sale_date_new,
+                            "sale_price": updated_ejemplar.get("sale_price")
+                        },
+                        ip_address=ip_address,
+                        user_agent=user_agent
+                    )
             except Exception as audit_error:
                 logger.warning(f"[update_staff] Error al registrar auditoría: {str(audit_error)}")
         
@@ -414,9 +476,10 @@ def delete_staff(ejemplar_id: int, user_id: Optional[int] = None, user_email: Op
     logger = logging.getLogger(__name__)
     
     sb = get_public()
+    sb_admin = get_service()
     
     # Obtener el ejemplar antes de eliminarlo para auditoría
-    old_ejemplar_res = sb.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
+    old_ejemplar_res = sb_admin.table("ejemplar").select("*").eq("id", ejemplar_id).limit(1).execute()
     old_values = old_ejemplar_res.data[0] if old_ejemplar_res.data else None
     
     sb.table("ejemplar").delete().eq("id", ejemplar_id).execute()

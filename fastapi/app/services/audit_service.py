@@ -8,6 +8,34 @@ from app.core.supabase_auth import get_public, get_service
 
 logger = logging.getLogger(__name__)
 
+def _normalize_user_id(user_id: Optional[Any], user_email: Optional[str]) -> Optional[int]:
+    if user_id is None and not user_email:
+        return None
+
+    if isinstance(user_id, int):
+        return user_id
+
+    if isinstance(user_id, str) and user_id.isdigit():
+        try:
+            return int(user_id)
+        except ValueError:
+            return None
+
+    try:
+        sb_admin = get_service()
+        if isinstance(user_id, str) and user_id:
+            result = sb_admin.table("usuarios").select("id").eq("supabase_uid", user_id).limit(1).execute()
+            if result.data:
+                return result.data[0].get("id")
+        if user_email:
+            result = sb_admin.table("usuarios").select("id").eq("email", user_email).limit(1).execute()
+            if result.data:
+                return result.data[0].get("id")
+    except Exception:
+        return None
+
+    return None
+
 def log_change(
     table_name: str,
     record_id: int,
@@ -59,12 +87,14 @@ def log_change(
                         'nuevo': new_value
                     }
         
+        normalized_user_id = _normalize_user_id(user_id, user_email)
+
         # Preparar datos para insertar
         audit_data = {
             'tabla_afectada': table_name,
             'registro_id': record_id,
             'accion': action,
-            'usuario_id': user_id,
+            'usuario_id': normalized_user_id,
             'usuario_email': user_email,
             'usuario_nombre': user_name,
             'campos_anteriores': old_values,

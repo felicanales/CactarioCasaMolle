@@ -1,6 +1,6 @@
 # app/services/species_service.py
 from typing import List, Optional, Dict, Any
-from app.core.supabase_auth import get_public, get_public_clean
+from app.core.supabase_auth import get_public, get_public_clean, get_service
 from app.services import photos_service
 
 PUBLIC_SPECIES_FIELDS = [
@@ -270,9 +270,10 @@ def delete_admin(species_id: int, user_id: Optional[int] = None, user_email: Opt
     logger = logging.getLogger(__name__)
     
     sb = get_public()
+    sb_admin = get_service()
     
     # Obtener la especie antes de eliminarla para auditoría
-    old_species_res = sb.table("especies").select("*").eq("id", species_id).limit(1).execute()
+    old_species_res = sb_admin.table("especies").select("*").eq("id", species_id).limit(1).execute()
     old_values = old_species_res.data[0] if old_species_res.data else None
     
     # (Opcional: validar dependencias: ejemplar, fotos_especies, purchase_items, etc.)

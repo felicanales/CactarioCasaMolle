@@ -162,10 +162,13 @@ def create_or_update_home_content_staff(
         
         user = request.state.user if hasattr(request.state, 'user') else None
         user_id = user.get("id") if user else None
+        user_email = user.get("email") if user else None
         
         logger.info(f"[create_or_update_home_content_staff] Usuario ID: {user_id}, Email: {user.get('email') if user else None}")
         
-        result = svc.create_or_update_staff(payload, user_id, access_token)
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        result = svc.create_or_update_staff(payload, user_id, user_email, access_token, ip_address, user_agent)
         logger.info("[create_or_update_home_content_staff] Contenido guardado exitosamente")
         return result
     except ValueError as e:
@@ -197,8 +200,11 @@ def update_home_content_staff(
         
         user = request.state.user if hasattr(request.state, 'user') else None
         user_id = user.get("id") if user else None
+        user_email = user.get("email") if user else None
         
-        result = svc.create_or_update_staff(payload, user_id, access_token)
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get('user-agent')
+        result = svc.create_or_update_staff(payload, user_id, user_email, access_token, ip_address, user_agent)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import (
     get_public as get_supabase_client,
     get_public_clean,
+    get_service,
 )
 from supabase import create_client as supabase_create_client
 import json
@@ -282,7 +283,7 @@ def get_staff(access_token: Optional[str] = None) -> Optional[Dict[str, Any]]:
         "is_active": content.get("is_active", True)
     }
 
-def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = None, access_token: Optional[str] = None) -> Dict[str, Any]:
+def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_email: Optional[str] = None, access_token: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Dict[str, Any]:
     """
     Crea o actualiza el contenido del home.
     Si ya existe un registro activo, lo actualiza. Si no, crea uno nuevo.
@@ -328,6 +329,7 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
     }
     
     # Verificar si ya existe un registro activo usando requests directamente
+    old_values = None
     check_url = f"{SUPABASE_URL}/rest/v1/home_content?is_active=eq.true&select=id&limit=1"
     check_response = requests.get(check_url, headers=headers)
     
@@ -338,6 +340,13 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
             # Actualizar registro existente
             content_id = existing_data[0]["id"]
             logger.info(f"[create_or_update_staff] Actualizando registro existente ID: {content_id}")
+            try:
+                sb_admin = get_service()
+                old_res = sb_admin.table("home_content").select("*").eq("id", content_id).limit(1).execute()
+                if old_res.data:
+                    old_values = old_res.data[0]
+            except Exception as audit_error:
+                logger.warning(f"[create_or_update_staff] Error obteniendo valores anteriores: {str(audit_error)}")
             
             update_url = f"{SUPABASE_URL}/rest/v1/home_content?id=eq.{content_id}"
             update_response = requests.patch(update_url, json=data, headers=headers)
@@ -404,6 +413,25 @@ def create_or_update_staff(payload: Dict[str, Any], user_id: Optional[int] = Non
                 updated["sections"] = []
     else:
         updated["sections"] = []
-    
+
+    try:
+        from app.services.audit_service import log_change
+        record_id = updated.get("id") if isinstance(updated, dict) else None
+        if record_id:
+            log_change(
+                table_name="home_content",
+                record_id=record_id,
+                action="UPDATE" if old_values else "CREATE",
+                user_id=user_id,
+                user_email=user_email,
+                user_name=None,
+                old_values=old_values,
+                new_values=updated,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+    except Exception as audit_error:
+        logger.warning(f"[create_or_update_staff] Error registrando auditoría: {str(audit_error)}")
+
     return updated
 
