@@ -305,9 +305,9 @@ body {
 }
 
 .home-carousel .image-carousel {
-  width: 88%;
-  max-width: 340px;
-  height: 240px;
+  width: 100%;
+  max-width: 720px;
+  height: clamp(220px, 56vw, 360px);
   margin: 16px auto;
 }
 
@@ -795,9 +795,9 @@ p {
   }
 
   .home-carousel .image-carousel {
-    width: 70%;
-    max-width: 420px;
-    height: 360px;
+    width: 100%;
+    max-width: 960px;
+    height: 420px;
   }
 }
 

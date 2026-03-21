@@ -93,9 +93,9 @@ GRANT EXECUTE ON FUNCTION public.insert_usuario_admin(TEXT, TEXT, TEXT) TO authe
 -- ⚠️ REEMPLAZA LOS VALORES CON LOS DATOS REALES DEL USUARIO
 
 SELECT * FROM public.insert_usuario_admin(
-    'karim@casamolle.cl',  -- ⚠️ CAMBIAR: Correo (será convertido a minúsculas)
-    'karim',                -- ⚠️ CAMBIAR: Nombre de usuario único
-    'Karim Daire'           -- ⚠️ OPCIONAL: Nombre completo
+    'felicaniu1@gmail.com',  -- ⚠️ CAMBIAR: Correo (será convertido a minúsculas)
+    'felipe',                -- ⚠️ CAMBIAR: Nombre de usuario único
+    'felipe canales1'           -- ⚠️ OPCIONAL: Nombre completo
 );
 
 -- =============================================================================
@@ -112,4 +112,4 @@ SELECT
     created_at,
     updated_at
 FROM public.usuarios
-WHERE email = 'karim@casamolle.cl';  -- ⚠️ CAMBIAR: Mismo correo (en minúsculas)
+WHERE email = 'felicaniu1@gmail.com';  -- ⚠️ CAMBIAR: Mismo correo (en minúsculas)
