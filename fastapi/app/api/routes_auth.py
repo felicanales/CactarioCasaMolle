@@ -266,8 +266,8 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
                 user_id=user_row_id,
                 user_email=email,
                 user_name=None,
-                old_values=None,
-                new_values=None,
+                old_values={},
+                new_values={"evento": "LOGIN"},
                 ip_address=ip_address,
                 user_agent=user_agent
             )

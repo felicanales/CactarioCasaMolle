@@ -101,19 +101,6 @@ export default function AuditPage() {
         fetchLogs();
     };
     
-    // Función para probar la tabla de auditoría
-    const testAuditTable = async () => {
-        try {
-            const url = `${API}/audit/test`;
-            const res = await authApiRequest(url, { method: "GET" });
-            const data = await res.json();
-            alert(`Tabla de auditoría: ${data.total_records || 0} registros\n${data.message || data.error || 'OK'}`);
-        } catch (err) {
-            console.error("[AuditPage] Error en test:", err);
-            alert(`Error al probar tabla: ${err.message}`);
-        }
-    };
-
     const formatDate = (dateString) => {
         if (!dateString) return "-";
         try {
@@ -167,6 +154,93 @@ export default function AuditPage() {
             default:
                 return action;
         }
+    };
+
+    const formatValue = (value) => {
+        if (value === null || value === undefined) return "-";
+        if (typeof value === "string") return value;
+        if (typeof value === "number" || typeof value === "boolean") return String(value);
+        if (Array.isArray(value)) return value.join(", ");
+        return "[obj]";
+    };
+
+    const shortenText = (value, maxLength = 60) => {
+        if (!value || typeof value !== "string") return value || "-";
+        if (value.length <= maxLength) return value;
+        return `${value.slice(0, maxLength - 3)}...`;
+    };
+
+    const isLoginEvent = (log) => {
+        if (!log) return false;
+        if (log.accion === "LOGIN") return true;
+        if (log.tabla_afectada !== "usuarios" || log.accion !== "UPDATE") return false;
+        const eventFromChanges = log.cambios_detectados?.evento?.nuevo;
+        const eventFromNewValues = log.campos_nuevos?.evento;
+        return eventFromChanges === "LOGIN" || eventFromNewValues === "LOGIN";
+    };
+
+    const getChangedFields = (log) => {
+        if (!log) return [];
+        if (isLoginEvent(log)) return ["login"];
+        if (log.accion === "PURCHASE") {
+            const data = log.campos_nuevos || {};
+            const fields = ["purchase_date", "purchase_price", "invoice_number", "nursery"];
+            return fields.filter((key) => data[key] !== undefined && data[key] !== null);
+        }
+        if (log.accion === "SALE") {
+            const data = log.campos_nuevos || {};
+            const fields = ["sale_date", "sale_price"];
+            return fields.filter((key) => data[key] !== undefined && data[key] !== null);
+        }
+        if (log.cambios_detectados) return Object.keys(log.cambios_detectados);
+        return [];
+    };
+
+    const getChangeSummary = (log) => {
+        if (!log) return "-";
+        if (isLoginEvent(log)) {
+            const ip = log.ip_address;
+            const agent = log.user_agent;
+            if (ip && agent) return `IP ${ip} - ${shortenText(agent)}`;
+            if (ip) return `IP ${ip}`;
+            return "Inicio de sesion";
+        }
+        if (log.accion === "PURCHASE") {
+            const data = log.campos_nuevos || {};
+            const parts = [];
+            if (data.purchase_date) parts.push(`Fecha ${data.purchase_date}`);
+            if (data.purchase_price !== undefined && data.purchase_price !== null) parts.push(`Precio ${data.purchase_price}`);
+            if (data.invoice_number) parts.push(`Factura ${data.invoice_number}`);
+            if (data.nursery) parts.push(`Vivero ${data.nursery}`);
+            return parts.join(" - ") || "Compra registrada";
+        }
+        if (log.accion === "SALE") {
+            const data = log.campos_nuevos || {};
+            const parts = [];
+            if (data.sale_date) parts.push(`Fecha ${data.sale_date}`);
+            if (data.sale_price !== undefined && data.sale_price !== null) parts.push(`Precio ${data.sale_price}`);
+            return parts.join(" - ") || "Venta registrada";
+        }
+        if (log.cambios_detectados) {
+            const entries = Object.entries(log.cambios_detectados);
+            if (entries.length === 0) return "-";
+            const summaries = entries.slice(0, 2).map(([field, diff]) => {
+                const before = diff?.anterior;
+                const after = diff?.nuevo;
+                return `${field}: ${formatValue(before)} -> ${formatValue(after)}`;
+            });
+            const extra = entries.length > 2 ? ` (+${entries.length - 2} mas)` : "";
+            return `${summaries.join(" | ")}${extra}`;
+        }
+        return "-";
+    };
+
+    const renderFieldList = (log) => {
+        const fields = getChangedFields(log);
+        if (!fields.length) return "-";
+        const shown = fields.slice(0, 3);
+        const extra = fields.length > 3 ? ` +${fields.length - 3} mas` : "";
+        return `${shown.join(", ")}${extra}`;
     };
 
     if (loading && !user && !BYPASS_AUTH) {
@@ -242,33 +316,6 @@ export default function AuditPage() {
                                 </p>
                             </div>
                             <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                                <button
-                                    onClick={testAuditTable}
-                                    style={{
-                                        padding: "8px 16px",
-                                        borderRadius: "6px",
-                                        border: "1px solid #d1d5db",
-                                        backgroundColor: "white",
-                                        color: "#374151",
-                                        fontSize: "13px",
-                                        fontWeight: "500",
-                                        cursor: "pointer",
-                                        transition: "all 0.2s",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "6px"
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.backgroundColor = "#f9fafb";
-                                        e.target.style.borderColor = "#9ca3af";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.backgroundColor = "white";
-                                        e.target.style.borderColor = "#d1d5db";
-                                    }}
-                                >
-                                    🔍 Probar Tabla
-                                </button>
                                 <button
                                     onClick={handleRefresh}
                                     disabled={loading}
@@ -579,7 +626,7 @@ export default function AuditPage() {
                                                     fontWeight: "600",
                                                     color: "#374151"
                                                 }}>
-                                                    ID Registro
+                                                    Usuario
                                                 </th>
                                                 <th style={{
                                                     padding: "12px 16px",
@@ -588,7 +635,16 @@ export default function AuditPage() {
                                                     fontWeight: "600",
                                                     color: "#374151"
                                                 }}>
-                                                    Usuario
+                                                    Campos
+                                                </th>
+                                                <th style={{
+                                                    padding: "12px 16px",
+                                                    textAlign: "left",
+                                                    fontSize: "12px",
+                                                    fontWeight: "600",
+                                                    color: "#374151"
+                                                }}>
+                                                    Detalle
                                                 </th>
                                                 <th style={{
                                                     padding: "12px 16px",
@@ -631,12 +687,12 @@ export default function AuditPage() {
                                                             display: "inline-block",
                                                             padding: "4px 8px",
                                                             borderRadius: "4px",
-                                                            backgroundColor: getActionColor(log.accion) + "20",
-                                                            color: getActionColor(log.accion),
+                                                            backgroundColor: getActionColor(isLoginEvent(log) ? "LOGIN" : log.accion) + "20",
+                                                            color: getActionColor(isLoginEvent(log) ? "LOGIN" : log.accion),
                                                             fontWeight: "600",
                                                             fontSize: "12px"
                                                         }}>
-                                                            {getActionLabel(log.accion)}
+                                                            {getActionLabel(isLoginEvent(log) ? "LOGIN" : log.accion)}
                                                         </span>
                                                     </td>
                                                     <td style={{
@@ -646,13 +702,6 @@ export default function AuditPage() {
                                                         fontWeight: "500"
                                                     }}>
                                                         {log.tabla_afectada}
-                                                    </td>
-                                                    <td style={{
-                                                        padding: "12px 16px",
-                                                        fontSize: "13px",
-                                                        color: "#374151"
-                                                    }}>
-                                                        {log.registro_id}
                                                     </td>
                                                     <td style={{
                                                         padding: "12px 16px",
@@ -672,6 +721,21 @@ export default function AuditPage() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                    </td>
+                                                    <td style={{
+                                                        padding: "12px 16px",
+                                                        fontSize: "12px",
+                                                        color: "#374151"
+                                                    }}>
+                                                        {renderFieldList(log)}
+                                                    </td>
+                                                    <td style={{
+                                                        padding: "12px 16px",
+                                                        fontSize: "12px",
+                                                        color: "#374151",
+                                                        maxWidth: "320px"
+                                                    }}>
+                                                        {getChangeSummary(log)}
                                                     </td>
                                                     <td style={{
                                                         padding: "12px 16px",
@@ -702,7 +766,7 @@ export default function AuditPage() {
                                                             }}>
                                                                 Nuevo registro
                                                             </span>
-                                                        ) : log.accion === "LOGIN" ? (
+                                                        ) : isLoginEvent(log) ? (
                                                             <span style={{
                                                                 display: "inline-block",
                                                                 padding: "4px 8px",

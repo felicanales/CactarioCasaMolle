@@ -36,6 +36,21 @@ def _normalize_user_id(user_id: Optional[Any], user_email: Optional[str]) -> Opt
 
     return None
 
+def _compute_changes(old_values: Optional[Dict[str, Any]], new_values: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not old_values or not new_values:
+        return None
+
+    changes_detected = {}
+    for key, new_value in new_values.items():
+        old_value = old_values.get(key)
+        if old_value != new_value:
+            changes_detected[key] = {
+                'anterior': old_value,
+                'nuevo': new_value
+            }
+
+    return changes_detected or None
+
 def log_change(
     table_name: str,
     record_id: int,
@@ -76,16 +91,7 @@ def log_change(
             raise
         
         # Para UPDATE, detectar solo los campos que cambiaron
-        changes_detected = None
-        if action == 'UPDATE' and old_values and new_values:
-            changes_detected = {}
-            for key, new_value in new_values.items():
-                old_value = old_values.get(key)
-                if old_value != new_value:
-                    changes_detected[key] = {
-                        'anterior': old_value,
-                        'nuevo': new_value
-                    }
+        changes_detected = _compute_changes(old_values, new_values) if action == 'UPDATE' else None
         
         normalized_user_id = _normalize_user_id(user_id, user_email)
 
@@ -128,6 +134,38 @@ def log_change(
                 logger.error(f"[Audit] Detalles: {insert_error.details}")
             if hasattr(insert_error, 'code'):
                 logger.error(f"[Audit] Código de error: {insert_error.code}")
+            allowed_actions = {"CREATE", "UPDATE", "DELETE"}
+            if action not in allowed_actions:
+                try:
+                    fallback_old = old_values if old_values is not None else {}
+                    fallback_new = new_values if new_values is not None else {"evento": action}
+                    if isinstance(fallback_new, dict) and "evento" not in fallback_new:
+                        fallback_new = {**fallback_new, "evento": action}
+
+                    fallback_changes = _compute_changes(fallback_old, fallback_new)
+                    fallback_data = {
+                        'tabla_afectada': table_name,
+                        'registro_id': record_id,
+                        'accion': "UPDATE",
+                        'usuario_id': normalized_user_id,
+                        'usuario_email': user_email,
+                        'usuario_nombre': user_name,
+                        'campos_anteriores': fallback_old,
+                        'campos_nuevos': fallback_new,
+                        'cambios_detectados': fallback_changes,
+                        'ip_address': ip_address,
+                        'user_agent': user_agent
+                    }
+                    logger.info("[Audit] Reintentando insert con accion UPDATE para evento no estandar...")
+                    fallback_result = sb.table('auditoria_cambios').insert(fallback_data).execute()
+                    if fallback_result.data:
+                        log_id = fallback_result.data[0].get('id') if fallback_result.data else None
+                        logger.info(f"[Audit] ✅ Fallback log registrado: evento={action}, ID={log_id}")
+                        logger.info(f"[Audit] ========== FIN log_change (éxito) ==========")
+                        return
+                    logger.warning("[Audit] Fallback insert ejecutado pero sin data")
+                except Exception as fallback_error:
+                    logger.error(f"[Audit] ❌ Error en fallback insert: {str(fallback_error)}", exc_info=True)
             raise
         
         logger.info(f"[Audit] ========== FIN log_change (éxito) ==========")
