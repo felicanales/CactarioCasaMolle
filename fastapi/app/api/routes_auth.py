@@ -262,11 +262,11 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
             log_change(
                 table_name="usuarios",
                 record_id=user_row_id,
-                action="LOGIN",
+                action="UPDATE",
                 user_id=user_row_id,
                 user_email=email,
                 user_name=None,
-                old_values={},
+                old_values={"evento": None},
                 new_values={"evento": "LOGIN"},
                 ip_address=ip_address,
                 user_agent=user_agent

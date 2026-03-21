@@ -125,7 +125,8 @@ export default function Home() {
                           fontSize: '16px', 
                           lineHeight: '1.6',
                           color: 'var(--color-black)',
-                          marginBottom: '16px'
+                          marginBottom: '16px',
+                          whiteSpace: 'pre-wrap'
                         }}>
                           {item.content}
                         </p>
@@ -198,7 +199,8 @@ export default function Home() {
                 fontSize: '16px', 
                 lineHeight: '1.6',
                 color: 'var(--color-black)',
-                marginBottom: '16px'
+                marginBottom: '16px',
+                whiteSpace: 'pre-wrap'
               }}>
                 {section.content}
               </p>
@@ -363,7 +365,7 @@ export default function Home() {
             </div>
             
             {carouselImages.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
+              <div className="home-carousel" style={{ marginBottom: '32px' }}>
                 <ImageCarousel 
                   images={carouselImages} 
                   placeholderText="Fotos de cactus"

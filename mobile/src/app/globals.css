@@ -304,6 +304,13 @@ body {
   user-select: none;
 }
 
+.home-carousel .image-carousel {
+  width: 88%;
+  max-width: 340px;
+  height: 240px;
+  margin: 16px auto;
+}
+
 .carousel-arrow {
   position: absolute;
   top: 50%;
@@ -785,6 +792,12 @@ p {
 
   .image-carousel {
     height: 320px;
+  }
+
+  .home-carousel .image-carousel {
+    width: 70%;
+    max-width: 420px;
+    height: 360px;
   }
 }
 
