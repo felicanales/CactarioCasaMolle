@@ -140,19 +140,16 @@ export default function Sectores() {
             No se encontraron sectores
           </div>
         ) : (
-          <div className="grid-2-col">
+          <div className="sector-list">
             {sectores.map((sector) => (
-              <div
+              <button
                 key={sector.id}
-                className="grid-item"
+                type="button"
+                className="sector-button"
                 onClick={() => handleSectorClick(sector)}
-                style={{ cursor: 'pointer' }}
               >
-                <div className="grid-item-image">foto</div>
-                <div className="grid-item-text">
-                  {sector.name || sector.nombre || `Sector ${sector.id}`}
-                </div>
-              </div>
+                {sector.name || sector.nombre || `Sector ${sector.id}`}
+              </button>
             ))}
           </div>
         )}
