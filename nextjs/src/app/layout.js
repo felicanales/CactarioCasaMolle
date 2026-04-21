@@ -1,4 +1,4 @@
-// nextjs/src/app/layout.js
+﻿// nextjs/src/app/layout.js
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import ConsoleSilencer from "../components/ConsoleSilencer";
@@ -6,9 +6,11 @@ import { ReactQueryProvider } from "../providers/query-client";
 
 export const metadata = {
   title: "Cactario Casa Molle",
-  description: "Sistema de gestión de cactáceas - Casa Molle",
+  description: "Sistema de gestiÃ³n de cactÃ¡ceas - Casa Molle",
   icons: {
-    icon: '/favicon.ico',
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

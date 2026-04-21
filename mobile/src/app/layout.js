@@ -1,9 +1,14 @@
-import "./globals.css";
+﻿import "./globals.css";
 import ConsoleSilencer from "@/components/ConsoleSilencer";
 
 export const metadata = {
   title: "Cactuario CasaMolle",
-  description: "Aplicación móvil para explorar el Cactuario CasaMolle",
+  description: "AplicaciÃ³n mÃ³vil para explorar el Cactuario CasaMolle",
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport = {
