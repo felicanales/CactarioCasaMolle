@@ -1,55 +1,55 @@
-# 🌵 Cactario Casa Molle
+﻿# ðŸŒµ Cactario Casa Molle
 
-Sistema de gestión de cactáceas para Casa Molle con múltiples interfaces: panel de administración (staff) y aplicación móvil para visitantes.
+Sistema de gestiÃ³n de cactÃ¡ceas para Casa Molle con mÃºltiples interfaces: panel de administraciÃ³n (staff) y aplicaciÃ³n mÃ³vil para visitantes.
 
-## 📦 Componentes del Sistema
+## ðŸ“¦ Componentes del Sistema
 
 ### 1. **Frontend Staff** (`nextjs/`)
-Panel de administración para el personal del cactuario. Permite gestionar especies, sectores, inventario y reportes.
+Panel de administraciÃ³n para el personal del cactuario. Permite gestionar especies, sectores, inventario y reportes.
 
-- **Tecnología**: Next.js 15.5.5
+- **TecnologÃ­a**: Next.js 15.5.5
 - **Puerto desarrollo**: 3000
-- **Características**:
-  - Gestión de especies
-  - Gestión de sectores
+- **CaracterÃ­sticas**:
+  - GestiÃ³n de especies
+  - GestiÃ³n de sectores
   - Control de inventario
-  - Reportes y estadísticas
-  - Subida y gestión de fotos
+  - Reportes y estadÃ­sticas
+  - Subida y gestiÃ³n de fotos
 
 ### 2. **Frontend Mobile** (`mobile/`)
-Aplicación web móvil para visitantes del cactuario. Permite explorar sectores, especies y escanear códigos QR.
+AplicaciÃ³n web mÃ³vil para visitantes del cactuario. Permite explorar sectores, especies y escanear cÃ³digos QR.
 
-- **Tecnología**: Next.js 15.5.5
+- **TecnologÃ­a**: Next.js 15.5.5
 - **Puerto desarrollo**: 3002
-- **Características**:
+- **CaracterÃ­sticas**:
   - Home con carrusel de fotos
-  - Escáner de códigos QR
-  - Navegación por sectores
-  - Visualización de especies
+  - EscÃ¡ner de cÃ³digos QR
+  - NavegaciÃ³n por sectores
+  - VisualizaciÃ³n de especies
   - Detalle de especies con fotos
 
 ### 3. **Backend API** (`fastapi/`)
-API REST para gestionar datos del cactuario. Proporciona endpoints públicos y privados.
+API REST para gestionar datos del cactuario. Proporciona endpoints pÃºblicos y privados.
 
-- **Tecnología**: FastAPI (Python)
+- **TecnologÃ­a**: FastAPI (Python)
 - **Puerto desarrollo**: 8000
-- **Características**:
+- **CaracterÃ­sticas**:
   - API REST completa
-  - Endpoints públicos para visitantes
+  - Endpoints pÃºblicos para visitantes
   - Endpoints privados para staff
-  - Gestión de fotos y almacenamiento
-  - Integración con Supabase
+  - GestiÃ³n de fotos y almacenamiento
+  - IntegraciÃ³n con Supabase
 
-## 🚀 Despliegue en Railway
+## ðŸš€ Despliegue en Railway
 
-Este proyecto está configurado para desplegarse automáticamente en Railway.
+Este proyecto estÃ¡ configurado para desplegarse automÃ¡ticamente en Railway.
 
-### 📋 Prerrequisitos
+### ðŸ“‹ Prerrequisitos
 
 - Cuenta en [Railway](https://railway.app)
 - Variables de entorno configuradas
 
-### 🔧 Configuración
+### ðŸ”§ ConfiguraciÃ³n
 
 #### Variables de Entorno Requeridas
 
@@ -78,11 +78,11 @@ ENVIRONMENT=production
 NODE_ENV=production
 ```
 
-### 🚂 Deploy en Railway
+### ðŸš‚ Deploy en Railway
 
 1. **Conectar GitHub**:
    - Ir a [railway.app](https://railway.app)
-   - New Project → Deploy from GitHub repo
+   - New Project â†’ Deploy from GitHub repo
    - Seleccionar este repositorio
 
 2. **Configurar Servicios**:
@@ -92,16 +92,16 @@ NODE_ENV=production
      - **Frontend Mobile**: Carpeta `mobile/`
 
 3. **Configurar Variables**:
-   - Settings → Variables en cada servicio
+   - Settings â†’ Variables en cada servicio
    - Agregar todas las variables de entorno necesarias
 
-4. **Deploy Automático**:
-   - Railway detectará automáticamente Node.js y Python
-   - Deploy automático en cada push
+4. **Deploy AutomÃ¡tico**:
+   - Railway detectarÃ¡ automÃ¡ticamente Node.js y Python
+   - Deploy automÃ¡tico en cada push
 
-### 👥 Administración de Usuarios
+### ðŸ‘¥ AdministraciÃ³n de Usuarios
 
-El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. Para que un correo pueda iniciar sesión, debe estar registrado en esta tabla con `active=true`.
+El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. Para que un correo pueda iniciar sesiÃ³n, debe estar registrado en esta tabla con `active=true`.
 
 #### Agregar Nuevo Usuario
 
@@ -110,39 +110,39 @@ El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. 
    - Navega a SQL Editor
 
 2. **Ejecutar el script de agregar usuario**:
-   - Abre el archivo `agregar_usuario.sql` en la raíz del proyecto
-   - Busca la llamada a la función `insert_usuario_admin` (alrededor de la línea 75)
-   - Reemplaza los valores marcados con ⚠️:
+   - Abre el archivo `agregar_usuario.sql` en la raÃ­z del proyecto
+   - Busca la llamada a la funciÃ³n `insert_usuario_admin` (alrededor de la lÃ­nea 75)
+   - Reemplaza los valores marcados con âš ï¸:
      ```sql
      SELECT * FROM public.insert_usuario_admin(
-         'karim@casamolle.cl',  -- ⚠️ CAMBIAR: Correo (se convierte a minúsculas automáticamente)
-         'karim',                -- ⚠️ CAMBIAR: Nombre de usuario único
-         'Karim Daire'           -- ⚠️ OPCIONAL: Nombre completo
+         'karim@casamolle.cl',  -- âš ï¸ CAMBIAR: Correo (se convierte a minÃºsculas automÃ¡ticamente)
+         'karim',                -- âš ï¸ CAMBIAR: Nombre de usuario Ãºnico
+         'Karim Daire'           -- âš ï¸ OPCIONAL: Nombre completo
      );
      ```
-   - Ejecuta el script completo (crea la función y luego la usa)
+   - Ejecuta el script completo (crea la funciÃ³n y luego la usa)
 
 3. **Verificar**:
-   - El script incluye una consulta de verificación al final
-   - Asegúrate de que `active = true` en el resultado
+   - El script incluye una consulta de verificaciÃ³n al final
+   - AsegÃºrate de que `active = true` en el resultado
 
-#### ⚠️ Importante
+#### âš ï¸ Importante
 
-- El correo se convierte automáticamente a minúsculas (puedes escribirlo como prefieras)
-- El campo `supabase_uid` se sincronizará automáticamente cuando el usuario inicie sesión por primera vez
-- Si el correo ya existe pero está inactivo, el script lo activará automáticamente
-- Si el correo ya existe, el script actualizará el username y nombre completo
-- El `username` debe ser único en la tabla
+- El correo se convierte automÃ¡ticamente a minÃºsculas (puedes escribirlo como prefieras)
+- El campo `supabase_uid` se sincronizarÃ¡ automÃ¡ticamente cuando el usuario inicie sesiÃ³n por primera vez
+- Si el correo ya existe pero estÃ¡ inactivo, el script lo activarÃ¡ automÃ¡ticamente
+- Si el correo ya existe, el script actualizarÃ¡ el username y nombre completo
+- El `username` debe ser Ãºnico en la tabla
 
-#### Problema Común: "Correo no autorizado"
+#### Problema ComÃºn: "Correo no autorizado"
 
-Si recibes el error *"Este correo no está autorizado para acceder al sistema"*, significa que:
-- El correo no está en la tabla `usuarios`, o
+Si recibes el error *"Este correo no estÃ¡ autorizado para acceder al sistema"*, significa que:
+- El correo no estÃ¡ en la tabla `usuarios`, o
 - El correo existe pero tiene `active=false`
 
-**Solución**: Ejecuta el script `agregar_usuario.sql` con el correo correcto.
+**SoluciÃ³n**: Ejecuta el script `agregar_usuario.sql` con el correo correcto.
 
-### 🛠️ Desarrollo Local
+### ðŸ› ï¸ Desarrollo Local
 
 ```bash
 # Instalar dependencias de todos los servicios
@@ -166,95 +166,95 @@ uvicorn app.main:app --reload
 # Disponible en http://localhost:8000
 ```
 
-### 📁 Estructura del Proyecto
+### ðŸ“ Estructura del Proyecto
 
 ```
 /
-├── nextjs/              # Frontend Staff (Next.js)
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── staff/   # Panel de staff
-│   │   │   ├── species/ # Gestión de especies
-│   │   │   ├── sectors/ # Gestión de sectores
-│   │   │   ├── inventory/ # Inventario
-│   │   │   └── reports/ # Reportes
-│   │   ├── components/  # Componentes React
-│   │   └── utils/      # Utilidades
-│   ├── railway.json     # Configuración Railway frontend staff
-│   └── package.json
-├── mobile/              # Frontend Mobile (Next.js)
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.js  # Home
-│   │   │   ├── qr/      # Escáner QR
-│   │   │   ├── sectores/ # Navegación sectores
-│   │   │   └── especies/ # Detalle especies
-│   │   ├── components/  # Componentes React
-│   │   └── utils/       # Utilidades
-│   └── package.json
-├── fastapi/             # Backend FastAPI
-│   ├── app/
-│   │   ├── api/         # Rutas de la API
-│   │   ├── core/        # Configuración core
-│   │   ├── models/      # Modelos de datos
-│   │   └── services/    # Lógica de negocio
-│   ├── Dockerfile       # Configuración Docker
-│   ├── railway.json     # Configuración Railway backend
-│   └── requirements.txt
-└── package.json         # Scripts principales
+â”œâ”€â”€ nextjs/              # Frontend Staff (Next.js)
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”‚   â”œâ”€â”€ staff/   # Panel de staff
+â”‚   â”‚   â”‚   â”œâ”€â”€ species/ # GestiÃ³n de especies
+â”‚   â”‚   â”‚   â”œâ”€â”€ sectors/ # GestiÃ³n de sectores
+â”‚   â”‚   â”‚   â”œâ”€â”€ inventory/ # Inventario
+â”‚   â”‚   â”‚   â””â”€â”€ reports/ # Reportes
+â”‚   â”‚   â”œâ”€â”€ components/  # Componentes React
+â”‚   â”‚   â””â”€â”€ utils/      # Utilidades
+â”‚   â”œâ”€â”€ railway.json     # ConfiguraciÃ³n Railway frontend staff
+â”‚   â””â”€â”€ package.json
+â”œâ”€â”€ mobile/              # Frontend Mobile (Next.js)
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”‚   â”œâ”€â”€ page.js  # Home
+â”‚   â”‚   â”‚   â”œâ”€â”€ qr/      # EscÃ¡ner QR
+â”‚   â”‚   â”‚   â”œâ”€â”€ sectores/ # NavegaciÃ³n sectores
+â”‚   â”‚   â”‚   â””â”€â”€ especies/ # Detalle especies
+â”‚   â”‚   â”œâ”€â”€ components/  # Componentes React
+â”‚   â”‚   â””â”€â”€ utils/       # Utilidades
+â”‚   â””â”€â”€ package.json
+â”œâ”€â”€ fastapi/             # Backend FastAPI
+â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”œâ”€â”€ api/         # Rutas de la API
+â”‚   â”‚   â”œâ”€â”€ core/        # ConfiguraciÃ³n core
+â”‚   â”‚   â”œâ”€â”€ models/      # Modelos de datos
+â”‚   â”‚   â””â”€â”€ services/    # LÃ³gica de negocio
+â”‚   â”œâ”€â”€ Dockerfile       # ConfiguraciÃ³n Docker
+â”‚   â”œâ”€â”€ railway.json     # ConfiguraciÃ³n Railway backend
+â”‚   â””â”€â”€ requirements.txt
+â””â”€â”€ package.json         # Scripts principales
 ```
 
-### 🌐 URLs
+### ðŸŒ URLs
 
 #### Desarrollo
 - **Frontend Staff**: `http://localhost:3000`
 - **Frontend Mobile**: `http://localhost:3002`
 - **Backend API**: `http://localhost:8000`
 
-#### Producción
+#### ProducciÃ³n
 - **Frontend Staff**: `https://tu-frontend-staff.railway.app`
 - **Frontend Mobile**: `https://tu-frontend-mobile.railway.app`
 - **Backend API**: `https://tu-backend.railway.app`
 
-### 📱 Características
+### ðŸ“± CaracterÃ­sticas
 
 #### Frontend Staff
-- ✅ Panel de administración completo
-- ✅ Gestión de especies y sectores
-- ✅ Control de inventario
-- ✅ Reportes y estadísticas
-- ✅ Subida y gestión de fotos
+- âœ… Panel de administraciÃ³n completo
+- âœ… GestiÃ³n de especies y sectores
+- âœ… Control de inventario
+- âœ… Reportes y estadÃ­sticas
+- âœ… Subida y gestiÃ³n de fotos
 
 #### Frontend Mobile
-- ✅ Interfaz móvil optimizada
-- ✅ Escáner de códigos QR
-- ✅ Navegación por sectores
-- ✅ Visualización de especies
-- ✅ Carrusel de fotos
+- âœ… Interfaz mÃ³vil optimizada
+- âœ… EscÃ¡ner de cÃ³digos QR
+- âœ… NavegaciÃ³n por sectores
+- âœ… VisualizaciÃ³n de especies
+- âœ… Carrusel de fotos
 
 #### Backend
-- ✅ API REST completa
-- ✅ Endpoints públicos y privados
-- ✅ Gestión de fotos
-- ✅ Integración con Supabase
-- ✅ CORS configurado
+- âœ… API REST completa
+- âœ… Endpoints pÃºblicos y privados
+- âœ… GestiÃ³n de fotos
+- âœ… IntegraciÃ³n con Supabase
+- âœ… CORS configurado
 
-## 🎯 Scripts Disponibles
+## ðŸŽ¯ Scripts Disponibles
 
 ### Frontend Staff
 ```bash
 cd nextjs
 npm run dev          # Desarrollo
-npm run build        # Build producción
-npm start            # Producción
+npm run build        # Build producciÃ³n
+npm start            # ProducciÃ³n
 ```
 
 ### Frontend Mobile
 ```bash
 cd mobile
 npm run dev          # Desarrollo
-npm run build        # Build producción
-npm start            # Producción
+npm run build        # Build producciÃ³n
+npm start            # ProducciÃ³n
 ```
 
 ### Backend
@@ -263,12 +263,45 @@ cd fastapi
 uvicorn app.main:app --reload  # Desarrollo
 ```
 
-## 📚 Documentación Adicional
+## ðŸ“š DocumentaciÃ³n Adicional
 
-- `mobile/README.md` - Documentación detallada del frontend mobile
-- `DEPLOYMENT_GUIDE.md` - Guía de despliegue
-- `INSTRUCCIONES_DEPLOY_RAILWAY.md` - Instrucciones específicas para Railway
+- `mobile/README.md` - DocumentaciÃ³n detallada del frontend mobile
+- `DEPLOYMENT_GUIDE.md` - GuÃ­a de despliegue
+- `INSTRUCCIONES_DEPLOY_RAILWAY.md` - Instrucciones especÃ­ficas para Railway
 
-## 📞 Soporte
+## ðŸ“ž Soporte
 
-Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la documentación de cada componente.
+Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la documentaciÃ³n de cada componente.
+
+## Cloudflare Billing
+
+### Cuenta y acceso
+
+- Cuenta asociada: `felcanales@alumnos.uai.cl` (login via GitHub).
+- Direccion de facturacion: configurada en el panel de Billing de Cloudflare.
+- Modalidad de facturacion: facturas consolidadas (no recibos individuales).
+
+### Facturas recientes
+
+| Fecha | Factura | Monto | Estado |
+| --- | --- | --- | --- |
+| Apr 8, 2026 | `IN-61859818` | `$0.00` | Paid |
+| Mar 8, 2026 | `IN-59298706` | `$0.00` | Paid |
+| Feb 8, 2026 | `IN-57039525` | `$0.00` | Paid |
+
+### Metodo de pago
+
+- Metodo de pago actual: tarjeta registrada en la seccion **Payment** (visible en Billing).
+
+### Suscripciones activas
+
+- Servicio: **R2 Object Storage**.
+- Estado: **Paid**.
+- Renovacion: **May 8, 2026**.
+- Precio: **$0.00/mes + uso variable**.
+- Factura: **Paid**.
+- Accion disponible: **Cancel**.
+
+### Control de costos
+
+- Billable usage: panel disponible para revisar consumo y cargos variables segun uso de servicios.

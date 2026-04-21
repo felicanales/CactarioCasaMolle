@@ -535,7 +535,7 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-const logout = async () => {
+const logout = async ({ redirectTo = "/login" } = {}) => {
     try {
       await apiRequest(`${API}/auth/logout`, {
         method: "POST",
@@ -544,6 +544,9 @@ const logout = async () => {
       setUser(null);
       setAccessToken(null);
       setStoredAccessToken(null);
+      if (redirectTo && typeof window !== "undefined") {
+        window.location.replace(redirectTo);
+      }
     }
   };
 
