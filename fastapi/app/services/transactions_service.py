@@ -25,7 +25,7 @@ def get_purchases_grouped(
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, purchase_date, purchase_price, "
             "invoice_number, nursery, age_months, health_status, location, has_offshoots"
-        ).not_.is_("purchase_date", "null")
+        ).filter("purchase_date", "not.is", "null")
 
         if date_from:
             query = query.gte("purchase_date", date_from)
@@ -138,7 +138,7 @@ def get_sales_grouped(
             "id, species_id, sector_id, sale_date, sale_price, "
             "purchase_date, purchase_price, nursery, invoice_number, "
             "age_months, health_status, location, has_offshoots"
-        ).not_.is_("sale_date", "null")
+        ).filter("sale_date", "not.is", "null")
 
         if date_from:
             query = query.gte("sale_date", date_from)
