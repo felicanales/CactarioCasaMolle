@@ -259,8 +259,7 @@ export default function SpeciesEditorPage() {
         try {
             setLoading(true);
             setError("");
-            const apiUrl = typeof window !== 'undefined' ? getDynamicApiUrl() : API;
-            const res = await apiRequest(`${apiUrl}/sectors/staff`, {}, accessToken);
+            const res = await apiRequest(`${API}/sectors/staff`, {}, accessToken);
             if (!res.ok) {
                 if (res.status === 401 && !BYPASS_AUTH) {
                     setError("Sesión expirada");
