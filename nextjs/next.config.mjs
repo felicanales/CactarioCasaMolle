@@ -17,13 +17,21 @@ const normalizedApiProxyUrl = apiProxyUrl.replace(/\/$/, '');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
-
-    // Standalone output for Railway deployment
     output: 'standalone',
-
-    // Variables de entorno
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    },
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "pub-538a9d932ea54b5c81b7831be6ea5ee9.r2.dev",
+            },
+            {
+                protocol: "https",
+                hostname: "gefozbrdrtopdfuezppm.supabase.co",
+            },
+        ],
     },
 
     async rewrites() {

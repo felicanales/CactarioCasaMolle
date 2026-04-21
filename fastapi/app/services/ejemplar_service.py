@@ -41,156 +41,146 @@ def list_staff(
     health_status: Optional[str] = None,
     purchase_date: Optional[str] = None,
     sort_by: str = "scientific_name",
-    sort_order: str = "asc"
-) -> List[Dict[str, Any]]:
+    sort_order: str = "asc",
+    limit: int = 50,
+    offset: int = 0
+) -> Dict[str, Any]:
     """
     Lista ejemplares con información completa de especie y sector.
-    Soporta filtros por especie, sector, tamaño, morfología y nombre común.
+    Soporta filtros, ordenamiento y paginación.
+    Retorna {"data": [...], "total": N}.
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
+    # Máximo de registros a traer de la DB para evitar OOM cuando se aplica
+    # la búsqueda general (q) en memoria sobre el subconjunto ya filtrado.
+    MAX_DB_FETCH = 1000
+
     sb = get_public()
-    
+
     try:
-        # Consultar ejemplares directamente (sin joins, más confiable)
+        # --- Paso 1: resolver species_ids desde filtros de especie ---
+        # morfologia y nombre_comun se resuelven con una pre-query a especies,
+        # evitando traer todos los ejemplares para filtrar en Python.
+        filter_species_ids: Optional[List[int]] = None
+        if morfologia or nombre_comun:
+            sp_q = sb.table("especies").select("id")
+            if morfologia:
+                sp_q = sp_q.ilike("tipo_morfología", f"%{morfologia}%")
+            if nombre_comun:
+                sp_q = sp_q.or_(
+                    f"nombre_común.ilike.%{nombre_comun}%,"
+                    f"nombres_comunes.ilike.%{nombre_comun}%"
+                )
+            sp_res = sp_q.execute()
+            filter_species_ids = [s["id"] for s in (sp_res.data or [])]
+            if not filter_species_ids:
+                return {"data": [], "total": 0}
+
+        # --- Paso 2: query principal con filtros directos en DB ---
         query = sb.table("ejemplar").select("*")
-        
-        # Aplicar filtros directos
+
         if species_id:
             query = query.eq("species_id", species_id)
-        
+        elif filter_species_ids is not None:
+            query = query.in_("species_id", filter_species_ids)
+
         if sector_id is not None:
-            # Si sector_id es 0 o "null", filtrar por NULL (sin sector asignado)
             if sector_id == 0 or str(sector_id).lower() == "null":
                 query = query.is_("sector_id", "null")
             else:
                 query = query.eq("sector_id", sector_id)
-        
+
         if tamaño:
             query = query.eq("tamaño", tamaño)
-        
         if health_status:
             query = query.eq("health_status", health_status)
-        
         if purchase_date:
             query = query.eq("purchase_date", purchase_date)
-        
-        # Ejecutar la consulta
+
+        query = query.limit(MAX_DB_FETCH)
         res = query.execute()
         ejemplares = res.data or []
-        
-        # Si no hay ejemplares, retornar lista vacía
+
         if not ejemplares:
-            return []
-        
-        # Obtener IDs únicos de especies y sectores
-        species_ids = list(set([e.get("species_id") for e in ejemplares if e.get("species_id")]))
-        sector_ids = list(set([e.get("sector_id") for e in ejemplares if e.get("sector_id")]))
-        
-        # Consultar especies relacionadas
-        especies_map = {}
-        if species_ids:
+            return {"data": [], "total": 0}
+
+        # --- Paso 3: cargar datos relacionados en batch ---
+        species_ids_needed = list(set(e["species_id"] for e in ejemplares if e.get("species_id")))
+        sector_ids_needed = list(set(e["sector_id"] for e in ejemplares if e.get("sector_id")))
+
+        especies_map: Dict[int, Dict] = {}
+        if species_ids_needed:
             try:
-                especies_res = sb.table("especies").select("id, scientific_name, nombre_común, nombres_comunes, tipo_morfología").in_("id", species_ids).execute()
-                for especie in (especies_res.data or []):
-                    especies_map[especie["id"]] = especie
+                esp_res = sb.table("especies").select(
+                    "id, scientific_name, nombre_común, nombres_comunes, tipo_morfología"
+                ).in_("id", species_ids_needed).execute()
+                for e in (esp_res.data or []):
+                    especies_map[e["id"]] = e
             except Exception as e:
-                logger.warning(f"[list_staff] Error cargando especies: {str(e)}")
-        
-        # Consultar sectores relacionados
-        sectores_map = {}
-        if sector_ids:
+                logger.warning(f"[list_staff] Error cargando especies: {e}")
+
+        sectores_map: Dict[int, Dict] = {}
+        if sector_ids_needed:
             try:
-                sectores_res = sb.table("sectores").select("id, name, description").in_("id", sector_ids).execute()
-                for sector in (sectores_res.data or []):
-                    sectores_map[sector["id"]] = sector
+                sec_res = sb.table("sectores").select(
+                    "id, name, description"
+                ).in_("id", sector_ids_needed).execute()
+                for s in (sec_res.data or []):
+                    sectores_map[s["id"]] = s
             except Exception as e:
-                logger.warning(f"[list_staff] Error cargando sectores: {str(e)}")
-        
-        # Combinar datos
+                logger.warning(f"[list_staff] Error cargando sectores: {e}")
+
         for ej in ejemplares:
             ej["especies"] = especies_map.get(ej.get("species_id"))
             ej["sectores"] = sectores_map.get(ej.get("sector_id"))
-        
+
     except Exception as e:
-        logger.error(f"[list_staff] Error al listar ejemplares: {str(e)}")
-        return []
-    
-    # Filtros adicionales que requieren procesamiento en memoria
-    # (porque involucran campos de las tablas relacionadas)
-    filtered = []
-    for ej in ejemplares:
-        # Filtrar por morfología (en la tabla especies)
-        if morfologia:
-            especie = ej.get("especies") or {}
-            tipo_morf = especie.get("tipo_morfología") or ""
-            if morfologia.lower() not in tipo_morf.lower():
-                continue
-        
-        # Filtrar por nombre común (en la tabla especies)
-        if nombre_comun:
-            especie = ej.get("especies") or {}
-            nombre_comun_val = especie.get("nombre_común") or ""
-            nombres_comunes_val = especie.get("nombres_comunes") or ""
-            search_text = f"{nombre_comun_val} {nombres_comunes_val}".lower()
-            if nombre_comun.lower() not in search_text:
-                continue
-        
-        # Filtro de búsqueda general (en múltiples campos)
-        if q:
+        logger.error(f"[list_staff] Error al listar ejemplares: {e}")
+        return {"data": [], "total": 0}
+
+    # --- Paso 4: filtro q en memoria (sobre el subconjunto ya filtrado) ---
+    if q:
+        q_lower = q.lower()
+        filtered = []
+        for ej in ejemplares:
             especie = ej.get("especies") or {}
             sector = ej.get("sectores") or {}
-            search_text = (
-                f"{ej.get('id', '')} "
-                f"{especie.get('scientific_name', '')} "
-                f"{especie.get('nombre_común', '')} "
-                f"{sector.get('name', '')} "
-                f"{ej.get('nursery', '')} "
-                f"{ej.get('health_status', '')} "
-                f"{ej.get('location', '')}"
-            ).lower()
-            if q.lower() not in search_text:
-                continue
-        
-        filtered.append(ej)
-    
-    # Ordenamiento
+            search_text = " ".join([
+                str(ej.get("id", "")),
+                especie.get("scientific_name", ""),
+                especie.get("nombre_común", ""),
+                sector.get("name", ""),
+                ej.get("nursery", "") or "",
+                ej.get("health_status", "") or "",
+                ej.get("location", "") or "",
+            ]).lower()
+            if q_lower in search_text:
+                filtered.append(ej)
+    else:
+        filtered = ejemplares
+
+    # --- Paso 5: ordenamiento ---
+    tamaño_order = {"XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5}
+    desc = sort_order == "desc"
+
     if sort_by == "scientific_name":
-        filtered.sort(
-            key=lambda x: (
-                (x.get("especies") or {}).get("scientific_name") or ""
-            ).lower(),
-            reverse=(sort_order == "desc")
-        )
+        filtered.sort(key=lambda x: ((x.get("especies") or {}).get("scientific_name") or "").lower(), reverse=desc)
     elif sort_by == "nombre_comun":
-        filtered.sort(
-            key=lambda x: (
-                (x.get("especies") or {}).get("nombre_común") or ""
-            ).lower(),
-            reverse=(sort_order == "desc")
-        )
+        filtered.sort(key=lambda x: ((x.get("especies") or {}).get("nombre_común") or "").lower(), reverse=desc)
     elif sort_by == "tamaño":
-        # Ordenar por tamaño: XS < S < M < L < XL < XXL
-        tamaño_order = {"XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5}
-        filtered.sort(
-            key=lambda x: tamaño_order.get(x.get("tamaño"), 99),
-            reverse=(sort_order == "desc")
-        )
+        filtered.sort(key=lambda x: tamaño_order.get(x.get("tamaño"), 99), reverse=desc)
     elif sort_by == "purchase_date":
-        filtered.sort(
-            key=lambda x: x.get("purchase_date") or "",
-            reverse=(sort_order == "desc")
-        )
+        filtered.sort(key=lambda x: x.get("purchase_date") or "", reverse=desc)
     elif sort_by == "sector_name":
-        filtered.sort(
-            key=lambda x: (
-                (x.get("sectores") or {}).get("name") or ""
-            ).lower(),
-            reverse=(sort_order == "desc")
-        )
-    
-    return filtered
+        filtered.sort(key=lambda x: ((x.get("sectores") or {}).get("name") or "").lower(), reverse=desc)
+
+    # --- Paso 6: paginación ---
+    total = len(filtered)
+    page = filtered[offset: offset + limit]
+
+    return {"data": page, "total": total}
 
 def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
     """

@@ -8,17 +8,32 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_purchases_grouped(request: Optional[Request] = None) -> List[Dict[str, Any]]:
+def get_purchases_grouped(
+    request: Optional[Request] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     """
-    Obtiene todas las compras agrupadas por fecha, factura y vivero.
-    Calcula el monto total y la cantidad de ejemplares por compra.
+    Obtiene compras agrupadas por fecha, factura y vivero.
+    Soporta filtros de rango de fecha y paginación para evitar traer todo el historial.
     """
-    # Usar service role para evitar problemas con RLS
     sb = get_service()
-    
+
     try:
-        # Obtener todos los ejemplares con purchase_date (usar select("*") para evitar problemas con campos faltantes)
-        result = sb.table("ejemplar").select("*").not_.is_("purchase_date", "null").order("purchase_date", desc=True).execute()
+        query = sb.table("ejemplar").select(
+            "id, species_id, sector_id, purchase_date, purchase_price, "
+            "invoice_number, nursery, age_months, health_status, location, has_offshoots"
+        ).not_.is_("purchase_date", "null")
+
+        if date_from:
+            query = query.gte("purchase_date", date_from)
+        if date_to:
+            query = query.lte("purchase_date", date_to)
+
+        query = query.order("purchase_date", desc=True).range(offset, offset + limit - 1)
+        result = query.execute()
         
         if not result.data:
             return []
@@ -105,17 +120,33 @@ def get_purchases_grouped(request: Optional[Request] = None) -> List[Dict[str, A
         raise
 
 
-def get_sales_grouped(request: Optional[Request] = None) -> List[Dict[str, Any]]:
+def get_sales_grouped(
+    request: Optional[Request] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     """
-    Obtiene todas las ventas agrupadas por fecha.
-    Calcula el monto total y la cantidad de ejemplares por venta.
+    Obtiene ventas agrupadas por fecha.
+    Soporta filtros de rango de fecha y paginación.
     """
-    # Usar service role para evitar problemas con RLS
     sb = get_service()
-    
+
     try:
-        # Obtener todos los ejemplares con sale_date (usar select("*") para evitar problemas con campos faltantes)
-        result = sb.table("ejemplar").select("*").not_.is_("sale_date", "null").order("sale_date", desc=True).execute()
+        query = sb.table("ejemplar").select(
+            "id, species_id, sector_id, sale_date, sale_price, "
+            "purchase_date, purchase_price, nursery, invoice_number, "
+            "age_months, health_status, location, has_offshoots"
+        ).not_.is_("sale_date", "null")
+
+        if date_from:
+            query = query.gte("sale_date", date_from)
+        if date_to:
+            query = query.lte("sale_date", date_to)
+
+        query = query.order("sale_date", desc=True).range(offset, offset + limit - 1)
+        result = query.execute()
         
         if not result.data:
             return []

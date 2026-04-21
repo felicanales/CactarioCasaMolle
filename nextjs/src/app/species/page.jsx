@@ -9,6 +9,8 @@ import PhotoGallery from "../../components/PhotoGallery";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
+import { getAccessTokenFromContext } from "../../utils/auth-helpers";
+import { useSpeciesList, useCreateSpecies, useUpdateSpecies, useDeleteSpecies } from "../../hooks/useSpecies";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -27,45 +29,6 @@ const formatCommonNames = (nombre_común, nombres_comunes) => {
     return nombre_común || nombres_comunes || '';
 };
 
-// Helper para obtener el access token
-// Prioridad: token del AuthContext > cookies > localStorage
-const getAccessTokenFromContext = (accessTokenFromContext) => {
-    // Prioridad 1: Token del estado de AuthContext (más confiable)
-    if (accessTokenFromContext) {
-        return accessTokenFromContext;
-    }
-
-    if (typeof window === 'undefined') return null;
-
-    // Prioridad 2: cookies (incluyendo cookies cross-domain)
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-
-        // Método 2: Buscar en todas las cookies
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'sb-access-token' && value) {
-                return value;
-            }
-        }
-    } catch {}
-
-    // Prioridad 3: localStorage (para compatibilidad)
-    try {
-        const localStorageToken = localStorage.getItem('access_token');
-        if (localStorageToken) {
-            return localStorageToken;
-        }
-    } catch {}
-
-    return null;
-};
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
@@ -152,12 +115,18 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SpeciesPage() {
-    const { user, loading: authLoading, logout, fetchMe, accessToken, apiRequest: authApiRequest } = useAuth();
+    const { user, loading: authLoading, logout, fetchMe, accessToken } = useAuth();
     const router = useRouter();
 
-    const [species, setSpecies] = useState([]);
+    const { data: species = [], isLoading: loading } = useSpeciesList(
+        {},
+        { enabled: !!(user || BYPASS_AUTH) }
+    );
+    const createSpecies = useCreateSpecies();
+    const updateSpecies = useUpdateSpecies();
+    const deleteSpecies = useDeleteSpecies();
+
     const [filteredSpecies, setFilteredSpecies] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [filterMorfologia, setFilterMorfologia] = useState("");
@@ -196,35 +165,6 @@ export default function SpeciesPage() {
     const [pendingPhotoUrls, setPendingPhotoUrls] = useState([]); // URLs de preview para revocar después
     const [newlyCreatedSpeciesId, setNewlyCreatedSpeciesId] = useState(null); // ID de especie recién creada
 
-    // Helper para requests autenticadas
-    // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
-    const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-        // Si tenemos apiRequest del AuthContext, usarlo
-        if (authApiRequest) {
-            return authApiRequest(url, options);
-        }
-
-        // Fallback: implementación local (para compatibilidad)
-        const accessToken = getAccessTokenFromContext(accessTokenFromContext);
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        };
-
-        // Agregar Authorization header si hay token disponible
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-        } else {
-            console.error('[SpeciesPage] ❌ No access token available for:', options.method || 'GET', url);
-        }
-
-        return fetch(url, {
-            ...options,
-            headers,
-            credentials: 'include',
-        });
-    };
-
     // Verificar autenticación solo UNA vez
     useEffect(() => {
         // BYPASS: No redirigir en desarrollo
@@ -240,48 +180,6 @@ export default function SpeciesPage() {
             setCheckedAuth(true);
         }
     }, [user, authLoading, router, checkedAuth]);
-
-    // Fetch species
-    const fetchSpecies = async () => {
-        try {
-            setLoading(true);
-            setError("");
-
-            // Cargar todas las especies sin filtros del backend
-            const url = `${API}/species/staff`;
-
-            const res = await apiRequest(url, {}, accessToken);
-
-            if (!res.ok) {
-                console.error('[SpeciesPage] Fetch failed:', res.status);
-                if (res.status === 401 && !BYPASS_AUTH) {
-                    // Usuario no autenticado - redirigir a login
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al cargar especies");
-            }
-            const data = await res.json();
-            setSpecies(data);
-            // Inicializar filteredSpecies con todas las especies
-            setFilteredSpecies(data);
-            setError("");
-        } catch (err) {
-            console.error('[SpeciesPage] Error:', err);
-            setError(err.message || "Error al cargar especies");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Cargar especies solo cuando el usuario esté autenticado y se haya verificado
-    useEffect(() => {
-        if (user && checkedAuth) {
-            fetchSpecies();
-        }
-    }, [user, checkedAuth]);
 
     // Limpiar URLs cuando el componente se desmonte
     useEffect(() => {
@@ -340,6 +238,8 @@ export default function SpeciesPage() {
 
         setFilteredSpecies(filtered);
     }, [species, searchQuery, filterMorfologia, filterCategoria, sortOrder]);
+
+
 
     const handleCreate = () => {
         setModalMode("create");
@@ -446,37 +346,14 @@ export default function SpeciesPage() {
                 delete payload.morfología_cactus;
             }
 
-            let res;
             let createdSpeciesId = null;
             if (modalMode === "create") {
-                res = await apiRequest(`${API}/species/staff`, {
-                    method: "POST",
-                    body: JSON.stringify(payload),
-                }, accessToken);
-
-                if (res.ok) {
-                    // Obtener el ID de la especie creada
-                    const createdSpecies = await res.json();
-                    createdSpeciesId = createdSpecies.id;
-                    setNewlyCreatedSpeciesId(createdSpeciesId);
-                }
+                const created = await createSpecies.mutateAsync(payload);
+                createdSpeciesId = created.id;
+                setNewlyCreatedSpeciesId(createdSpeciesId);
             } else if (modalMode === "edit") {
-                res = await apiRequest(`${API}/species/staff/${selectedSpecies.id}`, {
-                    method: "PUT",
-                    body: JSON.stringify(payload),
-                }, accessToken);
-                createdSpeciesId = selectedSpecies.id; // En modo edit, usar el ID existente
-            }
-
-            if (!res.ok) {
-                if (res.status === 401) {
-                    // Usuario no autenticado - redirigir a login
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al guardar");
+                await updateSpecies.mutateAsync({ id: selectedSpecies.id, payload });
+                createdSpeciesId = selectedSpecies.id;
             }
 
             // Si hay fotos pendientes y se creó/editó exitosamente, subirlas automáticamente
@@ -513,12 +390,10 @@ export default function SpeciesPage() {
             }
 
             setShowModal(false);
-            // Revocar todas las URLs antes de limpiar
             pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
             setPendingPhotos([]);
             setPendingPhotoUrls([]);
             setNewlyCreatedSpeciesId(null);
-            fetchSpecies();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -535,24 +410,9 @@ export default function SpeciesPage() {
         if (!speciesIdToDelete) return;
 
         try {
-            const res = await apiRequest(`${API}/species/staff/${speciesIdToDelete}`, {
-                method: "DELETE",
-            }, accessToken);
-
-            if (!res.ok) {
-                if (res.status === 401) {
-                    // Usuario no autenticado - redirigir a login
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al eliminar");
-            }
-
+            await deleteSpecies.mutateAsync(speciesIdToDelete);
             setShowDeleteModal(false);
             setSpeciesIdToDelete(null);
-            fetchSpecies();
         } catch (err) {
             setError(err.message);
             setShowDeleteModal(false);

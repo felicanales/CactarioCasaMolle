@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApiUrl } from "../../utils/api-config";
+import { getAccessTokenFromContext } from "../../utils/auth-helpers";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -33,46 +34,6 @@ export default function ReportsPage() {
         }
     }, [user]);
 
-    // Usar configuración centralizada de API URL
-
-    // Helper para obtener el access token
-    const getAccessTokenFromContext = (accessTokenFromContext) => {
-        // Prioridad 1: Token del estado de AuthContext (más confiable)
-        if (accessTokenFromContext) {
-            return accessTokenFromContext;
-        }
-
-        if (typeof window === 'undefined') return null;
-
-        // Prioridad 2: cookies (incluyendo cookies cross-domain)
-        // Intentar leer cookies de diferentes formas para cross-domain
-        try {
-            // Método 1: Regex estándar
-            let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-            if (match && match[2]) {
-                return match[2];
-            }
-            
-            // Método 2: Buscar en todas las cookies
-            const cookies = document.cookie.split(';');
-            for (const cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'sb-access-token' && value) {
-                    return value;
-                }
-            }
-        } catch {}
-
-        // Prioridad 3: localStorage (para compatibilidad)
-        try {
-            const localStorageToken = localStorage.getItem('access_token');
-            if (localStorageToken) {
-                return localStorageToken;
-            }
-        } catch {}
-
-        return null;
-    };
 
     const apiRequest = async (url, options = {}) => {
         const API = getApiUrl();

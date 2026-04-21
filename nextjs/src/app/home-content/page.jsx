@@ -8,40 +8,10 @@ import AuthenticatedImage from "../../components/AuthenticatedImage";
 import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
+import { getAccessTokenFromContext } from "../../utils/auth-helpers";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-
-const getDynamicApiUrl = () => {
-    try {
-        return getApiUrl();
-    } catch (error) {
-        console.error('[home-content] Error getting API URL:', error);
-        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    }
-};
-
-const API = typeof window !== 'undefined' ? getDynamicApiUrl() : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
-
-const getAccessTokenFromContext = (accessTokenFromContext) => {
-    if (accessTokenFromContext) {
-        return accessTokenFromContext;
-    }
-    if (typeof window === 'undefined') return null;
-    try {
-        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'sb-access-token' && value) {
-                return value;
-            }
-        }
-    } catch {}
-    return null;
-};
+const API = getApiUrl();
 
 export default function HomeContentPage() {
     const { user, loading: authLoading, accessToken, apiRequest } = useAuth();

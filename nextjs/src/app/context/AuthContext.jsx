@@ -168,6 +168,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } o null
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+  const accessTokenRef = useRef(null);          // Ref para leer el token sin dependencia en useCallback
   const refreshInFlightRef = useRef(null);
   const [debugState, setDebugState] = useState({
     lastRefreshAt: null,
@@ -239,8 +240,13 @@ export function AuthProvider({ children }) {
     return refreshPromise;
   }, [API, refreshInFlightRef, setUser, setAccessToken]);
 
-  // Crear apiRequest que siempre use el token actual del estado
-  // Usar useCallback para que se actualice cuando accessToken cambie
+  // Mantener accessTokenRef sincronizado para leerlo sin listar accessToken como dependencia
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+  }, [accessToken]);
+
+  // apiRequest es una referencia estable: no lista accessToken como dependencia,
+  // lo lee desde accessTokenRef para evitar re-renders en cascada en cada refresh.
   const apiRequest = useCallback(async (url, options = {}) => {
     const headers = {
       'Content-Type': 'application/json',
@@ -248,9 +254,9 @@ export function AuthProvider({ children }) {
     };
 
     if (!headers.Authorization && !headers.authorization) {
-      // Prioridad 1: Token del estado (mas reciente)
-      // Prioridad 2: Token almacenado
-      const token = accessToken || getAccessToken();
+      // Prioridad 1: Ref del token (siempre actual, sin causar re-render)
+      // Prioridad 2: Token almacenado en localStorage / cookie
+      const token = accessTokenRef.current || getAccessToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -311,7 +317,7 @@ export function AuthProvider({ children }) {
     }
 
     return response;
-  }, [accessToken, runRefresh]);
+  }, [runRefresh]); // accessToken se lee desde accessTokenRef, no como dependencia
 
   // Función para verificar si el token está expirando pronto
   const isTokenExpiringSoon = () => {

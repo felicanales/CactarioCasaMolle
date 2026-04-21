@@ -60,15 +60,14 @@ def get_public_by_qr(qr_code: str) -> Optional[Dict[str, Any]]:
                     logger.info(f"[get_public_by_qr] Sector encontrado por ID: id={sector.get('id')}, name={sector.get('name')}, qr_code={sector.get('qr_code')}")
                     return sector
             
-            # Intentar búsqueda sin distinción de mayúsculas/minúsculas como fallback
-            logger.info(f"[get_public_by_qr] Intentando búsqueda alternativa (case-insensitive)...")
-            all_sectors = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).execute()
-            if all_sectors.data:
-                for sector in all_sectors.data:
-                    if sector.get("qr_code") and str(sector.get("qr_code")).strip().upper() == qr_code_normalized.upper():
-                        logger.info(f"[get_public_by_qr] Sector encontrado (case-insensitive): id={sector.get('id')}, qr_code={sector.get('qr_code')}")
-                        return sector
-            logger.warning(f"[get_public_by_qr] No se encontró sector con qr_code (ni por ID, ni case-insensitive): '{qr_code_normalized}'")
+            # Búsqueda case-insensitive vía ilike (evita traer todos los sectores)
+            logger.info(f"[get_public_by_qr] Intentando búsqueda ilike...")
+            ilike_res = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS)).ilike("qr_code", qr_code_normalized).limit(1).execute()
+            if ilike_res.data:
+                sector = ilike_res.data[0]
+                logger.info(f"[get_public_by_qr] Sector encontrado (ilike): id={sector.get('id')}, qr_code={sector.get('qr_code')}")
+                return sector
+            logger.warning(f"[get_public_by_qr] No se encontró sector con qr_code (ni por ID, ni ilike): '{qr_code_normalized}'")
             return None
     except Exception as e:
         logger.error(f"[get_public_by_qr] Error al buscar sector: {str(e)}", exc_info=True)

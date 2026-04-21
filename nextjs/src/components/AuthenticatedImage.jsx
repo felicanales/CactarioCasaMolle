@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getApiUrl } from "../utils/api-config";
+import { getAccessTokenFromContext } from "../utils/auth-helpers";
 
 /**
  * Componente para cargar imágenes que requieren autenticación
@@ -21,35 +22,7 @@ export default function AuthenticatedImage({
     const [error, setError] = useState(false);
     const [usedFallback, setUsedFallback] = useState(false);
 
-    // Helper para obtener el access token
-    const getAccessToken = () => {
-        if (typeof window === 'undefined') return null;
-
-        // Intentar leer cookies de diferentes formas para cross-domain
-        try {
-            // Método 1: Regex estándar
-            let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-            if (match && match[2]) {
-                return match[2];
-            }
-
-            // Método 2: Buscar en todas las cookies (para cross-domain)
-            const cookies = document.cookie.split(';');
-            for (const cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'sb-access-token' && value) {
-                    return value;
-                }
-            }
-        } catch {}
-
-        // Fallback a localStorage (para compatibilidad)
-        try {
-            return localStorage.getItem('access_token');
-        } catch {}
-
-        return null;
-    };
+    const getAccessToken = () => getAccessTokenFromContext(null);
 
 
     const loadFromSource = (value) => {

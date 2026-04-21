@@ -12,31 +12,32 @@ router = APIRouter()
 def list_ejemplares_staff(
     q: Optional[str] = Query(None, description="Búsqueda general"),
     species_id: Optional[int] = Query(None, description="Filtrar por especie"),
-    sector_id: Optional[str] = Query(None, description="Filtrar por sector (puede ser ID numérico o 'null' para sin asignar)"),
+    sector_id: Optional[str] = Query(None, description="Filtrar por sector (ID numérico o 'null' para sin asignar)"),
     tamaño: Optional[str] = Query(None, description="Filtrar por tamaño (XS, S, M, L, XL, XXL)"),
     morfologia: Optional[str] = Query(None, description="Filtrar por morfología"),
     nombre_comun: Optional[str] = Query(None, description="Filtrar por nombre común"),
     health_status: Optional[str] = Query(None, description="Filtrar por estado de salud"),
     purchase_date: Optional[str] = Query(None, description="Filtrar por fecha de compra (YYYY-MM-DD)"),
     sort_by: str = Query("scientific_name", description="Campo por el cual ordenar"),
-    sort_order: str = Query("asc", description="Orden: 'asc' o 'desc'")
+    sort_order: str = Query("asc", description="Orden: 'asc' o 'desc'"),
+    limit: int = Query(50, ge=1, le=200, description="Registros por página"),
+    offset: int = Query(0, ge=0, description="Desplazamiento para paginación"),
 ):
     """
-    Lista ejemplares con filtros y ordenamiento.
+    Lista ejemplares con filtros, ordenamiento y paginación.
+    Retorna { data: [...], total: N }.
     """
     try:
-        # Convertir sector_id: si es "null" string, pasar 0 para filtrar por NULL
-        # Si es un número válido, convertirlo a int
         processed_sector_id = None
         if sector_id:
             if str(sector_id).lower() == "null":
-                processed_sector_id = 0  # 0 indicará filtrar por NULL
+                processed_sector_id = 0
             else:
                 try:
                     processed_sector_id = int(sector_id)
                 except (ValueError, TypeError):
-                    pass  # Mantener None si no se puede convertir
-        
+                    pass
+
         return svc.list_staff(
             q=q,
             species_id=species_id,
@@ -47,7 +48,9 @@ def list_ejemplares_staff(
             health_status=health_status,
             purchase_date=purchase_date,
             sort_by=sort_by,
-            sort_order=sort_order
+            sort_order=sort_order,
+            limit=limit,
+            offset=offset,
         )
     except Exception as e:
         raise HTTPException(500, f"Error al listar ejemplares: {str(e)}")

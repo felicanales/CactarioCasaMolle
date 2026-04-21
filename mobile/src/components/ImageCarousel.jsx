@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { resolvePhotoUrl } from '@/utils/images';
 
 export default function ImageCarousel({ images, placeholderText = 'Foto', autoRotate = true, rotationInterval = 5000 }) {
@@ -129,15 +130,13 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
             }}
           >
             {img.url ? (
-              <img
+              <Image
                 src={resolvePhotoUrl(img)}
                 alt={`${placeholderText} ${index + 1}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '8px',
-                }}
+                fill
+                sizes="(max-width: 768px) 100vw, 800px"
+                style={{ objectFit: 'cover', borderRadius: '8px' }}
+                priority={index === 0}
               />
             ) : (
               placeholderText

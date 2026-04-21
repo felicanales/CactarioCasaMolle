@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import BottomNavigation from '@/components/BottomNavigation';
 import ImageCarousel from '@/components/ImageCarousel';
@@ -14,39 +15,28 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('es'); // 'es' o 'en'
 
-  // Detectar idioma del navegador al cargar
+  // Detectar idioma y cargar contenido en un solo efecto — evita el waterfall
+  // donde el segundo useEffect esperaba el cambio de estado del primero.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Intentar obtener idioma guardado en localStorage
-      const savedLang = localStorage.getItem('cactario_language');
-      if (savedLang && (savedLang === 'es' || savedLang === 'en')) {
-        setLanguage(savedLang);
-      } else {
-        // Detectar idioma del navegador
-        const browserLang = navigator.language || navigator.userLanguage;
-        const lang = browserLang.startsWith('en') ? 'en' : 'es';
-        setLanguage(lang);
-        localStorage.setItem('cactario_language', lang);
-      }
+    const saved = localStorage.getItem('cactario_language');
+    let lang = 'es';
+    if (saved === 'es' || saved === 'en') {
+      lang = saved;
+    } else {
+      lang = (navigator.language || navigator.userLanguage || '').startsWith('en') ? 'en' : 'es';
+      localStorage.setItem('cactario_language', lang);
     }
+    setLanguage(lang);
+    loadHomeContent(lang); // fetch inmediato con el idioma ya resuelto
   }, []);
 
-  useEffect(() => {
-    if (language) {
-      loadHomeContent();
-    }
-  }, [language]);
-
-  const loadHomeContent = async () => {
+  const loadHomeContent = async (lang = language) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Obtener la URL de la API desde las variables de entorno
+
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cactariocasamolle-production.up.railway.app';
-      
-      // Pasar el parÃ¡metro de idioma
-      const response = await fetch(`${API_URL}/home-content/public?lang=${language}`);
+      const response = await fetch(`${API_URL}/home-content/public?lang=${lang}`);
       
       if (!response.ok) {
         throw new Error('Error al cargar el contenido del home');
@@ -54,21 +44,18 @@ export default function Home() {
       
       const data = await response.json();
       
-      setWelcomeText(data.welcome_text || (language === 'es' ? 'Bienvenido al Cactario CasaMolle' : 'Welcome to Cactario CasaMolle'));
-      
-      // Procesar imÃ¡genes del carrusel con alt text segÃºn idioma
+      setWelcomeText(data.welcome_text || (lang === 'es' ? 'Bienvenido al Cactario CasaMolle' : 'Welcome to Cactario CasaMolle'));
+
       const images = (data.carousel_images || []).map((img, index) => ({
         id: index + 1,
         url: img.url || img,
         alt: img.alt || `Imagen ${index + 1}`
       }));
       setCarouselImages(images);
-      
-      // Procesar secciones
       setSections(data.sections || []);
     } catch (err) {
       console.error('Error loading home content:', err);
-      setError(language === 'es' 
+      setError(lang === 'es'
         ? 'No se pudo cargar el contenido. Mostrando contenido por defecto.'
         : 'Could not load content. Showing default content.');
       // Mantener valores por defecto
@@ -139,9 +126,11 @@ export default function Home() {
                   return (
                     <div key={itemIndex} style={{ marginBottom: '16px' }}>
                       {item.imageUrl && (
-                        <img
+                        <Image
                           src={resolvePhotoUrl(item)}
                           alt={item.alt || section.title || `Imagen ${itemIndex + 1}`}
+                          width={240}
+                          height={160}
                           style={{
                             width: '100%',
                             maxWidth: '240px',
@@ -151,7 +140,7 @@ export default function Home() {
                             display: 'block'
                           }}
                           onError={(e) => {
-                            e.target.style.display = 'none';
+                            e.currentTarget.style.display = 'none';
                           }}
                         />
                       )}
@@ -284,9 +273,11 @@ export default function Home() {
               </h2>
             )}
             {section.imageUrl && (
-              <img
+              <Image
                 src={resolvePhotoUrl(section)}
                 alt={section.title || `Imagen ${index + 1}`}
+                width={240}
+                height={160}
                 style={{
                   width: '100%',
                   maxWidth: '240px',
@@ -296,7 +287,7 @@ export default function Home() {
                   display: 'block'
                 }}
                 onError={(e) => {
-                  e.target.style.display = 'none';
+                  e.currentTarget.style.display = 'none';
                 }}
               />
             )}

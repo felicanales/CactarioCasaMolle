@@ -5,54 +5,10 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getApiUrl } from "../../utils/api-config";
+import { useSectorsList, useCreateSector, useUpdateSector, useDeleteSector } from "../../hooks/useSectors";
 
-// BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
-// Por defecto está DESACTIVADO (requiere autenticación)
-// Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-
-// Usar configuración centralizada de API URL
 const API = getApiUrl();
-
-// Helper para obtener el access token
-// Prioridad: token del AuthContext > cookies > localStorage
-const getAccessTokenFromContext = (accessTokenFromContext) => {
-    // Prioridad 1: Token del estado de AuthContext (más confiable)
-    if (accessTokenFromContext) {
-        return accessTokenFromContext;
-    }
-
-    if (typeof window === 'undefined') return null;
-
-    // Prioridad 2: cookies (incluyendo cookies cross-domain)
-    // Intentar leer cookies de diferentes formas para cross-domain
-    try {
-        // Método 1: Regex estándar
-        let match = document.cookie.match(new RegExp('(^| )sb-access-token=([^;]+)'));
-        if (match && match[2]) {
-            return match[2];
-        }
-        
-        // Método 2: Buscar en todas las cookies
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'sb-access-token' && value) {
-                return value;
-            }
-        }
-    } catch {}
-
-    // Prioridad 3: localStorage (para compatibilidad)
-    try {
-        const localStorageToken = localStorage.getItem('access_token');
-        if (localStorageToken) {
-            return localStorageToken;
-        }
-    } catch {}
-
-    return null;
-};
 
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) return null;
@@ -137,11 +93,9 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SectorsPage() {
-    const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
+    const { user, loading: authLoading, logout, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
 
-    const [sectors, setSectors] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -158,9 +112,16 @@ export default function SectorsPage() {
     const [submitting, setSubmitting] = useState(false);
     const [sectorSpecies, setSectorSpecies] = useState([]);
     const [loadingSpecies, setLoadingSpecies] = useState(false);
-    // Mapeo de sector_id -> especies para mostrar en la tabla
-    const [sectorsSpeciesMap, setSectorsSpeciesMap] = useState({}); // { sectorId: [species] }
-    const [loadingSpeciesMap, setLoadingSpeciesMap] = useState({}); // { sectorId: true/false }
+    const [sectorsSpeciesMap, setSectorsSpeciesMap] = useState({});
+    const [loadingSpeciesMap, setLoadingSpeciesMap] = useState({});
+
+    const { data: sectors = [], isLoading: loading, error: queryError } = useSectorsList(
+        { q: searchQuery },
+        { enabled: !!(user || BYPASS_AUTH) }
+    );
+    const createSector = useCreateSector();
+    const updateSector = useUpdateSector();
+    const deleteSector = useDeleteSector();
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -175,87 +136,20 @@ export default function SectorsPage() {
         }
     }, [user, authLoading, router, checkedAuth]);
 
-    // Helper para requests autenticadas
-    // Usa el apiRequest del AuthContext si está disponible, sino crea uno local
-    const apiRequest = async (url, options = {}, accessTokenFromContext = null) => {
-        // Si tenemos apiRequest del AuthContext, usarlo
-        if (authApiRequest) {
-            return authApiRequest(url, options);
-        }
-        
-        // Fallback: implementación local (para compatibilidad)
-        const token = getAccessTokenFromContext(accessTokenFromContext);
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        };
-
-        // Agregar Authorization header si hay token disponible
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            console.error('[SectorsPage] ❌ No access token available for:', options.method || 'GET', url);
-        }
-
-        return fetch(url, {
-            ...options,
-            headers,
-            credentials: 'include',
-        });
-    };
-
-    const fetchSectors = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            const url = searchQuery
-                ? `${API}/sectors/staff?q=${encodeURIComponent(searchQuery)}`
-                : `${API}/sectors/staff`;
-            const res = await apiRequest(url, {}, accessToken);
-            if (!res.ok && !BYPASS_AUTH) {
-                if (res.status === 401) {
-                    setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al cargar sectores");
-            }
-            const data = await res.json();
-            setSectors(data);
-        } catch (err) {
-            console.error('[SectorsPage] Error:', err);
-            setError(err.message || "Error al cargar sectores");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        if (user && checkedAuth) {
-            fetchSectors();
-        }
-    }, [user, checkedAuth, searchQuery]);
-
-    // Cargar especies para todos los sectores al cargar la página
-    useEffect(() => {
-        if (sectors.length > 0) {
+        if (sectors.length > 0 && authApiRequest) {
             const loadAllSpecies = async () => {
                 for (const sector of sectors) {
                     try {
                         setLoadingSpeciesMap(prev => ({ ...prev, [sector.id]: true }));
-                        const res = await apiRequest(`${API}/sectors/staff/${sector.id}/species`, {}, accessToken);
+                        const res = await authApiRequest(`${API}/sectors/staff/${sector.id}/species`);
                         if (res.ok) {
                             const data = await res.json();
                             setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: data }));
-                        } else {
-                            // Si es 405, el endpoint no está disponible - no mostrar error
-                            if (res.status !== 405) {
-                                setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: [] }));
-                            }
+                        } else if (res.status !== 405) {
+                            setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: [] }));
                         }
                     } catch (err) {
-                        // Solo manejar errores que no sean 405
                         if (!err.message?.includes('405')) {
                             setSectorsSpeciesMap(prev => ({ ...prev, [sector.id]: [] }));
                         }
@@ -266,7 +160,7 @@ export default function SectorsPage() {
             };
             loadAllSpecies();
         }
-    }, [sectors]);
+    }, [sectors, authApiRequest]);
 
     const handleCreate = () => {
         setModalMode("create");
@@ -289,7 +183,7 @@ export default function SectorsPage() {
     const fetchSectorSpecies = async (sectorId) => {
         try {
             setLoadingSpecies(true);
-            const res = await apiRequest(`${API}/sectors/staff/${sectorId}/species`, {}, accessToken);
+            const res = await authApiRequest(`${API}/sectors/staff/${sectorId}/species`);
             if (res.ok) {
                 const data = await res.json();
                 setSectorSpecies(data);
@@ -317,32 +211,12 @@ export default function SectorsPage() {
         setSubmitting(true);
         setError("");
         try {
-            let res;
             if (modalMode === "create") {
-                res = await apiRequest(`${API}/sectors/staff`, {
-                    method: "POST",
-                    body: JSON.stringify(formData)
-                }, accessToken);
+                await createSector.mutateAsync(formData);
             } else if (modalMode === "edit") {
-                res = await apiRequest(`${API}/sectors/staff/${selectedSector.id}`, {
-                    method: "PUT",
-                    body: JSON.stringify(formData)
-                }, accessToken);
+                await updateSector.mutateAsync({ id: selectedSector.id, payload: formData });
             }
-
-            // Verificar respuesta siempre, incluso con BYPASS_AUTH
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                const errorMessage = errorData.detail || errorData.message || `Error ${res.status}: ${res.statusText}`;
-                console.error("[handleSubmit] Error del servidor:", errorMessage);
-                throw new Error(errorMessage);
-            }
-
-            // Si la respuesta es exitosa, obtener los datos
-            const result = await res.json().catch(() => null);
-
             setShowModal(false);
-            fetchSectors();
         } catch (err) {
             console.error("[handleSubmit] Error al guardar sector:", err);
             setError(err.message || "Error al guardar el sector");
@@ -359,12 +233,9 @@ export default function SectorsPage() {
     const confirmDelete = async () => {
         if (!sectorIdToDelete) return;
         try {
-            const res = await apiRequest(`${API}/sectors/staff/${sectorIdToDelete}`, {
-                method: "DELETE"
-            }, accessToken);
+            await deleteSector.mutateAsync(sectorIdToDelete);
             setShowDeleteModal(false);
             setSectorIdToDelete(null);
-            fetchSectors();
         } catch (err) {
             setError(err.message);
             setShowDeleteModal(false);

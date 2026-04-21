@@ -2,6 +2,7 @@
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import ConsoleSilencer from "../components/ConsoleSilencer";
+import { ReactQueryProvider } from "../lib/query-client";
 
 export const metadata = {
   title: "Cactario Casa Molle",
@@ -16,7 +17,9 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body>
         <ConsoleSilencer />
-        <AuthProvider>{children}</AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );
