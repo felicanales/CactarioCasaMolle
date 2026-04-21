@@ -24,7 +24,7 @@ def get_purchases_grouped(
     try:
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, purchase_date, purchase_price, "
-            "invoice_number, nursery, age_months, health_status, location, has_offshoots"
+            "invoice_number, nursery, age_months, health_status, location"
         ).filter("purchase_date", "not.is", "null")
 
         if date_from:
@@ -88,7 +88,6 @@ def get_purchases_grouped(
                     "age_months": ejemplar.get("age_months"),
                     "health_status": ejemplar.get("health_status"),
                     "location": ejemplar.get("location"),
-                    "has_offshoots": ejemplar.get("has_offshoots")
                 })
         
         # Convertir a lista y ordenar por fecha (más reciente primero)
@@ -137,7 +136,7 @@ def get_sales_grouped(
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, sale_date, sale_price, "
             "purchase_date, purchase_price, nursery, invoice_number, "
-            "age_months, health_status, location, has_offshoots"
+            "age_months, health_status, location"
         ).filter("sale_date", "not.is", "null")
 
         if date_from:
@@ -197,7 +196,6 @@ def get_sales_grouped(
                     "age_months": ejemplar.get("age_months"),
                     "health_status": ejemplar.get("health_status"),
                     "location": ejemplar.get("location"),
-                    "has_offshoots": ejemplar.get("has_offshoots")
                 })
         
         # Convertir a lista y ordenar por fecha (más reciente primero)
