@@ -2,7 +2,7 @@
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import ConsoleSilencer from "../components/ConsoleSilencer";
-import { ReactQueryProvider } from "../lib/query-client";
+import { ReactQueryProvider } from "../providers/query-client";
 
 export const metadata = {
   title: "Cactario Casa Molle",
