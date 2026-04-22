@@ -114,6 +114,17 @@ function formatDate(dateString) {
     }
 }
 
+async function getApiErrorMessage(response, fallback) {
+    try {
+        const data = await response.json();
+        if (typeof data?.detail === "string" && data.detail.trim()) {
+            return data.detail;
+        }
+    } catch {
+    }
+    return fallback;
+}
+
 export default function TransactionsPage() {
     const { user, loading: authLoading, accessToken, apiRequest } = useAuth();
     const router = useRouter();
@@ -148,7 +159,7 @@ export default function TransactionsPage() {
                     const data = await res.json();
                     setPurchases(Array.isArray(data) ? data : []);
                 } else {
-                    throw new Error("Error al cargar compras");
+                    throw new Error(await getApiErrorMessage(res, "Error al cargar compras"));
                 }
             } else {
                 const res = await apiRequest(`${API}/transactions/sales`, {}, accessToken);
@@ -156,7 +167,7 @@ export default function TransactionsPage() {
                     const data = await res.json();
                     setSales(Array.isArray(data) ? data : []);
                 } else {
-                    throw new Error("Error al cargar ventas");
+                    throw new Error(await getApiErrorMessage(res, "Error al cargar ventas"));
                 }
             }
         } catch (err) {
@@ -518,4 +529,3 @@ export default function TransactionsPage() {
         </div>
     );
 }
-

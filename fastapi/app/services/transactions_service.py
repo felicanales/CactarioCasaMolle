@@ -24,7 +24,7 @@ def get_purchases_grouped(
     try:
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, purchase_date, purchase_price, "
-            "invoice_number, nursery, age_months, health_status, location"
+            "nursery, age_months, health_status, location"
         ).filter("purchase_date", "not.is", "null")
 
         if date_from:
@@ -135,7 +135,7 @@ def get_sales_grouped(
     try:
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, sale_date, sale_price, "
-            "purchase_date, purchase_price, nursery, invoice_number, "
+            "purchase_date, purchase_price, nursery, "
             "age_months, health_status, location"
         ).filter("sale_date", "not.is", "null")
 
@@ -225,4 +225,3 @@ def get_sales_grouped(
     except Exception as e:
         logger.error(f"[get_sales_grouped] Error: {str(e)}", exc_info=True)
         raise
-
