@@ -218,20 +218,39 @@ export default function TransactionsPage() {
                         Historial de transacciones
                     </p>
                 </div>
-                <Link
-                    href="/inventory"
-                    style={{
-                        padding: "8px 16px",
-                        backgroundColor: "#3b82f6",
-                        color: "white",
-                        borderRadius: "6px",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        fontWeight: "600"
-                    }}
-                >
-                    Volver a Inventario
-                </Link>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Link
+                        href="/staff"
+                        style={{
+                            padding: "8px 10px",
+                            backgroundColor: "white",
+                            color: "#374151",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "6px",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            fontWeight: "700",
+                            lineHeight: 1
+                        }}
+                        title="Volver a mÃ³dulos"
+                    >
+                        ←
+                    </Link>
+                    <Link
+                        href="/inventory"
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor: "#3b82f6",
+                            color: "white",
+                            borderRadius: "6px",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            fontWeight: "600"
+                        }}
+                    >
+                        Ir a Inventario
+                    </Link>
+                </div>
             </div>
 
             {/* Tabs */}

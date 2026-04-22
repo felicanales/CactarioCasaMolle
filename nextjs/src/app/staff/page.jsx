@@ -94,7 +94,7 @@ export default function StaffPage() {
       title: "Compras y Ventas",
       description: "Historial de transacciones y movimientos",
       icon: "💰",
-      href: "/inventory",
+      href: "/transactions",
       color: "#06b6d4",
       bgColor: "#cffafe"
     },
