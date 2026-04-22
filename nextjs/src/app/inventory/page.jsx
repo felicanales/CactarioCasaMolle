@@ -343,7 +343,6 @@ export default function InventoryPage() {
     };
 
     const handleEdit = (ej, mode) => {
-        // Prefill form with selected record
         setSelectedEjemplar(ej);
         setModalMode(mode === "venta" ? "venta" : "compra");
         setFormData({
@@ -354,8 +353,8 @@ export default function InventoryPage() {
             nursery: ej.nursery || "",
             invoice_number: ej.invoice_number || "",
             age_months: ej.age_months != null ? String(ej.age_months) : "",
-            age_unit: "months", // Al editar, mostrar en meses (lo que está en BD)
-            tamaño: "",
+            age_unit: "months",
+            tamaño: ej.tamaño || "",
             health_status: ej.health_status || "",
             location: ej.location || "",
             purchase_price: ej.purchase_price != null ? String(ej.purchase_price) : "",
@@ -363,6 +362,17 @@ export default function InventoryPage() {
             has_offshoots: ej.has_offshoots != null ? ej.has_offshoots : 0,
             cantidad: 1
         });
+        // Pre-rellenar el item del formulario con los datos del ejemplar
+        setPurchaseItems([{
+            id: 1,
+            species_id: String(ej.species_id || ""),
+            quantity: 1,
+            price: ej.purchase_price != null ? String(ej.purchase_price) : "",
+            lot_size: ej.tamaño || "",
+            age_value: ej.age_months != null ? String(ej.age_months) : "",
+            age_unit: "months",
+            health_status: ej.health_status || ""
+        }]);
         setShowModal(true);
     };
 
@@ -456,7 +466,25 @@ export default function InventoryPage() {
             setError("");
             const payload = { ...formData };
             delete payload.cantidad;
-            delete payload.age_unit; // Remover age_unit (solo se usa en frontend para conversión)
+            delete payload.age_unit;
+
+            // En modo compra, leer los campos del item desde purchaseItems[0]
+            if (modalMode === "compra" && purchaseItems.length > 0) {
+                const item = purchaseItems[0];
+                if (item.species_id) payload.species_id = item.species_id;
+                if (item.price !== "") payload.purchase_price = item.price;
+                payload["tamaño"] = item.lot_size || null;
+                payload.health_status = item.health_status || null;
+                if (item.age_value !== "") {
+                    let ageVal = parseInt(item.age_value);
+                    if (item.age_unit === "years") ageVal *= 12;
+                    payload.age_months = ageVal;
+                } else {
+                    payload.age_months = null;
+                }
+            } else {
+                delete payload["tamaño"];
+            }
 
             // Limpiar según modo
             if (modalMode === "compra") {
@@ -466,24 +494,15 @@ export default function InventoryPage() {
                 payload.purchase_date = null;
                 payload.purchase_price = null;
                 payload.nursery = null;
+                delete payload["tamaño"];
             }
 
             // Tipos
             payload.species_id = parseInt(payload.species_id);
-            payload.sector_id = parseInt(payload.sector_id);
-            // Convertir age_months considerando la unidad (meses o años)
-            if (payload.age_months) {
-                let ageValue = parseInt(payload.age_months);
-                // Si la unidad es años, convertir a meses
-                if (formData.age_unit === "years") {
-                    ageValue = ageValue * 12;
-                }
-                payload.age_months = ageValue;
-            }
+            payload.sector_id = payload.sector_id === "standby" ? null : parseInt(payload.sector_id);
             if (payload.purchase_price) payload.purchase_price = parseFloat(payload.purchase_price);
             if (payload.sale_price) payload.sale_price = parseFloat(payload.sale_price);
             if (payload.has_offshoots !== undefined && payload.has_offshoots !== null) payload.has_offshoots = parseInt(payload.has_offshoots) || 0;
-            if ("tamaño" in payload) delete payload.tamaño;
 
             const res = await authApiRequest(`${API}/ejemplar/staff/${selectedEjemplar.id}`, {
                 method: "PUT",
@@ -1566,28 +1585,30 @@ export default function InventoryPage() {
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                                     <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#374151" }}>
-                                        Especies de la Compra
+                                        {selectedEjemplar ? "Datos del Ejemplar" : "Especies de la Compra"}
                                     </h3>
-                                    <button
-                                        type="button"
-                                        onClick={addPurchaseItem}
-                                        style={{
-                                            padding: "8px 16px",
-                                            borderRadius: "6px",
-                                            border: "none",
-                                            backgroundColor: "#10b981",
-                                            color: "white",
-                                            fontSize: "14px",
-                                            fontWeight: "600",
-                                            cursor: "pointer",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "6px"
-                                        }}
-                                    >
-                                        <span>+</span>
-                                        <span>Agregar Especie</span>
-                                    </button>
+                                    {!selectedEjemplar && (
+                                        <button
+                                            type="button"
+                                            onClick={addPurchaseItem}
+                                            style={{
+                                                padding: "8px 16px",
+                                                borderRadius: "6px",
+                                                border: "none",
+                                                backgroundColor: "#10b981",
+                                                color: "white",
+                                                fontSize: "14px",
+                                                fontWeight: "600",
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "6px"
+                                            }}
+                                        >
+                                            <span>+</span>
+                                            <span>Agregar Especie</span>
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -1605,7 +1626,7 @@ export default function InventoryPage() {
                                                 <span style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>
                                                     Item {index + 1}
                                                 </span>
-                                                {purchaseItems.length > 1 && (
+                                                {purchaseItems.length > 1 && !selectedEjemplar && (
                                                     <button
                                                         type="button"
                                                         onClick={() => removePurchaseItem(item.id)}
@@ -1658,6 +1679,7 @@ export default function InventoryPage() {
                                                         ))}
                                                     </select>
                                                 </div>
+                                                {!selectedEjemplar && (
                                                 <div>
                                                     <label style={{
                                                         fontSize: "12px",
@@ -1685,6 +1707,7 @@ export default function InventoryPage() {
                                                         }}
                                                     />
                                                 </div>
+                                                )}
                                                 <div>
                                                     <label style={{
                                                         fontSize: "12px",
@@ -1947,8 +1970,10 @@ export default function InventoryPage() {
                                     disabled={submitting}
                                 >
                                     {submitting
-                                        ? `Creando ${formData.cantidad} ejemplar${formData.cantidad > 1 ? 'es' : ''}...`
-                                        : `Crear ${formData.cantidad === 1 ? 'Ejemplar' : `${formData.cantidad} Ejemplares`}`}
+                                        ? "Guardando..."
+                                        : selectedEjemplar
+                                            ? "Guardar Cambios"
+                                            : "Registrar Compra"}
                                 </button>
                             </div>
                         </div>
