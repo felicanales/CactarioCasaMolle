@@ -15,6 +15,7 @@ const AUTH_DEBUG = process.env.NEXT_PUBLIC_AUTH_DEBUG === "true";
 const API = getApiUrl();
 const ACCESS_TOKEN_STORAGE_KEY = "access_token";
 const TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000;
+const SUPABASE_EMAIL_LIMIT_UI_MESSAGE = "Limite para enviar correos: Supabase permite 2 correos por hora (2/hr).";
 
 const getStoredAccessToken = () => {
   try {
@@ -77,6 +78,30 @@ const getTokenSource = () => {
   }
 
   return "none";
+};
+
+const isSupabaseEmailRateLimitError = (status, detail) => {
+  if (status !== 429) return false;
+
+  if (detail && typeof detail === "object") {
+    const code = String(detail.code || "").toLowerCase();
+    const message = String(detail.message || "").toLowerCase();
+    return (
+      code === "over_email_send_rate_limit" ||
+      message.includes("2/hr") ||
+      message.includes("2 por hora") ||
+      message.includes("2 emails per hour")
+    );
+  }
+
+  const raw = String(detail || "").toLowerCase();
+  return (
+    raw.includes("over_email_send_rate_limit") ||
+    raw.includes("2/hr") ||
+    raw.includes("2 por hora") ||
+    raw.includes("2 emails per hour") ||
+    raw.includes("email rate limit")
+  );
 };
 
 const formatClockTime = (isoString) => {
@@ -455,11 +480,23 @@ export function AuthProvider({ children }) {
     if (!res.ok && res.status !== 204) {
       // Intentar obtener el mensaje de error del servidor
       let errorMessage = "No se pudo solicitar OTP";
+      let detail = null;
       try {
         const errorData = await res.json();
-        errorMessage = errorData.detail || errorMessage;
+        detail = errorData?.detail ?? null;
+
+        if (isSupabaseEmailRateLimitError(res.status, detail)) {
+          errorMessage = SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
+        } else if (detail && typeof detail === "object" && typeof detail.message === "string") {
+          errorMessage = detail.message;
+        } else if (typeof detail === "string" && detail.trim()) {
+          errorMessage = detail;
+        }
       } catch {
         // Si no se puede parsear, usar mensaje genérico
+      }
+      if (isSupabaseEmailRateLimitError(res.status, detail)) {
+        errorMessage = SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
       }
       throw new Error(errorMessage);
     }
@@ -535,6 +572,35 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+const loginWithMasterKey = async (email, masterKey) => {
+    const res = await apiRequest(`${API}/auth/master-key-login`, {
+      method: "POST",
+      body: JSON.stringify({ email, master_key: masterKey }),
+    });
+    if (!res.ok) {
+      let msg = "Clave inválida o acceso no autorizado.";
+      try {
+        const errData = await res.json();
+        if (errData?.detail && typeof errData.detail === "string") msg = errData.detail;
+      } catch { /* usar msg por defecto */ }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    if (data.access_token) {
+      setAccessToken(data.access_token);
+      setStoredAccessToken(data.access_token);
+    }
+    if (data.user) setUser(data.user);
+    await new Promise(resolve => setTimeout(resolve, 200));
+    try {
+      const ok = await fetchMe(data.access_token || null);
+      if (!ok && data.user) setUser(data.user);
+    } catch {
+      if (data.user) setUser(data.user);
+    }
+    return data;
+  };
+
 const logout = async ({ redirectTo = "/login" } = {}) => {
     try {
       await apiRequest(`${API}/auth/logout`, {
@@ -551,7 +617,7 @@ const logout = async ({ redirectTo = "/login" } = {}) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, accessToken, apiRequest, requestOtp, verifyOtp, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
+    <AuthContext.Provider value={{ user, loading, accessToken, apiRequest, requestOtp, verifyOtp, loginWithMasterKey, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
       {children}
       <AuthDebugPanel
         user={user}

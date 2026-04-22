@@ -173,16 +173,18 @@ function CodeInput({ code, setCode, length = 6 }) {
 }
 
 export default function LoginPage() {
-  const { requestOtp, verifyOtp } = useAuth();
+  const { requestOtp, verifyOtp, loginWithMasterKey } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [masterKey, setMasterKey] = useState("");
 
-  const [step, setStep] = useState("email"); // "email" | "code"
+  const [step, setStep] = useState("email"); // "email" | "code" | "master"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showMasterKeyOption, setShowMasterKeyOption] = useState(false);
 
   // Rate limiting simple (cliente)
   const [attempts, setAttempts] = useState(0);
@@ -251,7 +253,27 @@ export default function LoginPage() {
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setAttempts(0); // Resetear intentos en éxito
     } catch (err) {
-      setError(err.message || "Error al solicitar código");
+      const msg = err.message || "Error al solicitar código";
+      setError(msg);
+      if (msg.includes("2/hr") || msg.includes("2 correos por hora")) {
+        setShowMasterKeyOption(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMasterKeyLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!masterKey.trim()) { setError("Ingresa la clave maestra."); return; }
+    setLoading(true);
+    try {
+      await loginWithMasterKey(email, masterKey);
+      setSuccess("✅ Autenticación exitosa");
+      setTimeout(() => router.push("/staff"), 300);
+    } catch (err) {
+      setError(err.message || "Clave inválida.");
     } finally {
       setLoading(false);
     }
@@ -486,6 +508,113 @@ export default function LoginPage() {
               }}
             >
               {loading ? "Enviando..." : "Enviar código"}
+            </button>
+
+            {showMasterKeyOption && (
+              <button
+                type="button"
+                onClick={() => { setStep("master"); setError(""); setSuccess(""); }}
+                style={{
+                  width: "100%",
+                  marginTop: "12px",
+                  padding: "10px",
+                  fontSize: "14px",
+                  color: "#92400e",
+                  backgroundColor: "#fffbeb",
+                  border: "1px solid #f59e0b",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                🔑 Ingresar con clave maestra
+              </button>
+            )}
+          </form>
+        ) : step === "master" ? (
+          <form onSubmit={handleMasterKeyLogin}>
+            <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "16px", textAlign: "center" }}>
+              Acceso alternativo para <strong>{email || "tu correo"}</strong>
+            </p>
+
+            {!email && (
+              <>
+                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#374151" }}>
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={handleEmailChange}
+                  required
+                  placeholder="tu@email.com"
+                  disabled={loading}
+                  style={{
+                    width: "100%", padding: "10px 12px", fontSize: "15px",
+                    border: "1px solid #d1d5db", borderRadius: "8px",
+                    marginBottom: "12px", outline: "none", boxSizing: "border-box"
+                  }}
+                />
+              </>
+            )}
+
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "8px", color: "#374151" }}>
+              Clave maestra
+            </label>
+            <input
+              type="password"
+              value={masterKey}
+              onChange={(e) => setMasterKey(e.target.value)}
+              required
+              placeholder="••••••••••••"
+              disabled={loading}
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              style={{
+                width: "100%", padding: "10px 12px", fontSize: "15px",
+                border: "1px solid #d1d5db", borderRadius: "8px",
+                marginBottom: "16px", outline: "none", boxSizing: "border-box"
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+              onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+            />
+
+            {error && (
+              <div style={{ padding: "12px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#dc2626", fontSize: "14px", marginBottom: "16px" }}>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div style={{ padding: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", color: "#16a34a", fontSize: "14px", marginBottom: "16px" }}>
+                {success}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !masterKey}
+              style={{
+                width: "100%", padding: "12px", fontSize: "16px", fontWeight: "600",
+                color: "white", backgroundColor: (loading || !masterKey) ? "#9ca3af" : "#3b82f6",
+                border: "none", borderRadius: "8px",
+                cursor: (loading || !masterKey) ? "not-allowed" : "pointer",
+                marginBottom: "12px"
+              }}
+            >
+              {loading ? "Verificando..." : "Acceder"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setStep("email"); setMasterKey(""); setError(""); setSuccess(""); }}
+              style={{
+                width: "100%", padding: "10px", fontSize: "14px", color: "#6b7280",
+                backgroundColor: "transparent", border: "1px solid #d1d5db",
+                borderRadius: "8px", cursor: "pointer"
+              }}
+            >
+              ← Volver
             </button>
           </form>
         ) : (

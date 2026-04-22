@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional, Dict, Tuple
 import re
+import os
+import secrets as secrets_mod
 from datetime import datetime, timedelta
 from collections import defaultdict
 import threading
@@ -126,7 +128,96 @@ class VerifyOtpIn(BaseModel):
     def validate_code(cls, v):
         return sanitize_otp_code(v)
 
+class MasterKeyLoginIn(BaseModel):
+    email: EmailStr = Field(..., max_length=254)
+    master_key: str = Field(..., min_length=8, max_length=512)
+
+    @validator('email')
+    def validate_email(cls, v):
+        return sanitize_email(v)
+
 # Legacy functions removed - now using security.py helpers
+
+@router.post("/master-key-login")
+def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Response):
+    """Fallback login con clave maestra cuando Supabase alcanza el límite de emails OTP."""
+    is_allowed, time_remaining = check_rate_limit(request, limit=5, window_seconds=60)
+    if not is_allowed:
+        raise HTTPException(429, f"Demasiados intentos. Espera {time_remaining} segundos.")
+
+    master_key_env = os.environ.get("MASTER_LOGIN_KEY", "")
+    if not master_key_env:
+        raise HTTPException(503, "Inicio de sesión alternativo no disponible.")
+
+    if not secrets_mod.compare_digest(payload.master_key.encode(), master_key_env.encode()):
+        raise HTTPException(401, "Clave maestra inválida.")
+
+    email = payload.email
+    sb_admin = get_service()
+    sb = get_public()
+
+    try:
+        u = sb_admin.table("usuarios").select("id, active").eq("email", email).eq("active", True).limit(1).execute()
+    except Exception as e:
+        raise HTTPException(500, f"Error consultando usuarios: {e}")
+    if not u.data:
+        raise HTTPException(403, "Este correo no está autorizado o está inactivo.")
+
+    try:
+        users = sb_admin.auth.admin.list_users()
+        auth_user = next((au for au in users if au.email == email), None)
+        if not auth_user:
+            created = sb_admin.auth.admin.create_user({"email": email, "email_confirm": True})
+            if not getattr(created, "user", None):
+                raise HTTPException(500, "No se pudo preparar el usuario en Auth.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error verificando usuario en Auth: {e}")
+
+    try:
+        link_res = sb_admin.auth.admin.generate_link({"type": "magiclink", "email": email})
+        email_otp = link_res.properties.email_otp
+        hashed_token = link_res.properties.hashed_token
+    except Exception as e:
+        raise HTTPException(500, f"Error generando token de acceso: {e}")
+
+    session_res = None
+    try:
+        session_res = sb.auth.verify_otp({"email": email, "token": email_otp, "type": "email"})
+    except Exception:
+        pass
+
+    if not session_res or not getattr(session_res, "session", None):
+        try:
+            session_res = sb.auth.verify_otp({"token_hash": hashed_token, "type": "magiclink"})
+        except Exception as e:
+            raise HTTPException(500, f"Error creando sesión: {e}")
+
+    if not session_res or not session_res.session or not session_res.session.access_token:
+        raise HTTPException(500, "No se pudo crear la sesión.")
+
+    set_supabase_session_cookies(response, session_res.session)
+
+    try:
+        from app.services.audit_service import log_change
+        user_row = u.data[0]
+        log_change(
+            table_name="usuarios", record_id=user_row["id"], action="UPDATE",
+            user_id=user_row["id"], user_email=email, user_name=None,
+            old_values={"evento": None}, new_values={"evento": "LOGIN_MASTER_KEY"},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception:
+        pass
+
+    return {
+        "access_token": session_res.session.access_token,
+        "token_type": "bearer",
+        "user": {"id": session_res.user.id, "email": session_res.user.email},
+        "expires_in": getattr(session_res.session, "expires_in", 3600),
+    }
 
 @router.post("/request-otp", status_code=204)
 def request_otp(request: Request, payload: RequestOtpIn):
@@ -134,7 +225,7 @@ def request_otp(request: Request, payload: RequestOtpIn):
     Whitelist por email (tabla 'usuarios', active=true). Usamos service role para evitar RLS
     y creamos el usuario de Auth si aún no existe. Luego enviamos OTP.
     """
-    # Rate limiting: máximo 5 requests por minuto
+    # Rate limiting: máximo 5 reque![1776814611481](image/routes_auth/1776814611481.png)![1776814626561](image/routes_auth/1776814626561.png)sts por minuto
     is_allowed, time_remaining = check_rate_limit(request, limit=5, window_seconds=60)
     if not is_allowed:
         raise HTTPException(
