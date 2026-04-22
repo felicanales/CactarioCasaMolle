@@ -97,19 +97,37 @@ export default function ReportsPage() {
         try {
             setLoadingData(true);
             setError("");
-            const [ejRes, spRes, secRes] = await Promise.all([
-                authApiRequest(`${API}/ejemplar/staff?limit=2000`),
+
+            // Cargar especies y sectores en paralelo con la primera página de ejemplares
+            const [firstEjRes, spRes, secRes] = await Promise.all([
+                authApiRequest(`${API}/ejemplar/staff?limit=200&offset=0`),
                 authApiRequest(`${API}/species/staff`),
                 authApiRequest(`${API}/sectors/staff`),
             ]);
-            if (!ejRes.ok) throw new Error("Error al cargar ejemplares");
+            if (!firstEjRes.ok) throw new Error("Error al cargar ejemplares");
 
-            const ejRaw = await ejRes.json();
+            const firstEjRaw = await firstEjRes.json();
             const spRaw = spRes.ok ? await spRes.json() : [];
             const secRaw = secRes.ok ? await secRes.json() : [];
 
-            // El endpoint de ejemplares devuelve { data: [...], total: N }
-            setEjemplares(Array.isArray(ejRaw) ? ejRaw : (ejRaw.data || []));
+            // El endpoint devuelve { data: [...], total: N }
+            const total = firstEjRaw.total || 0;
+            let allEjemplares = Array.isArray(firstEjRaw) ? firstEjRaw : (firstEjRaw.data || []);
+
+            // Si hay más páginas, cargarlas en paralelo
+            if (total > 200) {
+                const offsets = [];
+                for (let off = 200; off < total; off += 200) offsets.push(off);
+                const extraResults = await Promise.all(
+                    offsets.map(off => authApiRequest(`${API}/ejemplar/staff?limit=200&offset=${off}`).then(r => r.ok ? r.json() : { data: [] }))
+                );
+                extraResults.forEach(r => {
+                    const page = Array.isArray(r) ? r : (r.data || []);
+                    allEjemplares = allEjemplares.concat(page);
+                });
+            }
+
+            setEjemplares(allEjemplares);
             setSpecies(Array.isArray(spRaw) ? spRaw : (spRaw.data || []));
             setSectors(Array.isArray(secRaw) ? secRaw : (secRaw.data || []));
         } catch (err) {
