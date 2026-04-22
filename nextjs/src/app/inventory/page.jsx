@@ -16,7 +16,7 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 
 export default function InventoryPage() {
-    const { user, loading: authLoading, logout, apiRequest: authApiRequest } = useAuth();
+    const { user, loading: authLoading, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -1000,21 +1000,6 @@ export default function InventoryPage() {
                                 <span>📊</span>
                                 <span>Compras y Ventas</span>
                             </Link>
-                            <button
-                                onClick={logout}
-                                style={{
-                                    padding: "8px 12px",
-                                    borderRadius: "6px",
-                                    border: "1px solid #e5e7eb",
-                                    backgroundColor: "white",
-                                    color: "#dc2626",
-                                    fontSize: "clamp(12px, 3vw, 14px)",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s"
-                                }}
-                            >
-                                Salir
-                            </button>
                         </div>
                     </div>
                 </header>

@@ -249,15 +249,6 @@ export default function TransactionsPage() {
                     </Link>
                 </div>
             </div>
-            <div style={{
-                backgroundColor: "white",
-                padding: "0 24px 12px",
-                borderBottom: "1px solid #e5e7eb"
-            }}>
-                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
-                    Historial de transacciones
-                </p>
-            </div>
 
             {/* Tabs */}
             <div style={{

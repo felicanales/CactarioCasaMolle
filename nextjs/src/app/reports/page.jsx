@@ -77,7 +77,7 @@ function MonthlyChart({ data }) {
 }
 
 export default function ReportsPage() {
-    const { user, loading, logout, apiRequest: authApiRequest } = useAuth();
+    const { user, loading, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
     const [ejemplares, setEjemplares] = useState([]);
     const [species, setSpecies] = useState([]);
@@ -240,9 +240,6 @@ export default function ReportsPage() {
                             <Link href="/staff" style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #e5e7eb", color: "#374151", textDecoration: "none", fontSize: "14px" }}>←</Link>
                             <h1 style={{ fontSize: "18px", fontWeight: 700, color: "#111827", margin: 0 }}>Reportes y Estadísticas</h1>
                         </div>
-                        <button onClick={logout} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", backgroundColor: "white", color: "#374151", fontSize: "13px", cursor: "pointer" }}>
-                            Cerrar sesión
-                        </button>
                     </div>
                 </header>
 

@@ -115,7 +115,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SpeciesPage() {
-    const { user, loading: authLoading, logout, fetchMe, accessToken } = useAuth();
+    const { user, loading: authLoading, fetchMe, accessToken } = useAuth();
     const router = useRouter();
 
     const { data: species = [], isLoading: loading } = useSpeciesList(
@@ -571,22 +571,6 @@ export default function SpeciesPage() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={logout}
-                            style={{
-                                padding: "8px 12px",
-                                borderRadius: "6px",
-                                border: "1px solid #e5e7eb",
-                                backgroundColor: "white",
-                                color: "#dc2626",
-                                fontSize: "clamp(12px, 3vw, 14px)",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                flexShrink: 0
-                            }}
-                        >
-                            Salir
-                        </button>
                     </div>
                 </header>
 

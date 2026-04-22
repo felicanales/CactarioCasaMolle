@@ -93,7 +93,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 export default function SectorsPage() {
-    const { user, loading: authLoading, logout, apiRequest: authApiRequest } = useAuth();
+    const { user, loading: authLoading, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
 
     const [error, setError] = useState("");
@@ -345,22 +345,6 @@ export default function SectorsPage() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={logout}
-                            style={{
-                                padding: "8px 12px",
-                                borderRadius: "6px",
-                                border: "1px solid #e5e7eb",
-                                backgroundColor: "white",
-                                color: "#dc2626",
-                                fontSize: "clamp(12px, 3vw, 14px)",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                flexShrink: 0
-                            }}
-                        >
-                            Salir
-                        </button>
                     </div>
                 </header>
 
