@@ -210,15 +210,7 @@ export default function TransactionsPage() {
                 justifyContent: "space-between",
                 alignItems: "center"
             }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: "24px", fontWeight: "700", color: "#111827" }}>
-                        Compras y Ventas
-                    </h1>
-                    <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#6b7280" }}>
-                        Historial de transacciones
-                    </p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <Link
                         href="/staff"
                         style={{
@@ -236,6 +228,11 @@ export default function TransactionsPage() {
                     >
                         ←
                     </Link>
+                    <h1 style={{ margin: 0, fontSize: "24px", fontWeight: "700", color: "#111827" }}>
+                        Compras y Ventas
+                    </h1>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <Link
                         href="/inventory"
                         style={{
@@ -252,11 +249,19 @@ export default function TransactionsPage() {
                     </Link>
                 </div>
             </div>
+            <div style={{
+                backgroundColor: "white",
+                padding: "0 24px 12px",
+                borderBottom: "1px solid #e5e7eb"
+            }}>
+                <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
+                    Historial de transacciones
+                </p>
+            </div>
 
             {/* Tabs */}
             <div style={{
                 backgroundColor: "white",
-                borderBottom: "1px solid #e5e7eb",
                 padding: "0 24px",
                 display: "flex",
                 gap: "8px"
