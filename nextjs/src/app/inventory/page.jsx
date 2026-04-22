@@ -1895,38 +1895,6 @@ export default function InventoryPage() {
                                     />
                                 </div>
 
-                                {/* Cantidad de Retoños/Hijos */}
-                                <div style={{ marginTop: "16px" }}>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Cantidad de Retoños/Hijos (por ejemplar)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.has_offshoots}
-                                        onChange={(e) => {
-                                            const value = Math.max(0, parseInt(e.target.value) || 0);
-                                            setFormData({ ...formData, has_offshoots: value });
-                                        }}
-                                        placeholder="0"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none"
-                                        }}
-                                    />
-                                </div>
                             </div>
 
                             {modalMode === "venta" && (
@@ -1968,47 +1936,6 @@ export default function InventoryPage() {
                                     />
                                 </div>
                             )}
-
-                            {/* Cantidad de Retoños/Hijos */}
-                            <div>
-                                <label style={{
-                                    fontSize: "12px",
-                                    fontWeight: "600",
-                                    color: "#6b7280",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                    marginBottom: "6px",
-                                    display: "block"
-                                }}>
-                                    Cantidad de Retoños/Hijos (por ejemplar)
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={formData.has_offshoots}
-                                    onChange={(e) => {
-                                        const value = Math.max(0, parseInt(e.target.value) || 0);
-                                        setFormData({ ...formData, has_offshoots: value });
-                                    }}
-                                    placeholder="0"
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        border: "1px solid #d1d5db",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        outline: "none"
-                                    }}
-                                />
-                                <p style={{
-                                    margin: "8px 0 0",
-                                    fontSize: "12px",
-                                    color: "#6b7280",
-                                    fontStyle: "italic"
-                                }}>
-                                    El mismo número de retoños se aplicará a todos los ejemplares del registro masivo.
-                                </p>
-                            </div>
 
                             {/* Botones */}
                             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "8px" }}>
