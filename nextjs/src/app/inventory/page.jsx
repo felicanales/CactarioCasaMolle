@@ -268,7 +268,7 @@ export default function InventoryPage() {
 
     // Items de compra (múltiples especies)
     const [purchaseItems, setPurchaseItems] = useState([
-        { id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }
+        { id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }
     ]);
 
     // Funciones para manejar items de compra
@@ -280,7 +280,8 @@ export default function InventoryPage() {
             price: "",
             lot_size: "",
             age_value: "",
-            age_unit: "months"
+            age_unit: "months",
+            health_status: ""
         }]);
     };
 
@@ -569,7 +570,7 @@ export default function InventoryPage() {
                         invoice_number: formData.invoice_number || null,
                         age_months: ageMonths,
                         tamaño: item.lot_size || null,
-                        health_status: formData.health_status || null,
+                        health_status: item.health_status || null,
                         location: formData.location || null,
                         purchase_price: price,
                         sale_price: null,
@@ -683,7 +684,7 @@ export default function InventoryPage() {
                         has_offshoots: 0,
                         cantidad: 1
                     });
-                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
+                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
                 } else {
                     setError(`Se crearon ${created} ejemplares. ${failed} fallaron: ${errors.join('; ')}`);
                 }
@@ -896,7 +897,7 @@ export default function InventoryPage() {
                             <button
                                 onClick={() => {
                                     setModalMode("compra");
-                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
+                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
                                     setFormData({
                                         species_id: "",
                                         sector_id: "",
@@ -1402,7 +1403,7 @@ export default function InventoryPage() {
                             cantidad: 1
                         });
                         if (modalMode === "compra") {
-                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
+                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
                         }
                     }
                 }}
@@ -1800,6 +1801,38 @@ export default function InventoryPage() {
                                                         </select>
                                                     </div>
                                                 </div>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Estado de Salud
+                                                    </label>
+                                                    <select
+                                                        value={item.health_status || ""}
+                                                        onChange={(e) => updatePurchaseItem(item.id, "health_status", e.target.value)}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "10px 12px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "8px",
+                                                            fontSize: "14px",
+                                                            outline: "none"
+                                                        }}
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        <option value="muy bien">Muy bien</option>
+                                                        <option value="estable">Estable</option>
+                                                        <option value="leve enfermo">Leve enfermo</option>
+                                                        <option value="enfermo">Enfermo</option>
+                                                        <option value="crítico">Crítico</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -1816,85 +1849,6 @@ export default function InventoryPage() {
                                 }}>
                                     <strong>Total:</strong> {purchaseItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0)} ejemplar{purchaseItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0) !== 1 ? 'es' : ''} en {purchaseItems.filter(item => item.species_id).length} especie{purchaseItems.filter(item => item.species_id).length !== 1 ? 's' : ''}
                                 </div>
-                            </div>
-
-                            {/* Campos comunes que se aplican a todos los ejemplares */}
-                            <div style={{
-                                padding: "16px",
-                                backgroundColor: "#f9fafb",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "8px"
-                            }}>
-                                <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
-                                    Información Común (se aplica a todos los ejemplares)
-                                </h3>
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                    {/* Estado de Salud */}
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
-                                            Estado de Salud
-                                        </label>
-                                        <select
-                                            value={formData.health_status}
-                                            onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            <option value="muy bien">Muy bien</option>
-                                            <option value="estable">Estable</option>
-                                            <option value="leve enfermo">Leve enfermo</option>
-                                            <option value="enfermo">Enfermo</option>
-                                            <option value="crítico">Crítico</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Ubicación Específica */}
-                                <div style={{ marginTop: "16px" }}>
-                                    <label style={{
-                                        fontSize: "12px",
-                                        fontWeight: "600",
-                                        color: "#6b7280",
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                        marginBottom: "6px",
-                                        display: "block"
-                                    }}>
-                                        Ubicación Específica
-                                    </label>
-                                    <textarea
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="Descripción detallada de la ubicación dentro del sector"
-                                        rows={3}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px 12px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            outline: "none",
-                                            resize: "vertical",
-                                            fontFamily: "inherit"
-                                        }}
-                                    />
-                                </div>
-
                             </div>
 
                             {modalMode === "venta" && (
