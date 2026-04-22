@@ -268,7 +268,7 @@ export default function InventoryPage() {
 
     // Items de compra (múltiples especies)
     const [purchaseItems, setPurchaseItems] = useState([
-        { id: 1, species_id: "", quantity: 1, price: "" }
+        { id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }
     ]);
 
     // Funciones para manejar items de compra
@@ -277,7 +277,10 @@ export default function InventoryPage() {
             id: purchaseItems.length > 0 ? Math.max(...purchaseItems.map(i => i.id)) + 1 : 1,
             species_id: "",
             quantity: 1,
-            price: ""
+            price: "",
+            lot_size: "",
+            age_value: "",
+            age_unit: "months"
         }]);
     };
 
@@ -551,6 +554,10 @@ export default function InventoryPage() {
                 for (const item of validItems) {
                     const quantity = parseInt(item.quantity) || 1;
                     const price = item.price ? parseFloat(parseNumber(item.price)) : null;
+                    const parsedAgeValue = item.age_value === "" ? null : parseInt(item.age_value, 10);
+                    const ageMonths = Number.isNaN(parsedAgeValue)
+                        ? null
+                        : (item.age_unit === "years" ? parsedAgeValue * 12 : parsedAgeValue);
 
                     // Preparar payload base para este item
                     const basePayload = {
@@ -560,13 +567,8 @@ export default function InventoryPage() {
                         sale_date: null,
                         nursery: formData.nursery || null,
                         invoice_number: formData.invoice_number || null,
-                        age_months: formData.age_months ? (() => {
-                            let ageValue = parseInt(formData.age_months);
-                            if (formData.age_unit === "years") {
-                                ageValue = ageValue * 12;
-                            }
-                            return ageValue;
-                        })() : null,
+                        age_months: ageMonths,
+                        tamaño: item.lot_size || null,
                         health_status: formData.health_status || null,
                         location: formData.location || null,
                         purchase_price: price,
@@ -681,7 +683,7 @@ export default function InventoryPage() {
                         has_offshoots: 0,
                         cantidad: 1
                     });
-                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
                 } else {
                     setError(`Se crearon ${created} ejemplares. ${failed} fallaron: ${errors.join('; ')}`);
                 }
@@ -894,7 +896,7 @@ export default function InventoryPage() {
                             <button
                                 onClick={() => {
                                     setModalMode("compra");
-                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
                                     setFormData({
                                         species_id: "",
                                         sector_id: "",
@@ -1400,7 +1402,7 @@ export default function InventoryPage() {
                             cantidad: 1
                         });
                         if (modalMode === "compra") {
-                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "" }]);
+                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months" }]);
                         }
                     }
                 }}
@@ -1621,7 +1623,7 @@ export default function InventoryPage() {
                                                     </button>
                                                 )}
                                             </div>
-                                            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "12px" }}>
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
                                                 <div>
                                                     <label style={{
                                                         fontSize: "12px",
@@ -1718,6 +1720,86 @@ export default function InventoryPage() {
                                                         }}
                                                     />
                                                 </div>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Tamaño del Lote (Promedio)
+                                                    </label>
+                                                    <select
+                                                        value={item.lot_size || ""}
+                                                        onChange={(e) => updatePurchaseItem(item.id, "lot_size", e.target.value)}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "10px 12px",
+                                                            border: "1px solid #d1d5db",
+                                                            borderRadius: "8px",
+                                                            fontSize: "14px",
+                                                            outline: "none"
+                                                        }}
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        <option value="XS">XS</option>
+                                                        <option value="S">S</option>
+                                                        <option value="M">M</option>
+                                                        <option value="L">L</option>
+                                                        <option value="XL">XL</option>
+                                                        <option value="XXL">XXL</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label style={{
+                                                        fontSize: "12px",
+                                                        fontWeight: "600",
+                                                        color: "#6b7280",
+                                                        textTransform: "uppercase",
+                                                        letterSpacing: "0.05em",
+                                                        marginBottom: "6px",
+                                                        display: "block"
+                                                    }}>
+                                                        Edad del Lote
+                                                    </label>
+                                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 95px", gap: "8px" }}>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={item.age_value || ""}
+                                                            onChange={(e) => updatePurchaseItem(item.id, "age_value", e.target.value)}
+                                                            placeholder="0"
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "10px 12px",
+                                                                border: "1px solid #d1d5db",
+                                                                borderRadius: "8px",
+                                                                fontSize: "14px",
+                                                                outline: "none",
+                                                                boxSizing: "border-box"
+                                                            }}
+                                                        />
+                                                        <select
+                                                            value={item.age_unit || "months"}
+                                                            onChange={(e) => updatePurchaseItem(item.id, "age_unit", e.target.value)}
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "10px 12px",
+                                                                border: "1px solid #d1d5db",
+                                                                borderRadius: "8px",
+                                                                fontSize: "14px",
+                                                                outline: "none",
+                                                                boxSizing: "border-box"
+                                                            }}
+                                                        >
+                                                            <option value="months">Meses</option>
+                                                            <option value="years">Años</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -1747,99 +1829,6 @@ export default function InventoryPage() {
                                     Información Común (se aplica a todos los ejemplares)
                                 </h3>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
-                                    {/* Tamaño */}
-                                    <div>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
-                                            Tamaño
-                                        </label>
-                                        <select
-                                            value={formData.tamaño}
-                                            onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
-                                            style={{
-                                                width: "100%",
-                                                padding: "10px 12px",
-                                                border: "1px solid #d1d5db",
-                                                borderRadius: "8px",
-                                                fontSize: "14px",
-                                                outline: "none"
-                                            }}
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            <option value="XS">XS</option>
-                                            <option value="S">S</option>
-                                            <option value="M">M</option>
-                                            <option value="L">L</option>
-                                            <option value="XL">XL</option>
-                                            <option value="XXL">XXL</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Edad (meses o años) */}
-                                    <div style={{
-                                        gridColumn: "span 1",
-                                        minWidth: "240px"
-                                    }}>
-                                        <label style={{
-                                            fontSize: "12px",
-                                            fontWeight: "600",
-                                            color: "#6b7280",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: "6px",
-                                            display: "block"
-                                        }}>
-                                            Edad
-                                        </label>
-                                        <div style={{
-                                            display: "grid",
-                                            gridTemplateColumns: "1fr 100px",
-                                            gap: "8px",
-                                            width: "100%"
-                                        }}>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={formData.age_months}
-                                                onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: "10px 12px",
-                                                    border: "1px solid #d1d5db",
-                                                    borderRadius: "8px",
-                                                    fontSize: "14px",
-                                                    outline: "none",
-                                                    boxSizing: "border-box"
-                                                }}
-                                                placeholder="0"
-                                            />
-                                            <select
-                                                value={formData.age_unit}
-                                                onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: "10px 12px",
-                                                    border: "1px solid #d1d5db",
-                                                    borderRadius: "8px",
-                                                    fontSize: "14px",
-                                                    outline: "none",
-                                                    boxSizing: "border-box",
-                                                    whiteSpace: "nowrap"
-                                                }}
-                                            >
-                                                <option value="months">Meses</option>
-                                                <option value="years">Años</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     {/* Estado de Salud */}
                                     <div>
                                         <label style={{
