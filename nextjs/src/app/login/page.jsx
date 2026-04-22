@@ -307,7 +307,11 @@ export default function LoginPage() {
       submittedRef.current = false;
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err.message || "Error al reenviar codigo");
+      const msg = err.message || "Error al reenviar codigo";
+      setError(msg);
+      if (msg.includes("2/hr") || msg.includes("2 correos por hora")) {
+        setShowMasterKeyOption(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -737,6 +741,26 @@ export default function LoginPage() {
             >
               {resendCooldown > 0 ? `Reenviar codigo en ${resendCooldown}s` : "Reenviar codigo"}
             </button>
+
+            {showMasterKeyOption && (
+              <button
+                type="button"
+                onClick={() => { setStep("master"); setError(""); setSuccess(""); }}
+                style={{
+                  width: "100%",
+                  marginBottom: "12px",
+                  padding: "10px",
+                  fontSize: "14px",
+                  color: "#92400e",
+                  backgroundColor: "#fffbeb",
+                  border: "1px solid #f59e0b",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                🔑 Ingresar con clave maestra
+              </button>
+            )}
 
             <button
               type="button"
