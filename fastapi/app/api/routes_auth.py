@@ -268,10 +268,10 @@ def request_otp(request: Request, payload: RequestOtpIn):
                 print(f"[request_otp] Usuario creado en Auth: {auth_user.id}")
             else:
                 print(f"[request_otp] Falló la creación del usuario en Auth")
-                return
+                raise HTTPException(500, "No se pudo preparar el usuario para enviar OTP.")
     except Exception as e:
         print(f"[request_otp] Error al verificar/crear usuario en Auth: {e}")
-        return
+        raise HTTPException(500, "Error interno preparando el envio del codigo.")
 
 
     # 3) Enviar OTP
@@ -284,7 +284,16 @@ def request_otp(request: Request, payload: RequestOtpIn):
         print(f"[request_otp] OTP enviado. Respuesta: {res}")
     except Exception as e:
         print(f"[request_otp] Error al enviar OTP: {e}")
-        return
+        error_text = str(e).lower()
+        if "over_email_send_rate_limit" in error_text or "2 emails per hour" in error_text or "email rate limit" in error_text:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "code": "over_email_send_rate_limit",
+                    "message": "Supabase limita el envio de correos a 2 por hora (2/hr).",
+                },
+            )
+        raise HTTPException(502, "No se pudo enviar el codigo de verificacion. Intenta nuevamente mas tarde.")
 
     print(f"[request_otp] Proceso completado para: {email}")
     return  # 204
