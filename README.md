@@ -305,3 +305,36 @@ Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la
 ### Control de costos
 
 - Billable usage: panel disponible para revisar consumo y cargos variables segun uso de servicios.
+
+## Railway Billing
+
+### Cuenta y acceso
+
+- Cuenta asociada: `felcanales@alumnos.uai.cl` (login via GitHub).
+- Billing Email / Direccion de facturacion: `claudia@casamolle.cl`.
+- Nota: todos los recibos se envian a ese correo (no como notificaciones dentro de la app).
+
+### Metodo de pago
+
+- Metodo de pago actual: tarjeta registrada terminada en `9456`.
+
+### Suscripcion activa
+
+- Plan: **Hobby Workspace**.
+- Tipo: **Usage-based subscription**.
+- Estado: activo (con opcion de cancelar).
+
+### Historial de facturacion
+
+| Fecha | Monto | Concepto |
+| --- | --- | --- |
+| April 17, 2026 | `$5.00` | Usage-based subscription |
+| March 17, 2026 | `$5.00` | Usage-based subscription |
+| February 17, 2026 | `$5.00` | Usage-based subscription |
+| January 17, 2026 | `$5.00` | Usage-based subscription |
+| December 17, 2025 | `$1.53` | Usage-based subscription |
+| November 17, 2025 | `$5.00` | Usage-based subscription |
+
+### Billable usage
+
+- El consumo se factura al final de cada ciclo de facturacion mensual.
