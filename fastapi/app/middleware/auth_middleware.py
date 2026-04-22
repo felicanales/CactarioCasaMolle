@@ -38,7 +38,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Skip auth for certain endpoints
         skip_auth_paths = [
             "/auth/request-otp",
-            "/auth/verify-otp", 
+            "/auth/verify-otp",
+            "/auth/master-key-login",
             "/auth/refresh",
             "/auth/logout",
             "/auth/me",  # Allow /auth/me to be accessed without auth for user verification
