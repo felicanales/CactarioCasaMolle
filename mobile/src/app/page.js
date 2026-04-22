@@ -70,6 +70,7 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cactario_language', newLang);
     }
+    loadHomeContent(newLang);
   };
 
   const renderSection = (section, index, totalSections) => {

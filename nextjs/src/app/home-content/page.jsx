@@ -123,12 +123,6 @@ export default function HomeContentPage() {
         setCarouselImages(carouselImages.filter((_, i) => i !== index));
     };
 
-    const updateCarouselImage = (index, field, value) => {
-        const updated = [...carouselImages];
-        updated[index] = { ...updated[index], [field]: value };
-        setCarouselImages(updated);
-    };
-
     const handleImageUpload = async (index, file) => {
         if (!file) return;
 
@@ -624,159 +618,128 @@ export default function HomeContentPage() {
                             </button>
                         </div>
 
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                            gap: "16px"
+                        }}>
                         {carouselImages.map((img, index) => (
                             <div key={index} style={{
                                 border: "1px solid #e5e7eb",
-                                borderRadius: "8px",
-                                padding: "16px",
-                                marginBottom: "12px"
+                                borderRadius: "12px",
+                                overflow: "hidden",
+                                backgroundColor: "#f9fafb",
+                                position: "relative"
                             }}>
+                                {/* Preview */}
                                 <div style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: "12px"
+                                    width: "100%",
+                                    aspectRatio: "4/3",
+                                    backgroundColor: "#e5e7eb",
+                                    position: "relative",
+                                    overflow: "hidden"
                                 }}>
-                                    <span style={{ fontWeight: "500", color: "#374151" }}>
-                                        Imagen {index + 1}
-                                    </span>
-                                    <button
-                                        onClick={() => removeCarouselImage(index)}
-                                        style={{
-                                            padding: "4px 12px",
-                                            backgroundColor: "#ef4444",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "6px",
-                                            cursor: "pointer",
-                                            fontSize: "12px"
-                                        }}
-                                    >
-                                        Eliminar
-                                    </button>
-                                </div>
-                                <div style={{ marginBottom: "8px" }}>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#374151",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Subir imagen desde archivo:
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                handleImageUpload(index, file);
-                                            }
-                                        }}
-                                        disabled={uploadingImageIndex === index}
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "6px",
-                                            fontSize: "14px",
-                                            cursor: uploadingImageIndex === index ? "not-allowed" : "pointer"
-                                        }}
-                                    />
-                                    {uploadingImageIndex === index && (
-                                        <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-                                            Subiendo...
-                                        </p>
-                                    )}
-                                    {img.url && uploadingImageIndex !== index && (
-                                        <div style={{ marginTop: "8px" }}>
-                                            <img
-                                                src={resolvePhotoUrl(img)}
-                                                alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
-                                                style={{
-                                                    maxWidth: "100%",
-                                                    maxHeight: "200px",
-                                                    borderRadius: "8px",
-                                                    objectFit: "cover",
-                                                    marginBottom: "8px"
-                                                }}
-                                                onError={(e) => {
-                                                    e.target.style.display = "none";
-                                                }}
-                                            />
-                                            <p style={{ fontSize: "12px", color: "#10b981" }}>
-                                                ✓ Imagen subida correctamente
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ marginTop: "8px" }}>
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#374151",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Texto alternativo (alt) - Español:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={img.alt_es || img.alt || ""}
-                                        onChange={(e) => updateCarouselImage(index, "alt_es", e.target.value)}
-                                        placeholder="Texto alternativo en español"
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "6px",
-                                            fontSize: "14px",
-                                            marginBottom: "8px"
-                                        }}
-                                    />
-                                    <label style={{
-                                        display: "block",
-                                        fontSize: "14px",
-                                        fontWeight: "500",
-                                        color: "#374151",
-                                        marginBottom: "4px"
-                                    }}>
-                                        Texto alternativo (alt) - English:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={img.alt_en || img.alt || ""}
-                                        onChange={(e) => updateCarouselImage(index, "alt_en", e.target.value)}
-                                        placeholder="Alternative text in English"
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid #d1d5db",
-                                            borderRadius: "6px",
-                                            fontSize: "14px"
-                                        }}
-                                    />
-                                </div>
-                                {img.url && (
-                                    <div style={{ marginTop: "12px" }}>
+                                    {img.url && uploadingImageIndex !== index ? (
                                         <img
                                             src={resolvePhotoUrl(img)}
-                                            alt={img.alt_es || img.alt || `Imagen ${index + 1}`}
+                                            alt={`Imagen ${index + 1}`}
                                             style={{
-                                                maxWidth: "100%",
-                                                maxHeight: "200px",
-                                                borderRadius: "8px",
+                                                width: "100%",
+                                                height: "100%",
                                                 objectFit: "cover"
                                             }}
                                             onError={(e) => {
                                                 e.target.style.display = "none";
                                             }}
                                         />
+                                    ) : uploadingImageIndex === index ? (
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            height: "100%",
+                                            color: "#6b7280",
+                                            fontSize: "13px"
+                                        }}>
+                                            Subiendo...
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            height: "100%",
+                                            color: "#9ca3af",
+                                            fontSize: "13px",
+                                            flexDirection: "column",
+                                            gap: "8px"
+                                        }}>
+                                            <span style={{ fontSize: "32px" }}>🖼️</span>
+                                            <span>Sin imagen</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Controls */}
+                                <div style={{ padding: "12px" }}>
+                                    <div style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        marginBottom: "8px"
+                                    }}>
+                                        <span style={{ fontSize: "12px", fontWeight: "600", color: "#374151" }}>
+                                            #{index + 1}
+                                        </span>
+                                        <button
+                                            onClick={() => removeCarouselImage(index)}
+                                            style={{
+                                                padding: "3px 10px",
+                                                backgroundColor: "#ef4444",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "6px",
+                                                cursor: "pointer",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            Eliminar
+                                        </button>
                                     </div>
-                                )}
+                                    <label style={{
+                                        display: "block",
+                                        width: "100%",
+                                        padding: "7px 10px",
+                                        backgroundColor: "#5a6b3d",
+                                        color: "white",
+                                        borderRadius: "6px",
+                                        cursor: uploadingImageIndex === index ? "not-allowed" : "pointer",
+                                        fontSize: "12px",
+                                        fontWeight: "500",
+                                        textAlign: "center",
+                                        opacity: uploadingImageIndex === index ? 0.6 : 1
+                                    }}>
+                                        {img.url ? "Cambiar imagen" : "Subir imagen"}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleImageUpload(index, file);
+                                            }}
+                                            disabled={uploadingImageIndex === index}
+                                            style={{ display: "none" }}
+                                        />
+                                    </label>
+                                    {img.url && uploadingImageIndex !== index && (
+                                        <p style={{ fontSize: "11px", color: "#10b981", marginTop: "6px", textAlign: "center" }}>
+                                            ✓ Lista
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         ))}
+                        </div>
 
                         {carouselImages.length === 0 && (
                             <p style={{ color: "#6b7280", fontStyle: "italic" }}>
