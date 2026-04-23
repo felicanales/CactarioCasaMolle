@@ -261,13 +261,10 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # IMPORTANTE: Eliminar campos que no existen en la BD
-    # Estos campos pueden venir del frontend pero no están en el esquema
-    fields_to_remove = ["tamaño", "invoice_number"]
-    for field in fields_to_remove:
-        if field in clean_payload:
-            del clean_payload[field]
-    
+    # Convertir string vacío a None para el ENUM tamaño
+    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
+        clean_payload["tamaño"] = None
+
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
     
     try:
@@ -366,13 +363,10 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
         if field in clean_payload and clean_payload[field] == "":
             clean_payload[field] = None
     
-    # IMPORTANTE: Eliminar campos que no existen en la BD
-    # Estos campos pueden venir del frontend pero no están en el esquema
-    fields_to_remove = ["tamaño", "invoice_number"]
-    for field in fields_to_remove:
-        if field in clean_payload:
-            del clean_payload[field]
-    
+    # Convertir string vacío a None para el ENUM tamaño
+    if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
+        clean_payload["tamaño"] = None
+
     try:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
         if not res.data:
