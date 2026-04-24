@@ -1569,9 +1569,10 @@ export default function InventoryPage() {
                                         </label>
                                         <input
                                             type="text"
+                                            list="nursery-options"
                                             value={formData.nursery}
                                             onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
-                                            placeholder="Nombre del vivero o proveedor"
+                                            placeholder="Seleccionar o escribir nuevo vivero"
                                             style={{
                                                 width: "100%",
                                                 padding: "10px 12px",
@@ -1582,6 +1583,11 @@ export default function InventoryPage() {
                                                 boxSizing: "border-box"
                                             }}
                                         />
+                                        <datalist id="nursery-options">
+                                            {nurseryList.map(n => (
+                                                <option key={n} value={n} />
+                                            ))}
+                                        </datalist>
                                     </div>
                                     <div style={{ minWidth: "250px" }}>
                                         <label style={{
