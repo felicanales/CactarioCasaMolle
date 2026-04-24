@@ -588,7 +588,7 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  â¬œ
+                  🔍
                 </div>
                 <div>
                   <p style={{
@@ -607,7 +607,7 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  ðŸ‘†
+                  👆
                 </div>
                 <div>
                   <p style={{
