@@ -92,6 +92,8 @@ export default function InventoryPage() {
             tamaño: filterTamaño || undefined,
             sector_id: filterSector || undefined,
             health_status: filterHealth || undefined,
+            purchase_date_from: filterPurchaseDateFrom || undefined,
+            purchase_date_to: filterPurchaseDateTo || undefined,
             sort_by: sortBy,
             sort_order: sortOrder,
         },
@@ -126,9 +128,8 @@ export default function InventoryPage() {
             const res = await authApiRequest(`${API}/ejemplar/staff?${params.toString()}`);
             if (res.ok) {
                 const data = await res.json();
-                // Filtrar solo los que no tienen sale_date
-                const available = Array.isArray(data) ? data.filter(ej => !ej.sale_date) : [];
-                setAvailableEjemplares(available);
+                const list = Array.isArray(data.data) ? data.data : [];
+                setAvailableEjemplares(list.filter(ej => !ej.sale_date));
             }
         } catch (err) {
             console.error('Error loading available ejemplares:', err);
@@ -2404,12 +2405,69 @@ export default function InventoryPage() {
                                                 marginBottom: "4px",
                                                 display: "block"
                                             }}>
+                                                N° Factura
+                                            </label>
+                                            <p style={{ margin: 0, fontSize: "14px", color: "#374151", fontFamily: "monospace" }}>
+                                                {selectedEjemplar.invoice_number || "-"}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label style={{
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
+                                                marginBottom: "4px",
+                                                display: "block"
+                                            }}>
+                                                Precio de Compra
+                                            </label>
+                                            <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
+                                                {selectedEjemplar.purchase_price
+                                                    ? `$${new Intl.NumberFormat("es-CL").format(selectedEjemplar.purchase_price)}`
+                                                    : "-"}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label style={{
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                color: "#6b7280",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
+                                                marginBottom: "4px",
+                                                display: "block"
+                                            }}>
                                                 Fecha de Venta
                                             </label>
                                             <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
                                                 {formatDate(selectedEjemplar.sale_date)}
                                             </p>
                                         </div>
+
+                                        {selectedEjemplar.sale_date && (
+                                            <div>
+                                                <label style={{
+                                                    fontSize: "12px",
+                                                    fontWeight: "600",
+                                                    color: "#6b7280",
+                                                    textTransform: "uppercase",
+                                                    letterSpacing: "0.05em",
+                                                    marginBottom: "4px",
+                                                    display: "block"
+                                                }}>
+                                                    Precio de Venta
+                                                </label>
+                                                <p style={{ margin: 0, fontSize: "14px", color: "#374151" }}>
+                                                    {selectedEjemplar.sale_price
+                                                        ? `$${new Intl.NumberFormat("es-CL").format(selectedEjemplar.sale_price)}`
+                                                        : "-"}
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div>
                                             <label style={{

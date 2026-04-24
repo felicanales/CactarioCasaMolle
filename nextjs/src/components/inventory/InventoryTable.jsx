@@ -150,6 +150,11 @@ export default function InventoryTable({
                                                 {!ej.purchase_date && !ej.sale_date && (
                                                     <span style={{ color: "#9ca3af", fontStyle: "italic" }}>-</span>
                                                 )}
+                                                {ej.invoice_number && (
+                                                    <div style={{ fontSize: "11px", color: "#6b7280", fontFamily: "monospace" }}>
+                                                        #{ej.invoice_number}
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="table-cell" style={{ padding: "16px", fontSize: "13px", color: "#374151", verticalAlign: "middle" }}>

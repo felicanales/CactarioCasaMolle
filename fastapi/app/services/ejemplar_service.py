@@ -40,6 +40,8 @@ def list_staff(
     nombre_comun: Optional[str] = None,
     health_status: Optional[str] = None,
     purchase_date: Optional[str] = None,
+    purchase_date_from: Optional[str] = None,
+    purchase_date_to: Optional[str] = None,
     sort_by: str = "scientific_name",
     sort_order: str = "asc",
     limit: int = 50,
@@ -98,6 +100,10 @@ def list_staff(
             query = query.eq("health_status", health_status)
         if purchase_date:
             query = query.eq("purchase_date", purchase_date)
+        if purchase_date_from:
+            query = query.gte("purchase_date", purchase_date_from)
+        if purchase_date_to:
+            query = query.lte("purchase_date", purchase_date_to)
 
         query = query.limit(MAX_DB_FETCH)
         res = query.execute()
@@ -155,6 +161,7 @@ def list_staff(
                 ej.get("nursery", "") or "",
                 ej.get("health_status", "") or "",
                 ej.get("location", "") or "",
+                ej.get("invoice_number", "") or "",
             ]).lower()
             if q_lower in search_text:
                 filtered.append(ej)
