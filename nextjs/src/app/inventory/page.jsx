@@ -77,6 +77,7 @@ export default function InventoryPage() {
     const [filterTamaño, setFilterTamaño] = useState("");
     const [filterSector, setFilterSector] = useState("");
     const [filterHealth, setFilterHealth] = useState("");
+    const [filterNursery, setFilterNursery] = useState("");
     const [filterPurchaseDateFrom, setFilterPurchaseDateFrom] = useState("");
     const [filterPurchaseDateTo, setFilterPurchaseDateTo] = useState("");
     const [sortBy, setSortBy] = useState("scientific_name");
@@ -92,6 +93,7 @@ export default function InventoryPage() {
             tamaño: filterTamaño || undefined,
             sector_id: filterSector || undefined,
             health_status: filterHealth || undefined,
+            nursery: filterNursery || undefined,
             purchase_date_from: filterPurchaseDateFrom || undefined,
             purchase_date_to: filterPurchaseDateTo || undefined,
             sort_by: sortBy,
@@ -1272,10 +1274,26 @@ export default function InventoryPage() {
                                 <option value="crítico">Crítico</option>
                             </select>
 
-                            <div style={{ display: "flex", gap: "8px" }}>
+                            <input
+                                type="text"
+                                placeholder="Vivero..."
+                                value={filterNursery}
+                                onChange={(e) => setFilterNursery(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            />
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <span style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                    Compra desde
+                                </span>
                                 <input
                                     type="date"
-                                    placeholder="Fecha compra desde"
                                     value={filterPurchaseDateFrom}
                                     onChange={(e) => setFilterPurchaseDateFrom(e.target.value)}
                                     style={{
@@ -1283,12 +1301,19 @@ export default function InventoryPage() {
                                         border: "1px solid #d1d5db",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        outline: "none"
+                                        outline: "none",
+                                        width: "100%",
+                                        boxSizing: "border-box"
                                     }}
                                 />
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <span style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                    Compra hasta
+                                </span>
                                 <input
                                     type="date"
-                                    placeholder="Fecha compra hasta"
                                     value={filterPurchaseDateTo}
                                     onChange={(e) => setFilterPurchaseDateTo(e.target.value)}
                                     style={{
@@ -1296,7 +1321,9 @@ export default function InventoryPage() {
                                         border: "1px solid #d1d5db",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        outline: "none"
+                                        outline: "none",
+                                        width: "100%",
+                                        boxSizing: "border-box"
                                     }}
                                 />
                             </div>
@@ -1343,7 +1370,7 @@ export default function InventoryPage() {
                             </div>
                         </div>
 
-                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterPurchaseDateFrom || filterPurchaseDateTo) && (
+                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterNursery || filterPurchaseDateFrom || filterPurchaseDateTo) && (
                             <button
                                 onClick={() => {
                                     setSearchQuery("");
@@ -1353,6 +1380,7 @@ export default function InventoryPage() {
                                     setFilterTamaño("");
                                     setFilterSector("");
                                     setFilterHealth("");
+                                    setFilterNursery("");
                                     setFilterPurchaseDateFrom("");
                                     setFilterPurchaseDateTo("");
                                 }}

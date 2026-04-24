@@ -10,7 +10,7 @@ export function useEjemplaresList(params = {}) {
   const { apiRequest } = useAuth();
   const {
     q, species_id, sector_id, tamaño, morfologia, nombre_comun,
-    health_status, purchase_date, purchase_date_from, purchase_date_to,
+    health_status, nursery, purchase_date, purchase_date_from, purchase_date_to,
     sort_by = "scientific_name", sort_order = "asc", limit = 50, offset = 0,
   } = params;
 
@@ -25,6 +25,7 @@ export function useEjemplaresList(params = {}) {
       if (morfologia) search.set("morfologia", morfologia);
       if (nombre_comun) search.set("nombre_comun", nombre_comun);
       if (health_status) search.set("health_status", health_status);
+      if (nursery) search.set("nursery", nursery);
       if (purchase_date) search.set("purchase_date", purchase_date);
       if (purchase_date_from) search.set("purchase_date_from", purchase_date_from);
       if (purchase_date_to) search.set("purchase_date_to", purchase_date_to);
