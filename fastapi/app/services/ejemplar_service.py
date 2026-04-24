@@ -292,11 +292,9 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
     if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
         clean_payload["tamaño"] = None
 
-    # invoice_number: omitir del payload si está vacío para evitar error si la
-    # columna aún no existe en la DB. Una vez creada con ALTER TABLE, esta
-    # guarda siempre (incluyendo valores vacíos convertidos a None).
-    if "invoice_number" in clean_payload and not clean_payload["invoice_number"]:
-        del clean_payload["invoice_number"]
+    # TODO: remover esta línea una vez que exista la columna en Supabase:
+    #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+    clean_payload.pop("invoice_number", None)
 
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
     
@@ -400,11 +398,9 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
     if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
         clean_payload["tamaño"] = None
 
-    # invoice_number: omitir del payload si está vacío para evitar error si la
-    # columna aún no existe en la DB. Una vez creada con ALTER TABLE, esta
-    # guarda siempre (incluyendo valores vacíos convertidos a None).
-    if "invoice_number" in clean_payload and not clean_payload["invoice_number"]:
-        del clean_payload["invoice_number"]
+    # TODO: remover esta línea una vez que exista la columna en Supabase:
+    #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+    clean_payload.pop("invoice_number", None)
 
     try:
         res = sb.table("ejemplar").update(clean_payload).eq("id", ejemplar_id).execute()
