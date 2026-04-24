@@ -78,6 +78,7 @@ export default function InventoryPage() {
     const [filterSector, setFilterSector] = useState("");
     const [filterHealth, setFilterHealth] = useState("");
     const [filterNursery, setFilterNursery] = useState("");
+    const [filterInvoice, setFilterInvoice] = useState("");
     const [filterPurchaseDateFrom, setFilterPurchaseDateFrom] = useState("");
     const [filterPurchaseDateTo, setFilterPurchaseDateTo] = useState("");
     const [sortBy, setSortBy] = useState("scientific_name");
@@ -94,6 +95,7 @@ export default function InventoryPage() {
             sector_id: filterSector || undefined,
             health_status: filterHealth || undefined,
             nursery: filterNursery || undefined,
+            invoice_number: filterInvoice || undefined,
             purchase_date_from: filterPurchaseDateFrom || undefined,
             purchase_date_to: filterPurchaseDateTo || undefined,
             sort_by: sortBy,
@@ -1292,6 +1294,20 @@ export default function InventoryPage() {
                                 ))}
                             </select>
 
+                            <input
+                                type="text"
+                                placeholder="N° factura..."
+                                value={filterInvoice}
+                                onChange={(e) => setFilterInvoice(e.target.value)}
+                                style={{
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            />
+
                             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                 <span style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                     Compra desde
@@ -1374,7 +1390,7 @@ export default function InventoryPage() {
                             </div>
                         </div>
 
-                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterNursery || filterPurchaseDateFrom || filterPurchaseDateTo) && (
+                        {(searchQuery || filterSpecies || filterMorfologia || filterNombreComun || filterTamaño || filterSector || filterHealth || filterNursery || filterInvoice || filterPurchaseDateFrom || filterPurchaseDateTo) && (
                             <button
                                 onClick={() => {
                                     setSearchQuery("");
@@ -1385,6 +1401,7 @@ export default function InventoryPage() {
                                     setFilterSector("");
                                     setFilterHealth("");
                                     setFilterNursery("");
+                                    setFilterInvoice("");
                                     setFilterPurchaseDateFrom("");
                                     setFilterPurchaseDateTo("");
                                 }}

@@ -40,6 +40,7 @@ def list_staff(
     nombre_comun: Optional[str] = None,
     health_status: Optional[str] = None,
     nursery: Optional[str] = None,
+    invoice_number: Optional[str] = None,
     purchase_date: Optional[str] = None,
     purchase_date_from: Optional[str] = None,
     purchase_date_to: Optional[str] = None,
@@ -101,6 +102,8 @@ def list_staff(
             query = query.eq("health_status", health_status)
         if nursery:
             query = query.ilike("nursery", f"%{nursery}%")
+        if invoice_number:
+            query = query.ilike("invoice_number", f"%{invoice_number}%")
         if purchase_date:
             query = query.eq("purchase_date", purchase_date)
         if purchase_date_from:

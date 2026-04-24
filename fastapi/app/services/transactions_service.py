@@ -24,7 +24,7 @@ def get_purchases_grouped(
     try:
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, purchase_date, purchase_price, "
-            "nursery, age_months, health_status, location"
+            "invoice_number, nursery, age_months, health_status, location"
         ).filter("purchase_date", "not.is", "null")
 
         if date_from:
