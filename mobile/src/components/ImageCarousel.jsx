@@ -119,14 +119,11 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
           <div
             key={img.id || index}
             style={{
-              display: index === currentIndex ? 'flex' : 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              color: 'var(--color-muted)',
-              fontSize: '14px',
-              position: 'relative',
+              position: 'absolute',
+              inset: 0,
+              opacity: index === currentIndex ? 1 : 0,
+              transition: 'opacity 0.7s ease',
+              pointerEvents: index === currentIndex ? 'auto' : 'none',
             }}
           >
             {img.url ? (
@@ -135,14 +132,13 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
                 alt={`${placeholderText} ${index + 1}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 800px"
-                style={{ objectFit: 'cover', borderRadius: '8px' }}
+                style={{ objectFit: 'cover' }}
                 priority={index === 0}
               />
-            ) : (
-              placeholderText
-            )}
+            ) : null}
           </div>
         ))}
+
         {images.length > 1 && (
           <>
             <button
@@ -150,18 +146,33 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
               onClick={prevImage}
               aria-label="Imagen anterior"
             >
-              &lt;
+              <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+                <path d="M9 1L1 9L9 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             <button
               className="carousel-arrow carousel-arrow-right"
               onClick={nextImage}
               aria-label="Siguiente imagen"
             >
-              &gt;
+              <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+                <path d="M1 1L9 9L1 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </>
         )}
+
+        {autoRotate && images.length > 1 && (
+          <div className="carousel-progress-track">
+            <div
+              key={currentIndex}
+              className="carousel-progress-bar"
+              style={{ animationDuration: `${rotationInterval}ms` }}
+            />
+          </div>
+        )}
       </div>
+
       {images.length > 1 && (
         <div className="carousel-indicators">
           {images.map((_, index) => (
