@@ -61,6 +61,16 @@ def list_ejemplares_staff(
     except Exception as e:
         raise HTTPException(500, f"Error al listar ejemplares: {str(e)}")
 
+@router.get("/staff/nurseries", dependencies=[Depends(get_current_user)])
+def list_nurseries_staff():
+    """
+    Retorna la lista de viveros distintos registrados en ejemplares.
+    """
+    try:
+        return svc.list_nurseries()
+    except Exception as e:
+        raise HTTPException(500, f"Error al listar viveros: {str(e)}")
+
 @router.get("/staff/{ejemplar_id}", dependencies=[Depends(get_current_user)])
 def get_ejemplar_staff(ejemplar_id: int = Path(..., ge=1)):
     """

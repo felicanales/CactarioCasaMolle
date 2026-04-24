@@ -8,7 +8,7 @@ import { getApiUrl } from "../../utils/api-config";
 import Modal from "../../components/inventory/InventoryModal";
 import InventoryTable from "../../components/inventory/InventoryTable";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEjemplaresList } from "../../hooks/useEjemplares";
+import { useEjemplaresList, useNurseryList } from "../../hooks/useEjemplares";
 import { useSpeciesList } from "../../hooks/useSpecies";
 import { useSectorsList } from "../../hooks/useSectors";
 
@@ -105,6 +105,7 @@ export default function InventoryPage() {
     // Listas para filtros (via React Query)
     const { data: speciesList = [] } = useSpeciesList({}, { enabled: !!checkedAuth });
     const { data: sectorsList = [] } = useSectorsList({}, { enabled: !!checkedAuth });
+    const { data: nurseryList = [] } = useNurseryList();
 
     // Modal
     const [showModal, setShowModal] = useState(false);
@@ -1274,9 +1275,7 @@ export default function InventoryPage() {
                                 <option value="crítico">Crítico</option>
                             </select>
 
-                            <input
-                                type="text"
-                                placeholder="Vivero..."
+                            <select
                                 value={filterNursery}
                                 onChange={(e) => setFilterNursery(e.target.value)}
                                 style={{
@@ -1286,7 +1285,12 @@ export default function InventoryPage() {
                                     fontSize: "14px",
                                     outline: "none"
                                 }}
-                            />
+                            >
+                                <option value="">Todos los viveros</option>
+                                {nurseryList.map(n => (
+                                    <option key={n} value={n}>{n}</option>
+                                ))}
+                            </select>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                 <span style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em" }}>

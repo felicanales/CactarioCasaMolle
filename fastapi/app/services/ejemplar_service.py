@@ -192,6 +192,23 @@ def list_staff(
 
     return {"data": page, "total": total}
 
+def list_nurseries() -> list:
+    """
+    Retorna los valores distintos de nursery registrados en la tabla ejemplar,
+    ordenados alfabéticamente, excluyendo nulos y vacíos.
+    """
+    sb = get_public()
+    res = sb.table("ejemplar").select("nursery").execute()
+    seen = set()
+    result = []
+    for row in (res.data or []):
+        v = (row.get("nursery") or "").strip()
+        if v and v not in seen:
+            seen.add(v)
+            result.append(v)
+    result.sort()
+    return result
+
 def get_staff(ejemplar_id: int) -> Optional[Dict[str, Any]]:
     """
     Obtiene un ejemplar por su ID con información completa.

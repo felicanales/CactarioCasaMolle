@@ -41,6 +41,20 @@ export function useEjemplaresList(params = {}) {
   });
 }
 
+export function useNurseryList() {
+  const { apiRequest } = useAuth();
+
+  return useQuery({
+    queryKey: ["ejemplares", "nurseries"],
+    queryFn: async () => {
+      const res = await apiRequest(`${API}/ejemplar/staff/nurseries`);
+      if (!res.ok) throw new Error("Error al cargar viveros");
+      return res.json(); // string[]
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useEjemplar(ejemplarId) {
   const { apiRequest } = useAuth();
 
