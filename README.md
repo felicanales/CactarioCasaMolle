@@ -5,6 +5,7 @@ Sistema de gestiÃ³n de cactÃ¡ceas para Casa Molle con mÃºltiples interface
 ## ðŸ“¦ Componentes del Sistema
 
 ### 1. **Frontend Staff** (`nextjs/`)
+
 Panel de administraciÃ³n para el personal del cactuario. Permite gestionar especies, sectores, inventario y reportes.
 
 - **TecnologÃ­a**: Next.js 15.5.5
@@ -17,6 +18,7 @@ Panel de administraciÃ³n para el personal del cactuario. Permite gestionar esp
   - Subida y gestiÃ³n de fotos
 
 ### 2. **Frontend Mobile** (`mobile/`)
+
 AplicaciÃ³n web mÃ³vil para visitantes del cactuario. Permite explorar sectores, especies y escanear cÃ³digos QR.
 
 - **TecnologÃ­a**: Next.js 15.5.5
@@ -29,6 +31,7 @@ AplicaciÃ³n web mÃ³vil para visitantes del cactuario. Permite explorar secto
   - Detalle de especies con fotos
 
 ### 3. **Backend API** (`fastapi/`)
+
 API REST para gestionar datos del cactuario. Proporciona endpoints pÃºblicos y privados.
 
 - **TecnologÃ­a**: FastAPI (Python)
@@ -115,9 +118,9 @@ El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. 
    - Reemplaza los valores marcados con âš ï¸:
      ```sql
      SELECT * FROM public.insert_usuario_admin(
-         'karim@casamolle.cl',  -- âš ï¸ CAMBIAR: Correo (se convierte a minÃºsculas automÃ¡ticamente)
-         'karim',                -- âš ï¸ CAMBIAR: Nombre de usuario Ãºnico
-         'Karim Daire'           -- âš ï¸ OPCIONAL: Nombre completo
+         'ejemplo@cactario.cl',  -- âš ï¸ CAMBIAR: Correo (se convierte a minÃºsculas automÃ¡ticamente)
+         'nombre',                -- âš ï¸ CAMBIAR: Nombre de usuario Ãºnico
+         'nombre apellido'           -- âš ï¸ OPCIONAL: Nombre completo
      );
      ```
    - Ejecuta el script completo (crea la funciÃ³n y luego la usa)
@@ -136,7 +139,8 @@ El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. 
 
 #### Problema ComÃºn: "Correo no autorizado"
 
-Si recibes el error *"Este correo no estÃ¡ autorizado para acceder al sistema"*, significa que:
+Si recibes el error _"Este correo no estÃ¡ autorizado para acceder al sistema"_, significa que:
+
 - El correo no estÃ¡ en la tabla `usuarios`, o
 - El correo existe pero tiene `active=false`
 
@@ -207,11 +211,13 @@ uvicorn app.main:app --reload
 ### ðŸŒ URLs
 
 #### Desarrollo
+
 - **Frontend Staff**: `http://localhost:3000`
 - **Frontend Mobile**: `http://localhost:3002`
 - **Backend API**: `http://localhost:8000`
 
 #### ProducciÃ³n
+
 - **Frontend Staff**: `https://tu-frontend-staff.railway.app`
 - **Frontend Mobile**: `https://tu-frontend-mobile.railway.app`
 - **Backend API**: `https://tu-backend.railway.app`
@@ -219,6 +225,7 @@ uvicorn app.main:app --reload
 ### ðŸ“± CaracterÃ­sticas
 
 #### Frontend Staff
+
 - âœ… Panel de administraciÃ³n completo
 - âœ… GestiÃ³n de especies y sectores
 - âœ… Control de inventario
@@ -226,6 +233,7 @@ uvicorn app.main:app --reload
 - âœ… Subida y gestiÃ³n de fotos
 
 #### Frontend Mobile
+
 - âœ… Interfaz mÃ³vil optimizada
 - âœ… EscÃ¡ner de cÃ³digos QR
 - âœ… NavegaciÃ³n por sectores
@@ -233,6 +241,7 @@ uvicorn app.main:app --reload
 - âœ… Carrusel de fotos
 
 #### Backend
+
 - âœ… API REST completa
 - âœ… Endpoints pÃºblicos y privados
 - âœ… GestiÃ³n de fotos
@@ -242,6 +251,7 @@ uvicorn app.main:app --reload
 ## ðŸŽ¯ Scripts Disponibles
 
 ### Frontend Staff
+
 ```bash
 cd nextjs
 npm run dev          # Desarrollo
@@ -250,6 +260,7 @@ npm start            # ProducciÃ³n
 ```
 
 ### Frontend Mobile
+
 ```bash
 cd mobile
 npm run dev          # Desarrollo
@@ -258,6 +269,7 @@ npm start            # ProducciÃ³n
 ```
 
 ### Backend
+
 ```bash
 cd fastapi
 uvicorn app.main:app --reload  # Desarrollo
@@ -283,11 +295,11 @@ Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la
 
 ### Facturas recientes
 
-| Fecha | Factura | Monto | Estado |
-| --- | --- | --- | --- |
-| Apr 8, 2026 | `IN-61859818` | `$0.00` | Paid |
-| Mar 8, 2026 | `IN-59298706` | `$0.00` | Paid |
-| Feb 8, 2026 | `IN-57039525` | `$0.00` | Paid |
+| Fecha       | Factura       | Monto   | Estado |
+| ----------- | ------------- | ------- | ------ |
+| Apr 8, 2026 | `IN-61859818` | `$0.00` | Paid   |
+| Mar 8, 2026 | `IN-59298706` | `$0.00` | Paid   |
+| Feb 8, 2026 | `IN-57039525` | `$0.00` | Paid   |
 
 ### Metodo de pago
 
@@ -326,12 +338,12 @@ Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la
 
 ### Historial de facturacion
 
-| Fecha | Monto | Concepto |
-| --- | --- | --- |
-| April 17, 2026 | `$5.00` | Usage-based subscription |
-| March 17, 2026 | `$5.00` | Usage-based subscription |
+| Fecha             | Monto   | Concepto                 |
+| ----------------- | ------- | ------------------------ |
+| April 17, 2026    | `$5.00` | Usage-based subscription |
+| March 17, 2026    | `$5.00` | Usage-based subscription |
 | February 17, 2026 | `$5.00` | Usage-based subscription |
-| January 17, 2026 | `$5.00` | Usage-based subscription |
+| January 17, 2026  | `$5.00` | Usage-based subscription |
 | December 17, 2025 | `$1.53` | Usage-based subscription |
 | November 17, 2025 | `$5.00` | Usage-based subscription |
 

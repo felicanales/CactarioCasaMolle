@@ -8,7 +8,7 @@ Aplicación web móvil para visitantes del Cactuario CasaMolle. Permite explorar
 - **QR Scanner**: Escáner de códigos QR para acceder directamente a sectores
 - **Sectores**: Lista de todos los sectores del cactuario
 - **Especies por Sector**: Visualización de especies presentes en un sector
-- **Detalle de Especie**: Información detallada con fotos y descripción
+- **Detalle de Especie**: Información detallada con fotos y descripciónn
 
 ## 🛠️ Tecnologías
 
@@ -108,15 +108,16 @@ npm start
 
 ### Railway (recomendado)
 
-1. **Repositorio actualizado**  
-   - Verifica que la rama `main` tenga la app (`npm run build` debe completar sin errores).  
+1. **Repositorio actualizado**
+   - Verifica que la rama `main` tenga la app (`npm run build` debe completar sin errores).
    - Sube los cambios a GitHub.
 
-2. **Crear servicio**  
-   - En tu proyecto Railway existente, haz clic en `New → Service → Deploy from GitHub`.  
+2. **Crear servicio**
+   - En tu proyecto Railway existente, haz clic en `New → Service → Deploy from GitHub`.
    - Selecciona el repositorio y la carpeta `mobile`.
 
-3. **Variables de entorno (`Settings → Variables`)**  
+3. **Variables de entorno (`Settings → Variables`)**
+
    ```json
    {
      "NODE_ENV": "production",
@@ -124,21 +125,23 @@ npm start
      "NEXT_PUBLIC_API_URL": "https://tu-backend.railway.app"
    }
    ```
+
    Ajusta `NEXT_PUBLIC_API_URL` a la URL real del backend público.
 
-4. **Comandos**  
-   - Build: `npm install && npm run build`  
-   - Start (override recomendado): `next start -p $PORT`  
+4. **Comandos**
+   - Build: `npm install && npm run build`
+   - Start (override recomendado): `next start -p $PORT`
      - Si prefieres usar el script existente (`npm run start`, que utiliza el puerto 3002), define `PORT=3002` o actualiza el script para leer la variable.
 
-5. **Deploy**  
-   - Ejecuta `Deploy` y espera a que el build termine.  
+5. **Deploy**
+   - Ejecuta `Deploy` y espera a que el build termine.
    - Abre el dominio generado por Railway para validar.
 
-6. **Auto deploy opcional**  
+6. **Auto deploy opcional**
    - Activa `Settings → Deployments → Auto Deploy` para que cada push redeploye automáticamente.
 
 ### Otros proveedores
+
 - **Vercel**: Deploy automático desde GitHub.
 - **Netlify**: Deploy desde Git.
 
@@ -148,4 +151,3 @@ npm start
 - El escáner QR requiere permisos de cámara
 - Los datos se cargan desde el backend FastAPI
 - Se incluyen placeholders para desarrollo cuando el backend no está disponible
-
