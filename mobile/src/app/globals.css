@@ -304,7 +304,7 @@ body {
 .home-carousel .image-carousel {
   width: 100%;
   max-width: 720px;
-  height: clamp(220px, 56vw, 360px);
+  height: clamp(280px, 68vw, 460px);
   margin: 0 auto 8px;
 }
 
