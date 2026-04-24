@@ -292,8 +292,10 @@ def create_staff(payload: Dict[str, Any], user_id: Optional[int] = None, user_em
     if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
         clean_payload["tamaño"] = None
 
-    # TODO: remover esta línea una vez que exista la columna en Supabase:
+    # TODO: remover estas líneas una vez creadas las columnas en Supabase:
+    #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS "tamaño" TEXT CHECK ("tamaño" IN ('XS','S','M','L','XL','XXL'));
     #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+    clean_payload.pop("tamaño", None)
     clean_payload.pop("invoice_number", None)
 
     logger.info(f"[create_staff] Creando ejemplar con datos: {list(clean_payload.keys())}")
@@ -398,8 +400,10 @@ def update_staff(ejemplar_id: int, payload: Dict[str, Any], user_id: Optional[in
     if "tamaño" in clean_payload and clean_payload["tamaño"] == "":
         clean_payload["tamaño"] = None
 
-    # TODO: remover esta línea una vez que exista la columna en Supabase:
+    # TODO: remover estas líneas una vez creadas las columnas en Supabase:
+    #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS "tamaño" TEXT CHECK ("tamaño" IN ('XS','S','M','L','XL','XXL'));
     #   ALTER TABLE ejemplar ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+    clean_payload.pop("tamaño", None)
     clean_payload.pop("invoice_number", None)
 
     try:
