@@ -31,7 +31,7 @@ export default function QRScanner() {
             background: transparent !important;
           }
           
-          /* Video de la cÃ¡mara */
+          /* Video de la cámara */
           #qr-reader video {
             position: absolute !important;
             top: 0 !important;
@@ -43,7 +43,7 @@ export default function QRScanner() {
             background: transparent !important;
           }
           
-          /* RegiÃ³n de escaneo */
+          /* Región de escaneo */
           #qr-reader__scan_region {
             background: transparent !important;
             position: absolute !important;
@@ -85,7 +85,7 @@ export default function QRScanner() {
             display: none !important;
           }
           
-          /* Asegurar que el contenedor de la cÃ¡mara no tenga fondo */
+          /* Asegurar que el contenedor de la cámara no tenga fondo */
           #qr-reader__camera_selection,
           #qr-reader__dashboard {
             background: transparent !important;
@@ -97,25 +97,25 @@ export default function QRScanner() {
   }, []);
 
   useEffect(() => {
-    // Auto-iniciar el escÃ¡ner cuando el componente se monta
+    // Auto-iniciar el escáner cuando el componente se monta
     if (typeof window !== 'undefined' && !scanning) {
       startScanning();
     }
 
-    // Inicializar el escÃ¡ner QR cuando estÃ¡ activo
+    // Inicializar el escáner QR cuando está activo
     if (typeof window !== 'undefined' && scanning) {
       const initScanner = async () => {
         try {
           const { Html5Qrcode } = await import('html5-qrcode');
           const html5QrCode = new Html5Qrcode('qr-reader');
           
-          // Configurar el escÃ¡ner para mostrar toda la cÃ¡mara sin desenfoque
+          // Configurar el escáner para mostrar toda la cámara sin desenfoque
           await html5QrCode.start(
             { facingMode: 'environment' },
             {
               fps: 10,
               qrbox: function(viewfinderWidth, viewfinderHeight) {
-                // Calcular el tamaÃ±o del qrbox (70% del Ã¡rea visible)
+                // Calcular el tamaño del qrbox (70% del área visible)
                 const minEdgePercentage = 0.7;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
                 const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
@@ -143,7 +143,7 @@ export default function QRScanner() {
             }
           );
           
-          // Asegurar que el video se muestre despuÃ©s de iniciar
+          // Asegurar que el video se muestre después de iniciar
           setTimeout(() => {
             const video = document.querySelector('#qr-reader video');
             if (video) {
@@ -160,8 +160,8 @@ export default function QRScanner() {
           scannerRef.current = html5QrCode;
           setRecognitionError(false);
         } catch (err) {
-          console.error('Error al inicializar escÃ¡ner:', err);
-          setError('No se pudo acceder a la cÃ¡mara. Por favor, verifica los permisos.');
+          console.error('Error al inicializar escáner:', err);
+          setError('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
           setScanning(false);
         }
       };
@@ -186,7 +186,7 @@ export default function QRScanner() {
       // Verificar que el QR code corresponde a un sector
       const response = await sectorsApi.getByQr(qrCodeValue);
       if (response.data) {
-        // Redirigir a la pÃ¡gina de especies del sector
+        // Redirigir a la página de especies del sector
         router.push(`/sectores/${qrCodeValue}/especies`);
       } else {
         setRecognitionError(true);
@@ -241,7 +241,7 @@ export default function QRScanner() {
     }}>
       {!scanning && <Header />}
       
-      {/* Vista principal con cÃ¡mara */}
+      {/* Vista principal con cámara */}
       {scanning ? (
         <div style={{
           position: 'fixed',
@@ -257,7 +257,7 @@ export default function QRScanner() {
           overflow: 'hidden',
           zIndex: 10,
         }}>
-          {/* Contenedor de la cÃ¡mara - full screen */}
+          {/* Contenedor de la cámara - full screen */}
           <div
             id="qr-reader"
             style={{
@@ -286,7 +286,7 @@ export default function QRScanner() {
             flexDirection: 'column',
             pointerEvents: 'none',
           }}>
-            {/* Barra superior con botÃ³n de ayuda */}
+            {/* Barra superior con botón de ayuda */}
             <div style={{
               display: 'flex',
               justifyContent: 'flex-end',
@@ -400,7 +400,7 @@ export default function QRScanner() {
               </div>
             </div>
 
-            {/* BotÃ³n para detener */}
+            {/* Botón para detener */}
             <div style={{
               padding: '20px',
               paddingBottom: '100px',
@@ -480,13 +480,13 @@ export default function QRScanner() {
             maxWidth: '300px',
             color: 'var(--color-beige)',
           }}>
-            <p style={{ marginBottom: '8px', textAlign: 'center' }}>O ingresa el cÃ³digo manualmente:</p>
+            <p style={{ marginBottom: '8px', textAlign: 'center' }}>O ingresa el código manualmente:</p>
             <form onSubmit={handleManualInput}>
               <input
                 type="text"
                 value={qrCode}
                 onChange={(e) => setQrCode(e.target.value)}
-                placeholder="CÃ³digo QR"
+                placeholder="Código QR"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -560,7 +560,7 @@ export default function QRScanner() {
                 color: 'var(--color-beige-soft)',
                 margin: 0,
               }}>
-                SacÃ¡ndole el mÃ¡ximo partido a escanear
+                Sacándole el máximo partido a escanear
               </h2>
               <button
                 onClick={() => setShowInstructions(false)}
@@ -578,7 +578,7 @@ export default function QRScanner() {
                   justifyContent: 'center',
                 }}
               >
-                Ã—
+                ×
               </button>
             </div>
 
@@ -597,7 +597,7 @@ export default function QRScanner() {
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Haga zoom para llenar la mayor parte posible de la pantalla con el objeto. Cuantos menos objetos y espacio en blanco haya en la pantalla, mÃ¡s rÃ¡pida serÃ¡ reconocida.
+                    Haga zoom para llenar la mayor parte posible de la pantalla con el objeto. Cuantos menos objetos y espacio en blanco haya en la pantalla, más rápida será reconocida.
                   </p>
                 </div>
               </div>
@@ -616,7 +616,7 @@ export default function QRScanner() {
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Si la pantalla estÃ¡ borrosa, toque la pantalla como lo harÃ­a con la aplicaciÃ³n de cÃ¡mara de su telÃ©fono.
+                    Si la pantalla está borrosa, toque la pantalla como lo haría con la aplicación de cámara de su teléfono.
                   </p>
                 </div>
               </div>
@@ -626,7 +626,7 @@ export default function QRScanner() {
                   fontSize: '32px',
                   flexShrink: 0,
                 }}>
-                  ðŸ“¶
+                  📶
                 </div>
                 <div>
                   <p style={{
@@ -635,7 +635,7 @@ export default function QRScanner() {
                     lineHeight: '1.6',
                     margin: 0,
                   }}>
-                    Algunas veces, la velocidad de conexiÃ³n puede repercutir en la velocidad de reconocimiento. Dele unos momentos a la aplicaciÃ³n para poder reconocer la obra en caso que estÃ© en zonas con poca cobertura.
+                    Algunas veces, la velocidad de conexión puede repercutir en la velocidad de reconocimiento. Dele unos momentos a la aplicación para poder reconocer la obra en caso que esté en zonas con poca cobertura.
                   </p>
                 </div>
               </div>
