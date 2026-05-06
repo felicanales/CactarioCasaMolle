@@ -13,18 +13,17 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # opcional (
 if not SUPABASE_URL or not SUPABASE_ANON_KEY:
     raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_ANON_KEY en .env")
 
-_public_client: Optional[Client] = None
 _service_client: Optional[Client] = None
 
 def get_public() -> Client:
     """
-    Obtiene el cliente público de Supabase (puede tener sesión activa).
-    Usar para operaciones que requieren autenticación.
+    Obtiene un cliente anon nuevo por llamada.
+
+    supabase-py conserva la sesion despues de llamadas auth como verify_otp o
+    refresh_session. En un servidor, compartir ese cliente entre requests puede
+    filtrar un JWT expirado hacia consultas publicas y provocar PGRST303.
     """
-    global _public_client
-    if _public_client is None:
-        _public_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-    return _public_client
+    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def get_public_clean() -> Client:
     """
@@ -37,7 +36,7 @@ def get_public_clean() -> Client:
     """
     # Crear un nuevo cliente cada vez para asegurar que no tenga sesión
     # Un cliente nuevo no tiene sesión activa por defecto
-    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    return get_public()
 
 def get_service() -> Client:
     global _service_client
