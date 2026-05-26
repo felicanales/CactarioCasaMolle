@@ -19,20 +19,20 @@ C4Context
 
   System_Ext(supabase, "Supabase", "PostgreSQL + Auth (OTP) + Storage (fallback de imágenes)")
   System_Ext(r2, "Cloudflare R2", "Almacenamiento primario de imágenes y variantes")
-  System_Ext(railway, "Railway", "Plataforma de deploy e infraestructura de los 3 servicios")
+  System_Ext(railway, "Railway", "Plataforma que construye y ejecuta 3 servicios Docker independientes")
 
   Rel(staff, cactario, "Gestiona inventario via WMS", "HTTPS")
   Rel(huesped, cactario, "Explora cactario via QR", "HTTPS")
   Rel(cactario, supabase, "Lee/escribe datos y autentica usuarios", "HTTPS + JWT")
   Rel(cactario, r2, "Sube y sirve imágenes", "HTTPS S3-compatible")
-  Rel(cactario, railway, "Desplegado automáticamente desde GitHub", "CI/CD")
+  Rel(cactario, railway, "Desplegado desde GitHub con un Dockerfile por servicio", "CI/CD")
 ```
 
 ---
 
-## C4 Level 2 — Contenedores
+## C4 Level 2 — Contenedores de aplicación
 
-Muestra los tres servicios del sistema y cómo se comunican.
+Muestra los tres servicios del sistema y cómo se comunican. Cada contenedor de aplicación corresponde a una imagen Docker desplegable de forma independiente.
 
 ```mermaid
 C4Container
@@ -42,9 +42,9 @@ C4Container
   Person(huesped, "Huésped")
 
   System_Boundary(cactario, "Sistema Cactario Casa Molle") {
-    Container(wms, "WMS Staff", "Next.js 15 · React 19 · Bootstrap 5", "Panel de gestión interna: especies, sectores, ejemplares, fotos, auditoría. Puerto 3000 (dev) / Railway (prod)")
-    Container(mobile, "App Pública", "Next.js 15 · React 19 · html5-qrcode", "App para huéspedes: home, escáner QR, navegación por sectores y detalle de especies. Puerto 3002 (dev) / Railway (prod)")
-    Container(api, "Backend API", "FastAPI 0.119 · Python 3.9+", "API REST con endpoints /public y /staff. Puerto 8000 (dev) / Railway (prod)")
+    Container(wms, "WMS Staff (wms/)", "Next.js 15 · React 19 · Node.js 22 · Docker", "Panel de gestión interna. Contenedor :3000, publicado localmente en :3001")
+    Container(app_qr, "App QR pública (app-qr/)", "Next.js 15 · React 19 · Node.js 22 · Docker", "Experiencia huéspedes y escáner QR. Contenedor :3000, publicado localmente en :3002")
+    Container(backend, "Backend API (backend/)", "FastAPI 0.119 · Python 3.11 · Docker", "API REST con endpoints /public y /staff. Contenedor y puerto local :8000")
   }
 
   ContainerDb(supabase_db, "PostgreSQL", "Supabase", "Base de datos principal: especies, ejemplares, sectores, fotos, usuarios, auditoría")
@@ -52,17 +52,87 @@ C4Container
   Container_Ext(r2, "R2 Bucket", "Cloudflare", "Imágenes originales + variantes (w=400, w=800)")
 
   Rel(staff, wms, "Usa", "HTTPS / Browser")
-  Rel(huesped, mobile, "Usa", "HTTPS / Browser")
-  Rel(wms, api, "Llama a /staff/*", "HTTPS + JWT cookie")
-  Rel(mobile, api, "Llama a /public/*", "HTTPS / sin auth")
-  Rel(api, supabase_db, "Lee y escribe datos", "Supabase SDK Python")
-  Rel(api, supabase_auth, "Valida JWT + OTP", "Supabase SDK")
-  Rel(api, r2, "Sube imágenes (S3-compatible)", "boto3")
+  Rel(huesped, app_qr, "Usa", "HTTPS / Browser")
+  Rel(wms, backend, "Llama a /staff/*", "HTTPS + JWT cookie")
+  Rel(app_qr, backend, "Llama a /public/*", "HTTPS / sin auth")
+  Rel(backend, supabase_db, "Lee y escribe datos", "Supabase SDK Python")
+  Rel(backend, supabase_auth, "Valida JWT + OTP", "Supabase SDK")
+  Rel(backend, r2, "Sube imágenes (S3-compatible)", "boto3")
 ```
 
 ---
 
-## C4 Level 3 — Componentes del Backend (FastAPI)
+## Vista de despliegue — Local con Docker Compose
+
+`compose.yaml` orquesta el mismo conjunto de tres servicios para desarrollo o validación local. Supabase y R2 siguen siendo servicios cloud externos; no se crean contenedores de base de datos ni storage local.
+
+```mermaid
+flowchart LR
+  browser_staff["Browser staff<br/>localhost:3001"]
+  browser_guest["Browser huésped<br/>localhost:3002"]
+
+  subgraph compose["Docker Compose — red cactario-casa-molle_default"]
+    wms_local["wms<br/>Next.js standalone<br/>host 3001 → container 3000"]
+    app_local["app-qr<br/>Next.js standalone<br/>host 3002 → container 3000"]
+    backend_local["backend<br/>FastAPI / Uvicorn<br/>host 8000 → container 8000<br/>healthcheck /health"]
+  end
+
+  supabase_local[("Supabase Cloud<br/>PostgreSQL + Auth")]
+  r2_local[("Cloudflare R2")]
+
+  browser_staff --> wms_local
+  browser_guest --> app_local
+  wms_local -->|"NEXT_PUBLIC_API_URL<br/>http://localhost:8000"| backend_local
+  app_local -->|"NEXT_PUBLIC_API_URL<br/>http://localhost:8000"| backend_local
+  backend_local --> supabase_local
+  backend_local --> r2_local
+```
+
+| Servicio Compose | Contexto de build | Puerto contenedor | Puerto host | Configuración |
+|------------------|-------------------|-------------------|-------------|---------------|
+| `backend` | `./backend` | `8000` | `8000` | Secretos runtime desde `backend/.env` |
+| `wms` | `./wms` | `3000` | `3001` | `NEXT_PUBLIC_*` incorporadas durante build |
+| `app-qr` | `./app-qr` | `3000` | `3002` | `NEXT_PUBLIC_*` incorporadas durante build |
+
+Los frontends esperan el health check exitoso de `backend` antes de iniciarse. Los archivos `.dockerignore` impiden copiar archivos `.env` locales a las imágenes.
+
+---
+
+## Vista de despliegue — Railway
+
+En producción, Railway no ejecuta `compose.yaml` como una unidad. El repositorio se conecta a tres servicios Railway separados; cada servicio usa su directorio raíz, su `Dockerfile` y su `railway.json`.
+
+```mermaid
+flowchart LR
+  github["Repositorio GitHub<br/>CactarioCasaMolle"]
+
+  subgraph railway["Railway — producción"]
+    api_prod["Servicio Backend API<br/>Root: backend/<br/>Dockerfile + railway.json<br/>GET /health"]
+    wms_prod["Servicio WMS Staff<br/>Root: wms/<br/>Dockerfile + railway.json"]
+    qr_prod["Servicio App QR<br/>Root: app-qr/<br/>Dockerfile + railway.json"]
+  end
+
+  staff_prod["Staff"] -->|"HTTPS"| wms_prod
+  guest_prod["Huésped"] -->|"HTTPS"| qr_prod
+  wms_prod -->|"HTTPS /staff/*"| api_prod
+  qr_prod -->|"HTTPS /public/*"| api_prod
+  api_prod --> supabase_prod[("Supabase")]
+  api_prod --> r2_prod[("Cloudflare R2")]
+
+  github -.->|"build Docker"| api_prod
+  github -.->|"build Docker"| wms_prod
+  github -.->|"build Docker"| qr_prod
+```
+
+| Servicio Railway | Directorio raíz | Runtime de imagen | Configuración relevante |
+|------------------|-----------------|-------------------|------------------------|
+| Backend API | `backend/` | Python 3.11 + Uvicorn | Variables secretas runtime; `IS_PRODUCTION=true`; health check `/health` |
+| WMS Staff | `wms/` | Node.js 22 + Next.js standalone | `NEXT_PUBLIC_*` disponibles durante el build |
+| App QR | `app-qr/` | Node.js 22 + Next.js standalone | `NEXT_PUBLIC_*` disponibles durante el build |
+
+---
+
+## C4 Level 3 — Componentes del Backend (`backend/`)
 
 ```mermaid
 flowchart TD
@@ -117,7 +187,7 @@ flowchart TD
 
 ---
 
-## C4 Level 3 — Componentes del WMS Staff (Next.js)
+## C4 Level 3 — Componentes del WMS Staff (`wms/`)
 
 ```mermaid
 flowchart TD
@@ -166,7 +236,7 @@ flowchart TD
 
 ---
 
-## C4 Level 3 — Componentes de la App Pública (mobile)
+## C4 Level 3 — Componentes de la App QR Pública (`app-qr/`)
 
 ```mermaid
 flowchart TD
@@ -205,8 +275,8 @@ flowchart TD
 ```mermaid
 sequenceDiagram
   actor Huésped
-  participant App as App Pública (mobile)
-  participant API as Backend (FastAPI)
+  participant App as App QR (app-qr)
+  participant API as Backend (backend)
   participant DB as Supabase PostgreSQL
   participant R2 as Cloudflare R2
 
@@ -240,7 +310,7 @@ sequenceDiagram
 sequenceDiagram
   actor Staff
   participant WMS as WMS Staff (wms)
-  participant API as Backend (FastAPI)
+  participant API as Backend (backend)
   participant Photos as photos_service.py
   participant Storage as storage_router.py
   participant R2 as Cloudflare R2
@@ -273,13 +343,13 @@ sequenceDiagram
 
 ## Resumen de servicios en producción
 
-| Servicio | Tecnología | Puerto dev | URL prod |
-|----------|-----------|-----------|---------|
-| WMS Staff | Next.js 15 | 3000 | `*.railway.app` |
-| App Pública | Next.js 15 | 3002 | `*.railway.app` |
-| Backend API | FastAPI | 8000 | `*.railway.app` |
-| Base de datos | Supabase PostgreSQL | — | Supabase Cloud |
-| Storage imágenes | Cloudflare R2 | — | R2 CDN / dominio custom |
+| Servicio | Código fuente | Imagen de runtime | URL local con Compose | Infraestructura prod |
+|----------|---------------|-------------------|-----------------------|---------------------|
+| WMS Staff | `wms/` | Node.js 22 + Next.js standalone | `http://localhost:3001` | Servicio Railway independiente |
+| App QR pública | `app-qr/` | Node.js 22 + Next.js standalone | `http://localhost:3002` | Servicio Railway independiente |
+| Backend API | `backend/` | Python 3.11 + Uvicorn | `http://localhost:8000` | Servicio Railway independiente |
+| Base de datos y Auth | Externo | Supabase Cloud | N/A | Supabase Cloud |
+| Storage imágenes | Externo | Cloudflare R2 | N/A | R2 CDN / dominio custom |
 
 ### Clientes Supabase en el backend
 
