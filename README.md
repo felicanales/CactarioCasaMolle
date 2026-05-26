@@ -77,7 +77,7 @@ npm run start:backend  # http://localhost:8000
 El stack tambien puede ejecutarse en contenedores, sin instalar Node.js ni Python localmente:
 
 ```bash
-# El backend sigue leyendo sus secretos desde fastapi/.env.
+# El backend lee sus secretos desde backend/.env.
 # Crear .env en la raiz con valores publicos usados al compilar Next.js:
 cp compose.env.example .env
 
@@ -92,7 +92,7 @@ En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
 | WMS Staff | http://localhost:3001 |
 | App Publica | http://localhost:3002 |
 
-Las imagenes de frontend incorporan las variables `NEXT_PUBLIC_*` durante el build; al cambiarlas, ejecutar nuevamente `docker compose up --build`.
+Las imagenes de frontend incorporan el código y las variables `NEXT_PUBLIC_*` durante el build; al cambiar JSX o configuración pública, ejecutar nuevamente `docker compose up --build`. Para hot reload, ejecutar `npm run dev:wms` o `npm run dev:app-qr` fuera de los contenedores.
 
 ---
 

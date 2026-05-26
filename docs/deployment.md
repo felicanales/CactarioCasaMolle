@@ -52,7 +52,19 @@ En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
 | WMS Staff | `http://localhost:3001` |
 | App QR | `http://localhost:3002` |
 
-Los archivos `.dockerignore` excluyen `.env`, dependencias y artefactos locales de las imagenes. Las variables `NEXT_PUBLIC_*` son argumentos de build de Next.js; despues de modificarlas se debe reconstruir la imagen con `docker compose up --build`.
+Los archivos `.dockerignore` excluyen `.env`, dependencias y artefactos locales de las imagenes. Los frontends en Compose ejecutan Next.js standalone y no observan cambios del código fuente. Después de modificar JSX o variables `NEXT_PUBLIC_*`, reconstruir el servicio afectado:
+
+```bash
+docker compose up -d --build wms
+docker compose up -d --build app-qr
+```
+
+Para hot reload, detener el contenedor que ocupa el puerto y ejecutar el servidor de desarrollo:
+
+```bash
+docker compose stop wms
+npm run dev:wms
+```
 
 ---
 
@@ -134,22 +146,41 @@ El proyecto tiene tres servicios Railway independientes, cada uno con su propio 
 
 ### Estructura de servicios
 
-| Servicio | Directorio raíz | Runtime detectado |
-|----------|----------------|------------------|
-| Backend API | `backend/` | Python (Dockerfile) |
-| WMS Staff | `wms/` | Node.js (Dockerfile) |
-| App QR | `app-qr/` | Node.js (Dockerfile) |
+| Servicio | Directorio raíz | Archivo Config as Code | Watch path |
+|----------|----------------|------------------------|------------|
+| Backend API | `backend/` | `/backend/railway.json` | `/backend/**` |
+| WMS Staff | `wms/` | `/wms/railway.json` | `/wms/**` |
+| App QR | `app-qr/` | `/app-qr/railway.json` | `/app-qr/**` |
 
 ### Setup inicial (primera vez)
 
 1. Conectar el repositorio GitHub al proyecto Railway.
 2. Crear tres servicios, con Root Directory `backend/`, `wms/` y `app-qr/` respectivamente. Railway detecta el `Dockerfile` en la raiz de cada servicio.
 3. En la configuracion como codigo de cada servicio, asignar respectivamente `/backend/railway.json`, `/wms/railway.json` y `/app-qr/railway.json`; Railway no resuelve automaticamente estos archivos desde el Root Directory de un monorepo.
-4. Configurar las variables de entorno en cada servicio (Railway Dashboard → Settings → Variables). Para `wms/` y `app-qr/`, las variables `NEXT_PUBLIC_*` se consumen durante el build de Docker y requieren redeploy al cambiar.
-5. Asegurarse de que `IS_PRODUCTION=true` está seteado en el backend.
-6. El deploy se dispara automáticamente en cada push a `main`.
+4. En `Settings` de cada servicio, configurar su Watch Path según la tabla anterior. Los patrones se evalúan desde la raíz del repositorio.
+5. Configurar las variables de entorno en cada servicio (Railway Dashboard → Settings → Variables). Para `wms/` y `app-qr/`, las variables `NEXT_PUBLIC_*` se consumen durante el build de Docker y requieren redeploy al cambiar.
+6. Asegurarse de que `IS_PRODUCTION=true` está seteado en el backend.
+7. Con los watch paths correctos, el deploy del servicio afectado se dispara automáticamente en cada push a `main`.
 
-Referencia Railway: [Dockerfiles](https://docs.railway.com/deploy/dockerfiles) y [Deploy a Docker Compose App to Production](https://docs.railway.com/guides/docker-compose).
+Referencia Railway: [Monorepos y Watch Paths](https://docs.railway.com/guides/monorepo), [Config as Code](https://docs.railway.com/config-as-code/reference) y [Dockerfiles](https://docs.railway.com/deploy/dockerfiles).
+
+### Migración de carpetas y deploy omitido
+
+El repositorio usó anteriormente `nextjs/`, `mobile/` y `fastapi/`. Las carpetas vigentes son `wms/`, `app-qr/` y `backend/`. Los servicios creados antes de la migración pueden conservar watch paths antiguos en Railway.
+
+Síntoma en el status del commit:
+
+```text
+No deployment needed - watched paths not modified
+```
+
+Si un cambio en `wms/` presenta ese estado:
+
+1. Abrir el servicio `Frontend inventario` en Railway.
+2. Cambiar `Root Directory` a `/wms`, `Config as Code` a `/wms/railway.json` y `Watch Paths` a `/wms/**`.
+3. Usar **Deploy Latest Commit** para desplegar el último commit de `main`.
+
+Aplicar el mismo procedimiento con `/app-qr/**` o `/backend/**` si esos servicios omiten cambios de sus carpetas actuales. `Redeploy` de un deploy anterior no incorpora commits nuevos.
 
 ### Health check
 

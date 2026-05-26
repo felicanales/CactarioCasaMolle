@@ -56,7 +56,7 @@ PORT=3000
 ## 📱 Estructura del Proyecto
 
 ```
-mobile/
+app-qr/
 ├── src/
 │   ├── app/
 │   │   ├── page.js                    # Home
@@ -114,8 +114,9 @@ npm start
 
 2. **Crear servicio**
    - En tu proyecto Railway existente, haz clic en `New → Service → Deploy from GitHub`.
-   - Selecciona el repositorio y configura `mobile/` como Root Directory.
-   - Railway detectara `mobile/Dockerfile` y construira la imagen standalone.
+   - Selecciona el repositorio y configura `app-qr/` como Root Directory.
+   - Configura `/app-qr/railway.json` como archivo Config as Code y `/app-qr/**` como Watch Path.
+   - Railway detectara `app-qr/Dockerfile` y construira la imagen standalone.
 
 3. **Variables de entorno (`Settings → Variables`)**
 

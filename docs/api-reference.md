@@ -1,6 +1,6 @@
 # Referencia de API — Cactario Casa Molle
 
-Backend: FastAPI · `fastapi/app/main.py`
+Backend: FastAPI · `backend/app/main.py`
 
 Todos los endpoints viven bajo la URL base del backend (Railway en prod, `http://localhost:8000` en dev).
 
@@ -37,7 +37,7 @@ Archivo: `backend/app/api/routes_auth.py`
 
 ## Especies (`/species`)
 
-Archivo: `backend/app/api/routes_species.py` · Servicio: `fastapi/app/services/species_service.py`
+Archivo: `backend/app/api/routes_species.py` · Servicio: `backend/app/services/species_service.py`
 
 ### Endpoints públicos (sin auth)
 
@@ -52,7 +52,7 @@ Archivo: `backend/app/api/routes_species.py` · Servicio: `fastapi/app/services/
 
 | Método | Path | Descripción |
 |--------|------|-------------|
-| GET | `/species/staff` | Lista completa de especies (todos los campos). Query params: `q`, `limit`, `offset`. |
+| GET | `/species/staff` | Lista de especies para staff, incluyendo `cover_photo` para listados y selectores visuales. Query params: `q`, `limit`, `offset`. |
 | GET | `/species/staff/{species_id}` | Detalle por ID. |
 | POST | `/species/staff` | Crea especie. Valida slug único. Registra en auditoría. |
 | PUT | `/species/staff/{species_id}` | Actualiza especie. Limpia campos calculados antes de enviar a Supabase. Registra en auditoría. |
@@ -78,7 +78,7 @@ Archivo: `backend/app/api/routes_species.py` · Servicio: `fastapi/app/services/
 
 ## Sectores (`/sectors`)
 
-Archivo: `backend/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/sectors_service.py`
+Archivo: `backend/app/api/routes_sectors.py` · Servicio: `backend/app/services/sectors_service.py`
 
 ### Endpoints públicos (sin auth)
 
@@ -86,7 +86,7 @@ Archivo: `backend/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/
 |--------|------|-------------|
 | GET | `/sectors/public` | Lista todos los sectores. Query param: `q` (búsqueda por nombre). |
 | GET | `/sectors/public/{qr_code}` | Busca sector por código QR. Estrategia: exacto → `SECTOR{id}` → ilike. |
-| GET | `/sectors/public/{qr_code}/species` | Lista especies del sector (solo campos públicos) buscando por QR. |
+| GET | `/sectors/public/{qr_code}/species` | Lista especies del sector buscando por QR; retorna identificación pública y `cover_photo`. |
 
 **Campos retornados (públicos):** `id`, `name`, `description`, `qr_code`
 
@@ -106,7 +106,7 @@ Archivo: `backend/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/
 
 ## Ejemplares (`/ejemplar`)
 
-Archivo: `backend/app/api/routes_ejemplar.py` · Servicio: `fastapi/app/services/ejemplar_service.py`
+Archivo: `backend/app/api/routes_ejemplar.py` · Servicio: `backend/app/services/ejemplar_service.py`
 
 Todos los endpoints requieren JWT. No hay endpoints públicos de ejemplares.
 
@@ -144,7 +144,7 @@ Todos los endpoints requieren JWT. No hay endpoints públicos de ejemplares.
 
 ## Fotos (`/photos`)
 
-Archivo: `backend/app/api/routes_photos.py` · Servicio: `fastapi/app/services/photos_service.py`
+Archivo: `backend/app/api/routes_photos.py` · Servicio: `backend/app/services/photos_service.py`
 
 Los tipos de entidad válidos son: `especie`, `sector`, `ejemplar`, `home`.
 
@@ -182,7 +182,7 @@ Los tipos de entidad válidos son: `especie`, `sector`, `ejemplar`, `home`.
 
 ## Transacciones (`/transactions`)
 
-Archivo: `backend/app/api/routes_transactions.py` · Servicio: `fastapi/app/services/transactions_service.py`
+Archivo: `backend/app/api/routes_transactions.py` · Servicio: `backend/app/services/transactions_service.py`
 
 Todos los endpoints requieren JWT.
 
@@ -222,7 +222,7 @@ Todos los endpoints requieren JWT.
 
 ## Auditoría (`/audit`)
 
-Archivo: `backend/app/api/routes_audit.py` · Servicio: `fastapi/app/services/audit_service.py`
+Archivo: `backend/app/api/routes_audit.py` · Servicio: `backend/app/services/audit_service.py`
 
 | Método | Path | Auth | Descripción |
 |--------|------|------|-------------|
@@ -242,7 +242,7 @@ Archivo: `backend/app/api/routes_audit.py` · Servicio: `fastapi/app/services/au
 
 ## Contenido del Home (`/home-content`)
 
-Archivo: `backend/app/api/routes_home_content.py` · Servicio: `fastapi/app/services/home_content_service.py`
+Archivo: `backend/app/api/routes_home_content.py` · Servicio: `backend/app/services/home_content_service.py`
 
 Gestiona el contenido dinámico de la página de inicio de la app pública (título, descripción, carrusel de imágenes, etc.).
 
