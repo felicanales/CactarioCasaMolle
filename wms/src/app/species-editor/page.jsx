@@ -215,6 +215,10 @@ export default function SpeciesEditorPage() {
 
             const data = await res.json();
             setSpecies(data);
+            setSelectedSpecies(current => {
+                if (!current) return current;
+                return data.find(sp => sp.id === current.id) || current;
+            });
             // Los filtros se aplicarán automáticamente en el useEffect
         } catch (err) {
             // Manejar errores de red sin mostrar en consola
@@ -403,7 +407,20 @@ export default function SpeciesEditorPage() {
             }, accessToken);
             if (res.ok) {
                 const data = await res.json();
-                setSpeciesPhotos(data.photos || []);
+                const photos = data.photos || [];
+                const coverPhoto = photos.find(photo => photo.is_cover) || photos[0] || null;
+
+                setSpeciesPhotos(photos);
+                setSelectedSpecies(current => {
+                    if (!current || current.id !== speciesId) return current;
+                    return { ...current, cover_photo: coverPhoto };
+                });
+                setSpecies(current => current.map(sp =>
+                    sp.id === speciesId ? { ...sp, cover_photo: coverPhoto } : sp
+                ));
+                setAllSpeciesList(current => current.map(sp =>
+                    sp.id === speciesId ? { ...sp, cover_photo: coverPhoto } : sp
+                ));
             } else {
                 setSpeciesPhotos([]);
             }
@@ -2196,7 +2213,7 @@ export default function SpeciesEditorPage() {
                                                             }}>
                                                                 <div style={{
                                                                     display: "grid",
-                                                                    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                                                                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
                                                                     gap: "10px"
                                                                 }}>
                                                                     {visibleSpecies.map((specie) => {
@@ -2204,8 +2221,8 @@ export default function SpeciesEditorPage() {
                                                                         return (
                                                                             <label key={specie.id} style={{
                                                                                 display: "grid",
-                                                                                gridTemplateColumns: "18px 1fr",
-                                                                                alignItems: "start",
+                                                                                gridTemplateColumns: "18px 72px minmax(0, 1fr)",
+                                                                                alignItems: "center",
                                                                                 gap: "10px",
                                                                                 padding: "12px",
                                                                                 borderRadius: "10px",
@@ -2231,9 +2248,39 @@ export default function SpeciesEditorPage() {
                                                                                         marginTop: "2px"
                                                                                     }}
                                                                                 />
+                                                                                {(specie.cover_photo || specie.image_url) ? (
+                                                                                    <AuthenticatedImage
+                                                                                        src={resolvePhotoUrl(specie.cover_photo || specie.image_url, { variant: "w=400" })}
+                                                                                        fallbackSrc={resolvePhotoUrl(specie.cover_photo || specie.image_url)}
+                                                                                        alt={specie.scientific_name || "Portada de especie"}
+                                                                                        style={{
+                                                                                            width: "72px",
+                                                                                            height: "72px",
+                                                                                            objectFit: "cover",
+                                                                                            borderRadius: "8px",
+                                                                                            border: "1px solid #e5e7eb"
+                                                                                        }}
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div style={{
+                                                                                        width: "72px",
+                                                                                        height: "72px",
+                                                                                        display: "flex",
+                                                                                        alignItems: "center",
+                                                                                        justifyContent: "center",
+                                                                                        textAlign: "center",
+                                                                                        borderRadius: "8px",
+                                                                                        backgroundColor: "#f3f4f6",
+                                                                                        border: "1px dashed #d1d5db",
+                                                                                        color: "#9ca3af",
+                                                                                        fontSize: "11px"
+                                                                                    }}>
+                                                                                        Sin foto
+                                                                                    </div>
+                                                                                )}
                                                                                 <div style={{ minWidth: 0 }}>
                                                                                     <div style={{
-                                                                                        fontSize: "clamp(16px, 2.5vw, 20px)",
+                                                                                        fontSize: "clamp(14px, 2vw, 17px)",
                                                                                         fontWeight: 700,
                                                                                         fontStyle: "italic",
                                                                                         color: isChecked ? "#065f46" : "#111827",
