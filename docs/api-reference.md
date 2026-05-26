@@ -12,7 +12,7 @@ Convención de separación:
 
 ## Auth (`/auth`)
 
-Archivo: `fastapi/app/api/routes_auth.py`
+Archivo: `backend/app/api/routes_auth.py`
 
 | Método | Path | Auth | Rate limit | Descripción |
 |--------|------|------|-----------|-------------|
@@ -37,7 +37,7 @@ Archivo: `fastapi/app/api/routes_auth.py`
 
 ## Especies (`/species`)
 
-Archivo: `fastapi/app/api/routes_species.py` · Servicio: `fastapi/app/services/species_service.py`
+Archivo: `backend/app/api/routes_species.py` · Servicio: `fastapi/app/services/species_service.py`
 
 ### Endpoints públicos (sin auth)
 
@@ -78,7 +78,7 @@ Archivo: `fastapi/app/api/routes_species.py` · Servicio: `fastapi/app/services/
 
 ## Sectores (`/sectors`)
 
-Archivo: `fastapi/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/sectors_service.py`
+Archivo: `backend/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/sectors_service.py`
 
 ### Endpoints públicos (sin auth)
 
@@ -106,7 +106,7 @@ Archivo: `fastapi/app/api/routes_sectors.py` · Servicio: `fastapi/app/services/
 
 ## Ejemplares (`/ejemplar`)
 
-Archivo: `fastapi/app/api/routes_ejemplar.py` · Servicio: `fastapi/app/services/ejemplar_service.py`
+Archivo: `backend/app/api/routes_ejemplar.py` · Servicio: `fastapi/app/services/ejemplar_service.py`
 
 Todos los endpoints requieren JWT. No hay endpoints públicos de ejemplares.
 
@@ -144,7 +144,7 @@ Todos los endpoints requieren JWT. No hay endpoints públicos de ejemplares.
 
 ## Fotos (`/photos`)
 
-Archivo: `fastapi/app/api/routes_photos.py` · Servicio: `fastapi/app/services/photos_service.py`
+Archivo: `backend/app/api/routes_photos.py` · Servicio: `fastapi/app/services/photos_service.py`
 
 Los tipos de entidad válidos son: `especie`, `sector`, `ejemplar`, `home`.
 
@@ -182,7 +182,7 @@ Los tipos de entidad válidos son: `especie`, `sector`, `ejemplar`, `home`.
 
 ## Transacciones (`/transactions`)
 
-Archivo: `fastapi/app/api/routes_transactions.py` · Servicio: `fastapi/app/services/transactions_service.py`
+Archivo: `backend/app/api/routes_transactions.py` · Servicio: `fastapi/app/services/transactions_service.py`
 
 Todos los endpoints requieren JWT.
 
@@ -222,7 +222,7 @@ Todos los endpoints requieren JWT.
 
 ## Auditoría (`/audit`)
 
-Archivo: `fastapi/app/api/routes_audit.py` · Servicio: `fastapi/app/services/audit_service.py`
+Archivo: `backend/app/api/routes_audit.py` · Servicio: `fastapi/app/services/audit_service.py`
 
 | Método | Path | Auth | Descripción |
 |--------|------|------|-------------|
@@ -242,7 +242,7 @@ Archivo: `fastapi/app/api/routes_audit.py` · Servicio: `fastapi/app/services/au
 
 ## Contenido del Home (`/home-content`)
 
-Archivo: `fastapi/app/api/routes_home_content.py` · Servicio: `fastapi/app/services/home_content_service.py`
+Archivo: `backend/app/api/routes_home_content.py` · Servicio: `fastapi/app/services/home_content_service.py`
 
 Gestiona el contenido dinámico de la página de inicio de la app pública (título, descripción, carrusel de imágenes, etc.).
 
@@ -258,7 +258,7 @@ Gestiona el contenido dinámico de la página de inicio de la app pública (tít
 
 ## Debug (`/debug`)
 
-Archivo: `fastapi/app/api/routes_debug.py`
+Archivo: `backend/app/api/routes_debug.py`
 
 **Solo disponible si** la variable de entorno `ENABLE_DEBUG_ROUTES=true` o `DEBUG=true`.
 

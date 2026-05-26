@@ -239,7 +239,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   actor Staff
-  participant WMS as WMS Staff (nextjs)
+  participant WMS as WMS Staff (wms)
   participant API as Backend (FastAPI)
   participant Photos as photos_service.py
   participant Storage as storage_router.py

@@ -106,7 +106,7 @@ El `AuthContext` de Next.js comprueba `isTokenExpiringSoon()` (< 5 min de vida) 
 
 ## Configuración de cookies por entorno
 
-Archivo: `fastapi/app/core/security.py`
+Archivo: `backend/app/core/security.py`
 
 | Entorno | Variable de detección | `samesite` | `secure` | Propósito |
 |---------|----------------------|-----------|---------|-----------|
@@ -133,7 +133,7 @@ Cookies seteadas:
 
 ## Rate limiting
 
-Archivo: `fastapi/app/api/routes_auth.py`
+Archivo: `backend/app/api/routes_auth.py`
 
 Implementado en memoria (dict por IP). Se resetea al reiniciar el servidor.
 
@@ -181,13 +181,13 @@ RLS está habilitado en todas las tablas. Las policies controlan qué operacione
 - Endpoints `/staff` (reads) → `get_public()` con el token del usuario seteado en el cliente
 - Escrituras y auditoría → `get_service()`
 
-Para ver las policies SQL actuales, revisar `fastapi/app/core/security.py` y el archivo `verify_rls.sql` en la raíz de `fastapi/`.
+Para ver las policies SQL actuales, revisar `backend/app/core/security.py` y el archivo `verify_rls.sql` en la raíz de `backend/`.
 
 ---
 
 ## CORS
 
-Archivo: `fastapi/app/main.py`
+Archivo: `backend/app/main.py`
 
 El middleware CORS acepta orígenes:
 - Lista fija: `localhost:3000`, `localhost:3001`, `127.0.0.1:3000`

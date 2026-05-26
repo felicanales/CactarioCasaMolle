@@ -114,7 +114,8 @@ npm start
 
 2. **Crear servicio**
    - En tu proyecto Railway existente, haz clic en `New → Service → Deploy from GitHub`.
-   - Selecciona el repositorio y la carpeta `mobile`.
+   - Selecciona el repositorio y configura `mobile/` como Root Directory.
+   - Railway detectara `mobile/Dockerfile` y construira la imagen standalone.
 
 3. **Variables de entorno (`Settings → Variables`)**
 
@@ -128,10 +129,9 @@ npm start
 
    Ajusta `NEXT_PUBLIC_API_URL` a la URL real del backend público.
 
-4. **Comandos**
-   - Build: `npm install && npm run build`
-   - Start (override recomendado): `next start -p $PORT`
-     - Si prefieres usar el script existente (`npm run start`, que utiliza el puerto 3002), define `PORT=3002` o actualiza el script para leer la variable.
+4. **Contenedor**
+   - No configurar un Build Command ni un Start Command adicional: el `Dockerfile` ejecuta el servidor standalone con `node server.js`.
+   - Las variables `NEXT_PUBLIC_*` quedan incorporadas durante el build; cualquier cambio requiere un redeploy.
 
 5. **Deploy**
    - Ejecuta `Deploy` y espera a que el build termine.

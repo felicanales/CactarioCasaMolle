@@ -38,5 +38,7 @@ test_*.py
 *_test.py
 
 # Development
+.env
+.env.*
 .env.local
 .env.development

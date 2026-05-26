@@ -6,36 +6,59 @@
 
 ### Prerrequisitos
 
-- Node.js 18+
+- Node.js 22.13+ (solo si se ejecuta sin Docker)
 - Python 3.9+
+- Docker Desktop, si se usara la ejecucion con contenedores
 - Acceso a las variables de entorno del proyecto (ver sección siguiente)
 
 ### Comandos
 
 ```bash
 # Instalar dependencias (una sola vez)
-cd nextjs && npm install
-cd ../mobile && npm install
-cd ../fastapi && pip install -r requirements.txt
+cd wms && npm install
+cd ../app-qr && npm install
+cd ../backend && pip install -r requirements.txt
 
 # Levantar todos los servicios en paralelo (desde la raíz CactarioCasaMolle/)
 npm run start:all
 
 # O individualmente:
-npm run dev:nextjs        # WMS Staff en http://localhost:3000
-npm run dev:mobile        # App pública en http://localhost:3002
-npm run start:fastapi     # Backend API en http://localhost:8000
+npm run dev:wms        # WMS Staff en http://localhost:3001
+npm run dev:app-qr     # App QR en http://localhost:3002
+npm run start:backend  # Backend API en http://localhost:8000
 
-# FastAPI con recarga automática:
-cd fastapi
+# Backend con recarga automática:
+cd backend
 uvicorn app.main:app --reload --port 8000
 ```
+
+### Docker Compose
+
+La raiz del repositorio incluye `compose.yaml` para ejecutar los mismos tres servicios que se despliegan en Railway:
+
+```bash
+# backend/.env debe contener los secretos del backend.
+# .env en la raiz solo contiene variables NEXT_PUBLIC_* de build.
+cp compose.env.example .env
+
+docker compose up --build
+```
+
+En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
+
+| Servicio | Puerto local |
+|----------|--------------|
+| Backend API | `http://localhost:8000` |
+| WMS Staff | `http://localhost:3001` |
+| App QR | `http://localhost:3002` |
+
+Los archivos `.dockerignore` excluyen `.env`, dependencias y artefactos locales de las imagenes. Las variables `NEXT_PUBLIC_*` son argumentos de build de Next.js; despues de modificarlas se debe reconstruir la imagen con `docker compose up --build`.
 
 ---
 
 ## Variables de entorno
 
-### Backend — `fastapi/.env`
+### Backend — `backend/.env`
 
 ```bash
 # Supabase (obligatorio)
@@ -74,7 +97,7 @@ IS_PRODUCTION=true               # Solo en Railway. Controla samesite/secure de 
 ENABLE_DEBUG_ROUTES=false        # true para activar /debug/* endpoints
 ```
 
-### WMS Staff — `nextjs/.env.local`
+### WMS Staff — `wms/.env.local`
 
 ```bash
 # URL del backend (obligatorio)
@@ -89,7 +112,7 @@ NEXT_PUBLIC_BYPASS_AUTH=false    # true para saltarse el login en desarrollo
 NEXT_PUBLIC_AUTH_DEBUG=false     # true para mostrar panel de debug de auth
 ```
 
-### App Pública — `mobile/.env.local`
+### App QR — `app-qr/.env.local`
 
 ```bash
 # URL del backend (obligatorio)
@@ -107,23 +130,26 @@ NEXT_PUBLIC_ENABLE_LOGS=false    # true para mostrar logs de API en consola
 
 ## Deploy en Railway
 
-El proyecto tiene tres servicios Railway independientes, cada uno con su propio `railway.json`.
+El proyecto tiene tres servicios Railway independientes, cada uno con su propio `railway.json` y `Dockerfile`. Railway no ejecuta `compose.yaml` como un unico servicio: cada entrada del compose corresponde a un servicio Railway separado.
 
 ### Estructura de servicios
 
 | Servicio | Directorio raíz | Runtime detectado |
 |----------|----------------|------------------|
-| Backend API | `fastapi/` | Python (Dockerfile) |
-| WMS Staff | `nextjs/` | Node.js (Dockerfile) |
-| App Pública | `mobile/` | Node.js (nixpacks.toml) |
+| Backend API | `backend/` | Python (Dockerfile) |
+| WMS Staff | `wms/` | Node.js (Dockerfile) |
+| App QR | `app-qr/` | Node.js (Dockerfile) |
 
 ### Setup inicial (primera vez)
 
 1. Conectar el repositorio GitHub al proyecto Railway.
-2. Crear tres servicios, uno por directorio.
-3. Configurar las variables de entorno en cada servicio (Railway Dashboard → Settings → Variables).
-4. Asegurarse de que `IS_PRODUCTION=true` está seteado en el backend.
-5. El deploy se dispara automáticamente en cada push a `main`.
+2. Crear tres servicios, con Root Directory `backend/`, `wms/` y `app-qr/` respectivamente. Railway detecta el `Dockerfile` en la raiz de cada servicio.
+3. En la configuracion como codigo de cada servicio, asignar respectivamente `/backend/railway.json`, `/wms/railway.json` y `/app-qr/railway.json`; Railway no resuelve automaticamente estos archivos desde el Root Directory de un monorepo.
+4. Configurar las variables de entorno en cada servicio (Railway Dashboard → Settings → Variables). Para `wms/` y `app-qr/`, las variables `NEXT_PUBLIC_*` se consumen durante el build de Docker y requieren redeploy al cambiar.
+5. Asegurarse de que `IS_PRODUCTION=true` está seteado en el backend.
+6. El deploy se dispara automáticamente en cada push a `main`.
+
+Referencia Railway: [Dockerfiles](https://docs.railway.com/deploy/dockerfiles) y [Deploy a Docker Compose App to Production](https://docs.railway.com/guides/docker-compose).
 
 ### Health check
 
@@ -169,7 +195,7 @@ Si el endpoint `/home-content` devuelve error 500, la tabla no existe. Ejecutar 
 
 ```bash
 # El schema está en:
-fastapi/app/core/home_content_schema.sql
+backend/app/core/home_content_schema.sql
 ```
 
 El script crea:

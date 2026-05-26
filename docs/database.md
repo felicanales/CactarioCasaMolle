@@ -258,4 +258,4 @@ Registro anónimo de visitas a especies/sectores desde la app pública. No requi
 - Las operaciones públicas usan `get_public_clean()` (anon key, sin sesión) — solo ven lo que permite la policy pública.
 - Las operaciones de staff usan `get_public()` con el token del usuario — las policies RLS del usuario aplican.
 - Las operaciones de auditoría y admin usan `get_service()` (service role key) — bypass completo de RLS.
-- Ver `fastapi/app/core/security.py` y `docs/security.md` para el detalle de las policies.
+- Ver `backend/app/core/security.py` y `docs/security.md` para el detalle de las policies.

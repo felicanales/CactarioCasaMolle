@@ -1,0 +1,10 @@
+.env
+.env.*
+.git
+.gitignore
+.railwayignore
+.next
+node_modules
+coverage
+*.log
+

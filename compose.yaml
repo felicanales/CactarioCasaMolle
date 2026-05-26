@@ -1,0 +1,56 @@
+name: cactario-casa-molle
+
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: "8000"
+      IS_PRODUCTION: "false"
+      ENABLE_DEBUG_ROUTES: "false"
+      CORS_ORIGINS: "http://localhost:3001,http://localhost:3002"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  wms:
+    build:
+      context: ./wms
+      args:
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
+        NEXT_PUBLIC_R2_PUBLIC_BASE_URL: "${NEXT_PUBLIC_R2_PUBLIC_BASE_URL:-}"
+        NEXT_PUBLIC_BYPASS_AUTH: "${NEXT_PUBLIC_BYPASS_AUTH:-false}"
+        NEXT_PUBLIC_AUTH_DEBUG: "${NEXT_PUBLIC_AUTH_DEBUG:-false}"
+        NEXT_PUBLIC_ENABLE_LOGS: "${NEXT_PUBLIC_ENABLE_LOGS:-false}"
+        API_PROXY_URL: "${API_PROXY_URL:-http://backend:8000}"
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3001:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  app-qr:
+    build:
+      context: ./app-qr
+      args:
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
+        NEXT_PUBLIC_R2_PUBLIC_BASE_URL: "${NEXT_PUBLIC_R2_PUBLIC_BASE_URL:-}"
+        NEXT_PUBLIC_ENABLE_LOGS: "${NEXT_PUBLIC_ENABLE_LOGS:-false}"
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3002:3000"
+    depends_on:
+      backend:
+        condition: service_healthy

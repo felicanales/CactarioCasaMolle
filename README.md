@@ -10,9 +10,9 @@ El sistema consta de tres servicios independientes conectados a una sola base de
 
 | Servicio | Tecnología | Puerto dev |
 |----------|-----------|-----------|
-| WMS Staff (`nextjs/`) | Next.js 15 · React 19 · Bootstrap 5 | 3000 |
-| App Pública (`mobile/`) | Next.js 15 · React 19 · html5-qrcode | 3002 |
-| Backend API (`fastapi/`) | FastAPI 0.119 · Python 3.9+ | 8000 |
+| WMS Staff (`wms/`) | Next.js 15 · React 19 · Bootstrap 5 | 3001 |
+| App QR (`app-qr/`) | Next.js 15 · React 19 · html5-qrcode | 3002 |
+| Backend API (`backend/`) | FastAPI 0.119 · Python 3.9+ | 8000 |
 | Base de datos | Supabase (PostgreSQL + Auth) | — |
 | Storage de imágenes | Cloudflare R2 (+ Supabase Storage fallback) | — |
 | Infraestructura | Railway (CI/CD automático desde GitHub) | — |
@@ -23,19 +23,19 @@ El sistema consta de tres servicios independientes conectados a una sola base de
 
 ```
 CactarioCasaMolle/
-├── fastapi/              # Backend API (FastAPI)
+├── backend/              # Backend API (FastAPI)
 │   └── app/
 │       ├── api/          # Rutas (routes_*.py) — /public y /staff
 │       ├── services/     # Lógica de negocio (*_service.py)
 │       ├── core/         # Supabase clients, JWT, storage router
 │       └── middleware/   # Auth middleware, rate limiter
-├── nextjs/               # WMS Staff (panel de administración)
+├── wms/                  # WMS Staff (panel de administración)
 │   └── src/
 │       ├── app/          # Páginas (login, species, sectors, inventory, audit)
 │       ├── components/   # PhotoUploader, PhotoGallery, AuthenticatedImage
 │       ├── hooks/        # useSpecies, useSectors, useEjemplares
 │       └── utils/        # api-config, auth-helpers, images
-├── mobile/               # App pública (huéspedes)
+├── app-qr/               # App pública para huéspedes (escaneo QR)
 │   └── src/
 │       ├── app/          # Páginas (home, qr, sectores/[qrCode], especies/[slug])
 │       └── components/   # Header, BottomNavigation, ImageCarousel
@@ -54,12 +54,12 @@ CactarioCasaMolle/
 
 ```bash
 # 1. Instalar dependencias
-cd nextjs && npm install
-cd ../mobile && npm install
-cd ../fastapi && pip install -r requirements.txt
+cd wms && npm install
+cd ../app-qr && npm install
+cd ../backend && pip install -r requirements.txt
 
 # 2. Configurar variables de entorno
-# Crear fastapi/.env, nextjs/.env.local y mobile/.env.local
+# Crear backend/.env, wms/.env.local y app-qr/.env.local
 # Ver docs/deployment.md para la lista completa de variables
 
 # 3. Levantar todos los servicios
@@ -67,10 +67,32 @@ cd ..  # volver a CactarioCasaMolle/
 npm run start:all
 
 # O individualmente:
-npm run dev:nextjs     # http://localhost:3000
-npm run dev:mobile     # http://localhost:3002
-npm run start:fastapi  # http://localhost:8000
+npm run dev:wms        # http://localhost:3001
+npm run dev:app-qr     # http://localhost:3002
+npm run start:backend  # http://localhost:8000
 ```
+
+### Inicio con Docker Compose
+
+El stack tambien puede ejecutarse en contenedores, sin instalar Node.js ni Python localmente:
+
+```bash
+# El backend sigue leyendo sus secretos desde fastapi/.env.
+# Crear .env en la raiz con valores publicos usados al compilar Next.js:
+cp compose.env.example .env
+
+docker compose up --build
+```
+
+En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
+
+| Servicio | URL local |
+|----------|-----------|
+| Backend API | http://localhost:8000 |
+| WMS Staff | http://localhost:3001 |
+| App Publica | http://localhost:3002 |
+
+Las imagenes de frontend incorporan las variables `NEXT_PUBLIC_*` durante el build; al cambiarlas, ejecutar nuevamente `docker compose up --build`.
 
 ---
 
