@@ -8,7 +8,10 @@
         "healthcheckTimeout": 60
     },
     "build": {
-        "builder": "DOCKERFILE"
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+            "/backend/**"
+        ]
     },
     "$comment": "Using DOCKERFILE instead of NIXPACKS because Nix environments have limitations with pip installation. Dockerfile is simpler and more reliable for Python projects."
 }
