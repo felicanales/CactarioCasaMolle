@@ -57,6 +57,7 @@ export default function SpeciesEditorPage() {
     const [sectorSortOrder, setSectorSortOrder] = useState("asc"); // "asc" | "desc"
 
     const [checkedAuth, setCheckedAuth] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showPhotoUploader, setShowPhotoUploader] = useState(false);
     const [speciesPhotos, setSpeciesPhotos] = useState([]);
     const [loadingPhotos, setLoadingPhotos] = useState(false);
@@ -808,6 +809,10 @@ export default function SpeciesEditorPage() {
                     color: #059669;
                 }
                 
+                .editor-layout {
+                    transition: grid-template-columns 0.25s ease;
+                }
+
                 @media (max-width: 1024px) {
                     .editor-layout {
                         grid-template-columns: 1fr !important;
@@ -1012,11 +1017,62 @@ export default function SpeciesEditorPage() {
                     maxWidth: "1400px", margin: "0 auto",
                     padding: "clamp(16px, 4vw, 32px) clamp(12px, 3vw, 24px)",
                     display: "grid",
-                    gridTemplateColumns: "minmax(280px, 400px) 1fr",
-                    gap: "clamp(16px, 3vw, 24px)"
+                    gridTemplateColumns: sidebarCollapsed ? "52px 1fr" : "minmax(280px, 400px) 1fr",
+                    gap: "clamp(16px, 3vw, 24px)",
+                    transition: "grid-template-columns 0.25s ease"
                 }}>
                     {/* Lista de especies o sectores */}
-                    {editorMode === "species" ? (
+                    {sidebarCollapsed ? (
+                        <div style={{
+                            backgroundColor: "white",
+                            borderRadius: "12px",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            padding: "16px 8px",
+                            gap: "16px",
+                            overflow: "hidden",
+                            position: "sticky",
+                            top: "80px",
+                            alignSelf: "start",
+                            minHeight: "120px"
+                        }}>
+                            <button
+                                onClick={() => setSidebarCollapsed(false)}
+                                title="Expandir panel"
+                                style={{
+                                    width: "36px", height: "36px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    backgroundColor: "#f9fafb",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "14px",
+                                    flexShrink: 0,
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#eff6ff"; e.currentTarget.style.borderColor = "#93c5fd"; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db"; }}
+                            >
+                                ▶
+                            </button>
+                            <div style={{
+                                writingMode: "vertical-rl",
+                                transform: "rotate(180deg)",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                                color: "#9ca3af",
+                                userSelect: "none",
+                                letterSpacing: "0.5px",
+                                whiteSpace: "nowrap"
+                            }}>
+                                {editorMode === "species" ? "🌵 Especies" : "📍 Sectores"}
+                            </div>
+                        </div>
+                    ) : editorMode === "species" ? (
                         <div className="species-list" style={{
                             backgroundColor: "white",
                             borderRadius: "12px",
@@ -1025,6 +1081,29 @@ export default function SpeciesEditorPage() {
                             maxHeight: "calc(100vh - 150px)",
                             overflowY: "auto"
                         }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                                <button
+                                    onClick={() => setSidebarCollapsed(true)}
+                                    title="Ocultar panel"
+                                    style={{
+                                        padding: "4px 10px",
+                                        border: "1px solid #e5e7eb",
+                                        borderRadius: "6px",
+                                        backgroundColor: "#f9fafb",
+                                        color: "#6b7280",
+                                        fontSize: "12px",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        transition: "all 0.2s"
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f3f4f6"; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f9fafb"; }}
+                                >
+                                    ◀ Ocultar
+                                </button>
+                            </div>
                             <div style={{
                                 padding: "12px 16px",
                                 backgroundColor: "#eff6ff",
@@ -1280,6 +1359,29 @@ export default function SpeciesEditorPage() {
                             overflowY: "auto",
                             minHeight: "600px"
                         }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                                <button
+                                    onClick={() => setSidebarCollapsed(true)}
+                                    title="Ocultar panel"
+                                    style={{
+                                        padding: "4px 10px",
+                                        border: "1px solid #e5e7eb",
+                                        borderRadius: "6px",
+                                        backgroundColor: "#f9fafb",
+                                        color: "#6b7280",
+                                        fontSize: "12px",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        transition: "all 0.2s"
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f3f4f6"; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#f9fafb"; }}
+                                >
+                                    ◀ Ocultar
+                                </button>
+                            </div>
                             <div style={{
                                 padding: "12px 16px",
                                 backgroundColor: "#eff6ff",
@@ -1488,13 +1590,14 @@ export default function SpeciesEditorPage() {
                                                         fallbackSrc={resolvePhotoUrl(selectedSpecies.cover_photo || selectedSpecies.image_url)}
                                                         alt={selectedSpecies.scientific_name || "Portada"}
                                                         style={{
-                                                            maxWidth: "100%",
-                                                            maxHeight: "240px",
-                                                            borderRadius: "8px",
+                                                            width: "100%",
+                                                            maxHeight: "clamp(220px, 30vh, 420px)",
+                                                            borderRadius: "10px",
                                                             objectFit: "cover",
                                                             border: "1px solid #e5e7eb",
-                                                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                                                            marginBottom: "12px"
+                                                            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                                            marginBottom: "12px",
+                                                            display: "block"
                                                         }}
                                                     />
                                                 ) : (
@@ -1502,12 +1605,12 @@ export default function SpeciesEditorPage() {
                                                         display: "flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
-                                                        height: "160px",
+                                                        height: "clamp(160px, 22vh, 260px)",
                                                         backgroundColor: "#f3f4f6",
                                                         border: "1px dashed #d1d5db",
-                                                        borderRadius: "8px",
+                                                        borderRadius: "10px",
                                                         color: "#9ca3af",
-                                                        fontSize: "13px",
+                                                        fontSize: "14px",
                                                         marginBottom: "12px"
                                                     }}>
                                                         Sin portada disponible
@@ -1532,8 +1635,8 @@ export default function SpeciesEditorPage() {
                                                         {/* Fotos existentes */}
                                                         {loadingPhotos ? (
                                                             <div style={{
-                                                                width: "120px",
-                                                                height: "120px",
+                                                                width: "clamp(100px, 12vw, 160px)",
+                                                                height: "clamp(100px, 12vw, 160px)",
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "center",
@@ -1541,7 +1644,7 @@ export default function SpeciesEditorPage() {
                                                                 borderRadius: "8px",
                                                                 border: "1px solid #e5e7eb",
                                                                 color: "#9ca3af",
-                                                                fontSize: "12px",
+                                                                fontSize: "13px",
                                                                 flexShrink: 0
                                                             }}>
                                                                 Cargando...
@@ -1554,14 +1657,14 @@ export default function SpeciesEditorPage() {
                                                                         <div
                                                                             key={photo.id}
                                                                             style={{
-                                                                                width: "120px",
-                                                                                height: "120px",
+                                                                                width: "clamp(100px, 12vw, 160px)",
+                                                                                height: "clamp(100px, 12vw, 160px)",
                                                                                 flexShrink: 0,
                                                                                 position: "relative",
-                                                                                borderRadius: "8px",
+                                                                                borderRadius: "10px",
                                                                                 overflow: "hidden",
                                                                                 border: "1px solid #e5e7eb",
-                                                                                boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                                                                                boxShadow: "0 1px 3px rgba(0,0,0,0.07)"
                                                                             }}
                                                                         >
                                                                             <AuthenticatedImage
@@ -1585,19 +1688,19 @@ export default function SpeciesEditorPage() {
                                                                         }
                                                                     }}
                                                                     style={{
-                                                                        width: "120px",
-                                                                        height: "120px",
+                                                                        width: "clamp(100px, 12vw, 160px)",
+                                                                        height: "clamp(100px, 12vw, 160px)",
                                                                         flexShrink: 0,
                                                                         display: "flex",
                                                                         alignItems: "center",
                                                                         justifyContent: "center",
                                                                         backgroundColor: "#f9fafb",
                                                                         border: "2px dashed #d1d5db",
-                                                                        borderRadius: "8px",
+                                                                        borderRadius: "10px",
                                                                         cursor: "pointer",
                                                                         transition: "all 0.2s",
                                                                         color: "#6b7280",
-                                                                        fontSize: "32px",
+                                                                        fontSize: "36px",
                                                                         fontWeight: "300"
                                                                     }}
                                                                     onMouseEnter={(e) => {
@@ -1633,18 +1736,18 @@ export default function SpeciesEditorPage() {
 
                                             {/* Información Básica */}
                                             <div style={{
-                                                padding: "10px", backgroundColor: "#f9fafb",
-                                                borderRadius: "8px", border: "1px solid #e5e7eb"
+                                                padding: "16px", backgroundColor: "#f9fafb",
+                                                borderRadius: "10px", border: "1px solid #e5e7eb"
                                             }}>
                                                 <h3 style={{
-                                                    fontSize: "12px", fontWeight: "600",
-                                                    color: "#111827", margin: "0 0 8px 0"
+                                                    fontSize: "14px", fontWeight: "700",
+                                                    color: "#111827", margin: "0 0 12px 0"
                                                 }}>
                                                     Información Básica
                                                 </h3>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Nombre Común
                                                         </label>
                                                         <input
@@ -1652,13 +1755,13 @@ export default function SpeciesEditorPage() {
                                                             value={formData.nombre_común}
                                                             onChange={(e) => setFormData({ ...formData, nombre_común: e.target.value })}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Estado de Conservación (Descripción Libre)
                                                         </label>
                                                         <input
@@ -1667,21 +1770,21 @@ export default function SpeciesEditorPage() {
                                                             onChange={(e) => setFormData({ ...formData, estado_conservación: e.target.value })}
                                                             placeholder="Ej: Endémica de Chile central"
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Categoría de Conservación
                                                         </label>
                                                         <select
                                                             value={formData.categoria_conservacion || ""}
                                                             onChange={(e) => setFormData({ ...formData, categoria_conservacion: e.target.value })}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                             }}
                                                         >
                                                             <option value="">Seleccionar...</option>
@@ -1714,57 +1817,57 @@ export default function SpeciesEditorPage() {
                                             {/* Descripciones */}
                                             <div style={{
                                                 padding: "16px", backgroundColor: "#f9fafb",
-                                                borderRadius: "8px", border: "1px solid #e5e7eb"
+                                                borderRadius: "10px", border: "1px solid #e5e7eb"
                                             }}>
                                                 <h3 style={{
-                                                    fontSize: "14px", fontWeight: "600",
+                                                    fontSize: "14px", fontWeight: "700",
                                                     color: "#111827", margin: "0 0 12px 0"
                                                 }}>
                                                     Descripciones
                                                 </h3>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Hábitat
                                                         </label>
                                                         <textarea
                                                             value={formData.habitat}
                                                             onChange={(e) => setFormData({ ...formData, habitat: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Cuidado y Recomendaciones
                                                         </label>
                                                         <textarea
                                                             value={formData.cuidado}
                                                             onChange={(e) => setFormData({ ...formData, cuidado: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Usos
                                                         </label>
                                                         <textarea
                                                             value={formData.usos}
                                                             onChange={(e) => setFormData({ ...formData, usos: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
@@ -1773,18 +1876,18 @@ export default function SpeciesEditorPage() {
 
                                             {/* Información Taxonómica */}
                                             <div style={{
-                                                padding: "10px", backgroundColor: "#f9fafb",
-                                                borderRadius: "8px", border: "1px solid #e5e7eb"
+                                                padding: "16px", backgroundColor: "#f9fafb",
+                                                borderRadius: "10px", border: "1px solid #e5e7eb"
                                             }}>
                                                 <h3 style={{
-                                                    fontSize: "12px", fontWeight: "600",
-                                                    color: "#111827", margin: "0 0 8px 0"
+                                                    fontSize: "14px", fontWeight: "700",
+                                                    color: "#111827", margin: "0 0 12px 0"
                                                 }}>
                                                     Información Taxonómica
                                                 </h3>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                                     <div>
-                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Nombres Comunes (separados por comas)
                                                         </label>
                                                         <input
@@ -1792,14 +1895,14 @@ export default function SpeciesEditorPage() {
                                                             value={formData.nombres_comunes}
                                                             onChange={(e) => setFormData({ ...formData, nombres_comunes: e.target.value })}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                             }}
                                                         />
                                                     </div>
-                                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                                                         <div>
-                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                                 Tipo de Planta
                                                             </label>
                                                             <input
@@ -1807,21 +1910,21 @@ export default function SpeciesEditorPage() {
                                                                 value={formData.tipo_planta}
                                                                 onChange={(e) => setFormData({ ...formData, tipo_planta: e.target.value })}
                                                                 style={{
-                                                                    width: "100%", padding: "6px 10px",
-                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                    width: "100%", padding: "8px 12px",
+                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                                 }}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                                 Tipo de Morfología
                                                             </label>
                                                             <select
                                                                 value={formData.tipo_morfología || ""}
                                                                 onChange={(e) => setFormData({ ...formData, tipo_morfología: e.target.value || null })}
                                                                 style={{
-                                                                    width: "100%", padding: "6px 10px",
-                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px",
+                                                                    width: "100%", padding: "8px 12px",
+                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px",
                                                                     backgroundColor: "white"
                                                                 }}
                                                             >
@@ -1835,23 +1938,23 @@ export default function SpeciesEditorPage() {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Distribución
                                                         </label>
                                                         <textarea
                                                             value={formData.distribución}
                                                             onChange={(e) => setFormData({ ...formData, distribución: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
-                                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                                    <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                                                         <div>
-                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                                 Expectativa de Vida
                                                             </label>
                                                             <input
@@ -1859,13 +1962,13 @@ export default function SpeciesEditorPage() {
                                                                 value={formData.expectativa_vida}
                                                                 onChange={(e) => setFormData({ ...formData, expectativa_vida: e.target.value })}
                                                                 style={{
-                                                                    width: "100%", padding: "6px 10px",
-                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                    width: "100%", padding: "8px 12px",
+                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                                 }}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                            <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                                 Floración
                                                             </label>
                                                             <input
@@ -1873,8 +1976,8 @@ export default function SpeciesEditorPage() {
                                                                 value={formData.floración}
                                                                 onChange={(e) => setFormData({ ...formData, floración: e.target.value })}
                                                                 style={{
-                                                                    width: "100%", padding: "6px 10px",
-                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                    width: "100%", padding: "8px 12px",
+                                                                    border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                                 }}
                                                             />
                                                         </div>
@@ -1884,43 +1987,43 @@ export default function SpeciesEditorPage() {
 
                                             {/* Historia y Leyendas */}
                                             <div style={{
-                                                padding: "10px", backgroundColor: "#f9fafb",
-                                                borderRadius: "8px", border: "1px solid #e5e7eb"
+                                                padding: "16px", backgroundColor: "#f9fafb",
+                                                borderRadius: "10px", border: "1px solid #e5e7eb"
                                             }}>
                                                 <h3 style={{
-                                                    fontSize: "12px", fontWeight: "600",
-                                                    color: "#111827", margin: "0 0 8px 0"
+                                                    fontSize: "14px", fontWeight: "700",
+                                                    color: "#111827", margin: "0 0 12px 0"
                                                 }}>
                                                     Historia y Cultura
                                                 </h3>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                                     <div>
-                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Historia del Nombre
                                                         </label>
                                                         <textarea
                                                             value={formData.historia_nombre}
                                                             onChange={(e) => setFormData({ ...formData, historia_nombre: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Historia y Leyendas
                                                         </label>
                                                         <textarea
                                                             value={formData.historia_y_leyendas}
                                                             onChange={(e) => setFormData({ ...formData, historia_y_leyendas: e.target.value })}
-                                                            rows={2}
+                                                            rows={3}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
@@ -2031,18 +2134,18 @@ export default function SpeciesEditorPage() {
                                         <div style={{ display: "flex", flexDirection: "column", gap: "14px", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
                                             {/* Información Básica del Sector */}
                                             <div style={{
-                                                padding: "10px", backgroundColor: "#f9fafb",
-                                                borderRadius: "8px", border: "1px solid #e5e7eb"
+                                                padding: "16px", backgroundColor: "#f9fafb",
+                                                borderRadius: "10px", border: "1px solid #e5e7eb"
                                             }}>
                                                 <h3 style={{
-                                                    fontSize: "12px", fontWeight: "600",
-                                                    color: "#111827", margin: "0 0 8px 0"
+                                                    fontSize: "14px", fontWeight: "700",
+                                                    color: "#111827", margin: "0 0 12px 0"
                                                 }}>
                                                     Información Básica
                                                 </h3>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Nombre del Sector *
                                                         </label>
                                                         <input
@@ -2051,28 +2154,28 @@ export default function SpeciesEditorPage() {
                                                             onChange={(e) => setSectorFormData({ ...sectorFormData, name: e.target.value })}
                                                             required
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
-                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "13px"
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Descripción
                                                         </label>
                                                         <textarea
                                                             value={sectorFormData.description}
                                                             onChange={(e) => setSectorFormData({ ...sectorFormData, description: e.target.value })}
-                                                            rows={3}
+                                                            rows={4}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "inherit", resize: "vertical"
+                                                                fontSize: "14px", fontFamily: "inherit", resize: "vertical"
                                                             }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", marginBottom: "4px", display: "block" }}>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Código QR
                                                         </label>
                                                         <input
@@ -2080,9 +2183,9 @@ export default function SpeciesEditorPage() {
                                                             value={sectorFormData.qr_code}
                                                             onChange={(e) => setSectorFormData({ ...sectorFormData, qr_code: e.target.value })}
                                                             style={{
-                                                                width: "100%", padding: "6px 10px",
+                                                                width: "100%", padding: "8px 12px",
                                                                 border: "1px solid #d1d5db", borderRadius: "6px",
-                                                                fontSize: "13px", fontFamily: "monospace"
+                                                                fontSize: "14px", fontFamily: "monospace"
                                                             }}
                                                             placeholder="Código QR del sector"
                                                         />
