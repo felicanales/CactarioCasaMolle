@@ -1,352 +1,102 @@
-﻿# ðŸŒµ Cactario Casa Molle
+# Cactario Casa Molle
 
-Sistema de gestiÃ³n de cactÃ¡ceas para Casa Molle con mÃºltiples interfaces: panel de administraciÃ³n (staff) y aplicaciÃ³n mÃ³vil para visitantes.
+Sistema de gestión de cactáceas para el hotel Casa Molle. Permite al staff administrar el inventario del cactario (especies, sectores, ejemplares, fotos, compras) y a los huéspedes explorar las plantas escaneando códigos QR con su celular.
 
-## ðŸ“¦ Componentes del Sistema
+El sistema consta de tres servicios independientes conectados a una sola base de datos Supabase, desplegados en Railway.
 
-### 1. **Frontend Staff** (`nextjs/`)
+---
 
-Panel de administraciÃ³n para el personal del cactuario. Permite gestionar especies, sectores, inventario y reportes.
+## Stack tecnológico
 
-- **TecnologÃ­a**: Next.js 15.5.5
-- **Puerto desarrollo**: 3000
-- **CaracterÃ­sticas**:
-  - GestiÃ³n de especies
-  - GestiÃ³n de sectores
-  - Control de inventario
-  - Reportes y estadÃ­sticas
-  - Subida y gestiÃ³n de fotos
+| Servicio | Tecnología | Puerto dev |
+|----------|-----------|-----------|
+| WMS Staff (`nextjs/`) | Next.js 15 · React 19 · Bootstrap 5 | 3000 |
+| App Pública (`mobile/`) | Next.js 15 · React 19 · html5-qrcode | 3002 |
+| Backend API (`fastapi/`) | FastAPI 0.119 · Python 3.9+ | 8000 |
+| Base de datos | Supabase (PostgreSQL + Auth) | — |
+| Storage de imágenes | Cloudflare R2 (+ Supabase Storage fallback) | — |
+| Infraestructura | Railway (CI/CD automático desde GitHub) | — |
 
-### 2. **Frontend Mobile** (`mobile/`)
+---
 
-AplicaciÃ³n web mÃ³vil para visitantes del cactuario. Permite explorar sectores, especies y escanear cÃ³digos QR.
+## Estructura del proyecto
 
-- **TecnologÃ­a**: Next.js 15.5.5
-- **Puerto desarrollo**: 3002
-- **CaracterÃ­sticas**:
-  - Home con carrusel de fotos
-  - EscÃ¡ner de cÃ³digos QR
-  - NavegaciÃ³n por sectores
-  - VisualizaciÃ³n de especies
-  - Detalle de especies con fotos
-
-### 3. **Backend API** (`fastapi/`)
-
-API REST para gestionar datos del cactuario. Proporciona endpoints pÃºblicos y privados.
-
-- **TecnologÃ­a**: FastAPI (Python)
-- **Puerto desarrollo**: 8000
-- **CaracterÃ­sticas**:
-  - API REST completa
-  - Endpoints pÃºblicos para visitantes
-  - Endpoints privados para staff
-  - GestiÃ³n de fotos y almacenamiento
-  - IntegraciÃ³n con Supabase
-
-## ðŸš€ Despliegue en Railway
-
-Este proyecto estÃ¡ configurado para desplegarse automÃ¡ticamente en Railway.
-
-### ðŸ“‹ Prerrequisitos
-
-- Cuenta en [Railway](https://railway.app)
-- Variables de entorno configuradas
-
-### ðŸ”§ ConfiguraciÃ³n
-
-#### Variables de Entorno Requeridas
-
-```bash
-# Supabase
-SUPABASE_URL=tu_supabase_url
-SUPABASE_ANON_KEY=tu_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=tu_supabase_service_role_key
-
-# R2 Storage (Cloudflare)
-R2_ACCOUNT_ID=tu_account_id
-R2_ACCESS_KEY_ID=tu_access_key_id
-R2_SECRET_ACCESS_KEY=tu_secret_access_key
-R2_BUCKET=tu_bucket
-R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
-
-# Frontend (Next.js staff/mobile)
-# NOTE: In production, NEXT_PUBLIC_R2_PUBLIC_BASE_URL must be set and must match the backend R2_PUBLIC_BASE_URL.
-NEXT_PUBLIC_R2_PUBLIC_BASE_URL=tu_subdominio_o_cdn
-
-# Database
-DATABASE_URL=tu_database_url
-
-# Environment
-ENVIRONMENT=production
-NODE_ENV=production
+```
+CactarioCasaMolle/
+├── fastapi/              # Backend API (FastAPI)
+│   └── app/
+│       ├── api/          # Rutas (routes_*.py) — /public y /staff
+│       ├── services/     # Lógica de negocio (*_service.py)
+│       ├── core/         # Supabase clients, JWT, storage router
+│       └── middleware/   # Auth middleware, rate limiter
+├── nextjs/               # WMS Staff (panel de administración)
+│   └── src/
+│       ├── app/          # Páginas (login, species, sectors, inventory, audit)
+│       ├── components/   # PhotoUploader, PhotoGallery, AuthenticatedImage
+│       ├── hooks/        # useSpecies, useSectors, useEjemplares
+│       └── utils/        # api-config, auth-helpers, images
+├── mobile/               # App pública (huéspedes)
+│   └── src/
+│       ├── app/          # Páginas (home, qr, sectores/[qrCode], especies/[slug])
+│       └── components/   # Header, BottomNavigation, ImageCarousel
+├── docs/                 # Documentación técnica del proyecto
+│   ├── architecture.md   # Diagramas C4 completos (Mermaid)
+│   ├── database.md       # Modelo ER de Supabase
+│   ├── api-reference.md  # Todos los endpoints de la API
+│   ├── deployment.md     # Variables de entorno y setup Railway
+│   └── security.md       # Flujo de auth, RLS, cookies, CORS
+└── agregar_usuario.sql   # Script para registrar nuevos usuarios del staff
 ```
 
-### ðŸš‚ Deploy en Railway
+---
 
-1. **Conectar GitHub**:
-   - Ir a [railway.app](https://railway.app)
-   - New Project â†’ Deploy from GitHub repo
-   - Seleccionar este repositorio
-
-2. **Configurar Servicios**:
-   - Crear 3 servicios separados:
-     - **Backend**: Carpeta `fastapi/`
-     - **Frontend Staff**: Carpeta `nextjs/`
-     - **Frontend Mobile**: Carpeta `mobile/`
-
-3. **Configurar Variables**:
-   - Settings â†’ Variables en cada servicio
-   - Agregar todas las variables de entorno necesarias
-
-4. **Deploy AutomÃ¡tico**:
-   - Railway detectarÃ¡ automÃ¡ticamente Node.js y Python
-   - Deploy automÃ¡tico en cada push
-
-### ðŸ‘¥ AdministraciÃ³n de Usuarios
-
-El sistema utiliza una **whitelist** basada en la tabla `usuarios` de Supabase. Para que un correo pueda iniciar sesiÃ³n, debe estar registrado en esta tabla con `active=true`.
-
-#### Agregar Nuevo Usuario
-
-1. **Abrir Supabase SQL Editor**:
-   - Ve a tu proyecto en Supabase
-   - Navega a SQL Editor
-
-2. **Ejecutar el script de agregar usuario**:
-   - Abre el archivo `agregar_usuario.sql` en la raÃ­z del proyecto
-   - Busca la llamada a la funciÃ³n `insert_usuario_admin` (alrededor de la lÃ­nea 75)
-   - Reemplaza los valores marcados con âš ï¸:
-     ```sql
-     SELECT * FROM public.insert_usuario_admin(
-         'ejemplo@cactario.cl',  -- âš ï¸ CAMBIAR: Correo (se convierte a minÃºsculas automÃ¡ticamente)
-         'nombre',                -- âš ï¸ CAMBIAR: Nombre de usuario Ãºnico
-         'nombre apellido'           -- âš ï¸ OPCIONAL: Nombre completo
-     );
-     ```
-   - Ejecuta el script completo (crea la funciÃ³n y luego la usa)
-
-3. **Verificar**:
-   - El script incluye una consulta de verificaciÃ³n al final
-   - AsegÃºrate de que `active = true` en el resultado
-
-#### âš ï¸ Importante
-
-- El correo se convierte automÃ¡ticamente a minÃºsculas (puedes escribirlo como prefieras)
-- El campo `supabase_uid` se sincronizarÃ¡ automÃ¡ticamente cuando el usuario inicie sesiÃ³n por primera vez
-- Si el correo ya existe pero estÃ¡ inactivo, el script lo activarÃ¡ automÃ¡ticamente
-- Si el correo ya existe, el script actualizarÃ¡ el username y nombre completo
-- El `username` debe ser Ãºnico en la tabla
-
-#### Problema ComÃºn: "Correo no autorizado"
-
-Si recibes el error _"Este correo no estÃ¡ autorizado para acceder al sistema"_, significa que:
-
-- El correo no estÃ¡ en la tabla `usuarios`, o
-- El correo existe pero tiene `active=false`
-
-**SoluciÃ³n**: Ejecuta el script `agregar_usuario.sql` con el correo correcto.
-
-### ðŸ› ï¸ Desarrollo Local
+## Inicio rápido (desarrollo local)
 
 ```bash
-# Instalar dependencias de todos los servicios
+# 1. Instalar dependencias
 cd nextjs && npm install
 cd ../mobile && npm install
 cd ../fastapi && pip install -r requirements.txt
 
-# Desarrollo Frontend Staff
-cd nextjs
-npm run dev
-# Disponible en http://localhost:3000
+# 2. Configurar variables de entorno
+# Crear fastapi/.env, nextjs/.env.local y mobile/.env.local
+# Ver docs/deployment.md para la lista completa de variables
 
-# Desarrollo Frontend Mobile
-cd mobile
-npm run dev
-# Disponible en http://localhost:3002
+# 3. Levantar todos los servicios
+cd ..  # volver a CactarioCasaMolle/
+npm run start:all
 
-# Desarrollo Backend
-cd fastapi
-uvicorn app.main:app --reload
-# Disponible en http://localhost:8000
+# O individualmente:
+npm run dev:nextjs     # http://localhost:3000
+npm run dev:mobile     # http://localhost:3002
+npm run start:fastapi  # http://localhost:8000
 ```
 
-### ðŸ“ Estructura del Proyecto
+---
 
-```
-/
-â”œâ”€â”€ nextjs/              # Frontend Staff (Next.js)
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”‚   â”œâ”€â”€ staff/   # Panel de staff
-â”‚   â”‚   â”‚   â”œâ”€â”€ species/ # GestiÃ³n de especies
-â”‚   â”‚   â”‚   â”œâ”€â”€ sectors/ # GestiÃ³n de sectores
-â”‚   â”‚   â”‚   â”œâ”€â”€ inventory/ # Inventario
-â”‚   â”‚   â”‚   â””â”€â”€ reports/ # Reportes
-â”‚   â”‚   â”œâ”€â”€ components/  # Componentes React
-â”‚   â”‚   â””â”€â”€ utils/      # Utilidades
-â”‚   â”œâ”€â”€ railway.json     # ConfiguraciÃ³n Railway frontend staff
-â”‚   â””â”€â”€ package.json
-â”œâ”€â”€ mobile/              # Frontend Mobile (Next.js)
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”‚   â”œâ”€â”€ page.js  # Home
-â”‚   â”‚   â”‚   â”œâ”€â”€ qr/      # EscÃ¡ner QR
-â”‚   â”‚   â”‚   â”œâ”€â”€ sectores/ # NavegaciÃ³n sectores
-â”‚   â”‚   â”‚   â””â”€â”€ especies/ # Detalle especies
-â”‚   â”‚   â”œâ”€â”€ components/  # Componentes React
-â”‚   â”‚   â””â”€â”€ utils/       # Utilidades
-â”‚   â””â”€â”€ package.json
-â”œâ”€â”€ fastapi/             # Backend FastAPI
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ api/         # Rutas de la API
-â”‚   â”‚   â”œâ”€â”€ core/        # ConfiguraciÃ³n core
-â”‚   â”‚   â”œâ”€â”€ models/      # Modelos de datos
-â”‚   â”‚   â””â”€â”€ services/    # LÃ³gica de negocio
-â”‚   â”œâ”€â”€ Dockerfile       # ConfiguraciÃ³n Docker
-â”‚   â”œâ”€â”€ railway.json     # ConfiguraciÃ³n Railway backend
-â”‚   â””â”€â”€ requirements.txt
-â””â”€â”€ package.json         # Scripts principales
-```
+## Documentación
 
-### ðŸŒ URLs
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/architecture.md](docs/architecture.md) | Diagramas C4 L1/L2/L3 con Mermaid, flujos de datos principales |
+| [docs/database.md](docs/database.md) | Modelo ER completo, descripción de tablas, ENUMs |
+| [docs/api-reference.md](docs/api-reference.md) | Todos los endpoints: método, auth, parámetros, respuestas |
+| [docs/deployment.md](docs/deployment.md) | Variables de entorno, setup Railway, gestión de usuarios |
+| [docs/security.md](docs/security.md) | Flujo de auth OTP, JWT, cookies, RLS, CORS |
 
-#### Desarrollo
+---
 
-- **Frontend Staff**: `http://localhost:3000`
-- **Frontend Mobile**: `http://localhost:3002`
-- **Backend API**: `http://localhost:8000`
+## Agregar un usuario del staff
 
-#### ProducciÃ³n
-
-- **Frontend Staff**: `https://tu-frontend-staff.railway.app`
-- **Frontend Mobile**: `https://tu-frontend-mobile.railway.app`
-- **Backend API**: `https://tu-backend.railway.app`
-
-### ðŸ“± CaracterÃ­sticas
-
-#### Frontend Staff
-
-- âœ… Panel de administraciÃ³n completo
-- âœ… GestiÃ³n de especies y sectores
-- âœ… Control de inventario
-- âœ… Reportes y estadÃ­sticas
-- âœ… Subida y gestiÃ³n de fotos
-
-#### Frontend Mobile
-
-- âœ… Interfaz mÃ³vil optimizada
-- âœ… EscÃ¡ner de cÃ³digos QR
-- âœ… NavegaciÃ³n por sectores
-- âœ… VisualizaciÃ³n de especies
-- âœ… Carrusel de fotos
-
-#### Backend
-
-- âœ… API REST completa
-- âœ… Endpoints pÃºblicos y privados
-- âœ… GestiÃ³n de fotos
-- âœ… IntegraciÃ³n con Supabase
-- âœ… CORS configurado
-
-## ðŸŽ¯ Scripts Disponibles
-
-### Frontend Staff
+El sistema usa una whitelist: solo los emails en la tabla `usuarios` con `active = true` pueden hacer login. Para agregar uno:
 
 ```bash
-cd nextjs
-npm run dev          # Desarrollo
-npm run build        # Build producciÃ³n
-npm start            # ProducciÃ³n
+# Abrir SQL Editor en Supabase Dashboard y ejecutar:
+SELECT * FROM public.insert_usuario_admin(
+    'email@casamolle.cl',   -- email del usuario
+    'username_unico',        -- username único
+    'Nombre Apellido'        -- nombre completo (opcional)
+);
 ```
 
-### Frontend Mobile
-
-```bash
-cd mobile
-npm run dev          # Desarrollo
-npm run build        # Build producciÃ³n
-npm start            # ProducciÃ³n
-```
-
-### Backend
-
-```bash
-cd fastapi
-uvicorn app.main:app --reload  # Desarrollo
-```
-
-## ðŸ“š DocumentaciÃ³n Adicional
-
-- `mobile/README.md` - DocumentaciÃ³n detallada del frontend mobile
-- `DEPLOYMENT_GUIDE.md` - GuÃ­a de despliegue
-- `INSTRUCCIONES_DEPLOY_RAILWAY.md` - Instrucciones especÃ­ficas para Railway
-
-## ðŸ“ž Soporte
-
-Para problemas o preguntas, revisar los logs en Railway Dashboard o consultar la documentaciÃ³n de cada componente.
-
-## Cloudflare Billing
-
-### Cuenta y acceso
-
-- Cuenta asociada: `felcanales@alumnos.uai.cl` (login via GitHub).
-- Direccion de facturacion: configurada en el panel de Billing de Cloudflare.
-- Modalidad de facturacion: facturas consolidadas (no recibos individuales).
-
-### Facturas recientes
-
-| Fecha       | Factura       | Monto   | Estado |
-| ----------- | ------------- | ------- | ------ |
-| Apr 8, 2026 | `IN-61859818` | `$0.00` | Paid   |
-| Mar 8, 2026 | `IN-59298706` | `$0.00` | Paid   |
-| Feb 8, 2026 | `IN-57039525` | `$0.00` | Paid   |
-
-### Metodo de pago
-
-- Metodo de pago actual: tarjeta registrada en la seccion **Payment** (visible en Billing).
-
-### Suscripciones activas
-
-- Servicio: **R2 Object Storage**.
-- Estado: **Paid**.
-- Renovacion: **May 8, 2026**.
-- Precio: **$0.00/mes + uso variable**.
-- Factura: **Paid**.
-- Accion disponible: **Cancel**.
-
-### Control de costos
-
-- Billable usage: panel disponible para revisar consumo y cargos variables segun uso de servicios.
-
-## Railway Billing
-
-### Cuenta y acceso
-
-- Cuenta asociada: `felcanales@alumnos.uai.cl` (login via GitHub).
-- Billing Email / Direccion de facturacion: `claudia@casamolle.cl`.
-- Nota: todos los recibos se envian a ese correo (no como notificaciones dentro de la app).
-
-### Metodo de pago
-
-- Metodo de pago actual: tarjeta registrada terminada en `9456`.
-
-### Suscripcion activa
-
-- Plan: **Hobby Workspace**.
-- Tipo: **Usage-based subscription**.
-- Estado: activo (con opcion de cancelar).
-
-### Historial de facturacion
-
-| Fecha             | Monto   | Concepto                 |
-| ----------------- | ------- | ------------------------ |
-| April 17, 2026    | `$5.00` | Usage-based subscription |
-| March 17, 2026    | `$5.00` | Usage-based subscription |
-| February 17, 2026 | `$5.00` | Usage-based subscription |
-| January 17, 2026  | `$5.00` | Usage-based subscription |
-| December 17, 2025 | `$1.53` | Usage-based subscription |
-| November 17, 2025 | `$5.00` | Usage-based subscription |
-
-### Billable usage
-
-- El consumo se factura al final de cada ciclo de facturacion mensual.
+Ver instrucciones completas en [docs/deployment.md](docs/deployment.md).
