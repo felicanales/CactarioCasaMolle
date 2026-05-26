@@ -11,6 +11,22 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
   const touchLastXRef = useRef(null);
   const isSwipingRef = useRef(false);
 
+  // El efecto es la única fuente de verdad del timer.
+  // Cada vez que currentIndex cambia (por usuario o por auto-advance),
+  // el cleanup cancela el timer anterior y se crea uno nuevo desde cero.
+  useEffect(() => {
+    if (!autoRotate || !images || images.length <= 1) return;
+    const timer = setTimeout(() => {
+      setCurrentIndex(prev => (prev + 1) % images.length);
+    }, rotationInterval);
+    return () => clearTimeout(timer);
+  }, [autoRotate, images, rotationInterval, currentIndex]);
+
+  const goTo = (index) => {
+    const next = ((index % images.length) + images.length) % images.length;
+    setCurrentIndex(next);
+  };
+
   const resetTouchState = () => {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
@@ -18,23 +34,8 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
     isSwipingRef.current = false;
   };
 
-  const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const goToImage = (index) => {
-    setCurrentIndex(index);
-  };
-
   const handleTouchStart = (event) => {
-    if (!images || images.length <= 1) {
-      return;
-    }
-
+    if (!images || images.length <= 1) return;
     const touch = event.touches[0];
     touchStartXRef.current = touch.clientX;
     touchStartYRef.current = touch.clientY;
@@ -43,13 +44,9 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
   };
 
   const handleTouchMove = (event) => {
-    if (touchStartXRef.current === null) {
-      return;
-    }
-
+    if (touchStartXRef.current === null) return;
     const touch = event.touches[0];
     touchLastXRef.current = touch.clientX;
-
     const deltaX = touch.clientX - touchStartXRef.current;
     const deltaY = touch.clientY - touchStartYRef.current;
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
@@ -62,31 +59,12 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
       resetTouchState();
       return;
     }
-
     const deltaX = touchLastXRef.current - touchStartXRef.current;
     if (isSwipingRef.current && Math.abs(deltaX) > 40) {
-      if (deltaX < 0) {
-        nextImage();
-      } else {
-        prevImage();
-      }
+      goTo(deltaX < 0 ? currentIndex + 1 : currentIndex - 1);
     }
-
     resetTouchState();
   };
-
-  // Auto-rotation effect
-  useEffect(() => {
-    if (!autoRotate || !images || images.length <= 1) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, rotationInterval);
-
-    return () => clearInterval(interval);
-  }, [images, autoRotate, rotationInterval]);
 
   if (!images || images.length === 0) {
     return (
@@ -143,7 +121,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
           <>
             <button
               className="carousel-arrow carousel-arrow-left"
-              onClick={prevImage}
+              onClick={() => goTo(currentIndex - 1)}
               aria-label="Imagen anterior"
             >
               <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
@@ -152,7 +130,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
             </button>
             <button
               className="carousel-arrow carousel-arrow-right"
-              onClick={nextImage}
+              onClick={() => goTo(currentIndex + 1)}
               aria-label="Siguiente imagen"
             >
               <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
@@ -179,7 +157,7 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
             <button
               key={index}
               className={`carousel-indicator ${index === currentIndex ? 'active' : ''}`}
-              onClick={() => goToImage(index)}
+              onClick={() => goTo(index)}
               aria-label={`Ir a imagen ${index + 1}`}
             />
           ))}
@@ -188,4 +166,3 @@ export default function ImageCarousel({ images, placeholderText = 'Foto', autoRo
     </>
   );
 }
-
