@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -19,6 +19,7 @@ const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
+const SPECIES_PAGE_SIZE = 25;
 
 // Helper para formatear nombres comunes
 const formatCommonNames = (nombre_común, nombres_comunes) => {
@@ -117,6 +118,7 @@ function Modal({ isOpen, onClose, title, children }) {
 export default function SpeciesPage() {
     const { user, loading: authLoading, fetchMe, accessToken } = useAuth();
     const router = useRouter();
+    const speciesTableRef = useRef(null);
 
     const { data: species = [], isLoading: loading } = useSpeciesList(
         {},
@@ -132,6 +134,7 @@ export default function SpeciesPage() {
     const [filterMorfologia, setFilterMorfologia] = useState("");
     const [filterCategoria, setFilterCategoria] = useState("");
     const [sortOrder, setSortOrder] = useState("asc"); // "asc" o "desc"
+    const [currentSpeciesPage, setCurrentSpeciesPage] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState("create"); // "create" | "edit" | "view"
     const [selectedSpecies, setSelectedSpecies] = useState(null);
@@ -239,7 +242,41 @@ export default function SpeciesPage() {
         setFilteredSpecies(filtered);
     }, [species, searchQuery, filterMorfologia, filterCategoria, sortOrder]);
 
+    useEffect(() => {
+        setCurrentSpeciesPage(1);
+    }, [searchQuery, filterMorfologia, filterCategoria, sortOrder]);
 
+    const totalSpeciesPages = Math.max(1, Math.ceil(filteredSpecies.length / SPECIES_PAGE_SIZE));
+    const normalizedSpeciesPage = Math.min(currentSpeciesPage, totalSpeciesPages);
+    const speciesPageStart = (normalizedSpeciesPage - 1) * SPECIES_PAGE_SIZE;
+    const paginatedSpecies = filteredSpecies.slice(speciesPageStart, speciesPageStart + SPECIES_PAGE_SIZE);
+    const firstVisibleSpecies = filteredSpecies.length === 0 ? 0 : speciesPageStart + 1;
+    const lastVisibleSpecies = Math.min(speciesPageStart + paginatedSpecies.length, filteredSpecies.length);
+
+    useEffect(() => {
+        if (currentSpeciesPage > totalSpeciesPages) {
+            setCurrentSpeciesPage(totalSpeciesPages);
+        }
+    }, [currentSpeciesPage, totalSpeciesPages]);
+
+    const scrollToSpeciesListStart = () => {
+        if (typeof window === "undefined" || !speciesTableRef.current) return;
+
+        window.requestAnimationFrame(() => {
+            const stickyHeaderOffset = 88;
+            const top = speciesTableRef.current.getBoundingClientRect().top + window.scrollY - stickyHeaderOffset;
+            window.scrollTo({
+                top: Math.max(0, top),
+                behavior: "smooth",
+            });
+        });
+    };
+
+    const handleSpeciesPageChange = (page) => {
+        const nextPage = Math.min(totalSpeciesPages, Math.max(1, page));
+        setCurrentSpeciesPage(nextPage);
+        scrollToSpeciesListStart();
+    };
 
     const handleCreate = () => {
         setModalMode("create");
@@ -764,7 +801,7 @@ export default function SpeciesPage() {
                     )}
 
                     {/* Species Table */}
-                    <div style={{
+                    <div ref={speciesTableRef} style={{
                         backgroundColor: "white",
                         borderRadius: "12px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -896,7 +933,7 @@ export default function SpeciesPage() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredSpecies.map((sp) => {
+                                        paginatedSpecies.map((sp) => {
                                             const isEndangered = sp.categoria_conservacion === "En peligro de extinción";
                                             return (
                                                 <tr
@@ -1139,6 +1176,96 @@ export default function SpeciesPage() {
                                 </tbody>
                             </table>
                         </div>
+                        {!loading && filteredSpecies.length > 0 && (
+                            <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "12px",
+                                padding: "14px 16px",
+                                borderTop: "1px solid #e5e7eb",
+                                backgroundColor: "#f9fafb",
+                                flexWrap: "wrap"
+                            }}>
+                                <div style={{
+                                    fontSize: "13px",
+                                    color: "#4b5563",
+                                    fontWeight: "500"
+                                }}>
+                                    Mostrando {firstVisibleSpecies}-{lastVisibleSpecies} de {filteredSpecies.length} especies
+                                </div>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    flexWrap: "wrap"
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSpeciesPageChange(normalizedSpeciesPage - 1)}
+                                        disabled={normalizedSpeciesPage === 1}
+                                        style={{
+                                            padding: "8px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            backgroundColor: normalizedSpeciesPage === 1 ? "#f3f4f6" : "white",
+                                            color: normalizedSpeciesPage === 1 ? "#9ca3af" : "#374151",
+                                            fontSize: "13px",
+                                            fontWeight: "600",
+                                            cursor: normalizedSpeciesPage === 1 ? "not-allowed" : "pointer"
+                                        }}
+                                    >
+                                        Anterior
+                                    </button>
+                                    <label style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        fontSize: "13px",
+                                        color: "#4b5563",
+                                        fontWeight: "500"
+                                    }}>
+                                        Pagina
+                                        <select
+                                            value={normalizedSpeciesPage}
+                                            onChange={(event) => handleSpeciesPageChange(Number(event.target.value))}
+                                            style={{
+                                                padding: "8px 10px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                backgroundColor: "white",
+                                                color: "#111827",
+                                                fontSize: "13px",
+                                                fontWeight: "600"
+                                            }}
+                                        >
+                                            {Array.from({ length: totalSpeciesPages }, (_, index) => index + 1).map(page => (
+                                                <option key={page} value={page}>
+                                                    {page} de {totalSpeciesPages}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSpeciesPageChange(normalizedSpeciesPage + 1)}
+                                        disabled={normalizedSpeciesPage === totalSpeciesPages}
+                                        style={{
+                                            padding: "8px 12px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            backgroundColor: normalizedSpeciesPage === totalSpeciesPages ? "#f3f4f6" : "white",
+                                            color: normalizedSpeciesPage === totalSpeciesPages ? "#9ca3af" : "#374151",
+                                            fontSize: "13px",
+                                            fontWeight: "600",
+                                            cursor: normalizedSpeciesPage === totalSpeciesPages ? "not-allowed" : "pointer"
+                                        }}
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

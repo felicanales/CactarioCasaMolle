@@ -90,9 +90,11 @@ flowchart LR
 
 | Servicio Compose | Contexto de build | Puerto contenedor | Puerto host | Configuración |
 |------------------|-------------------|-------------------|-------------|---------------|
-| `backend` | `./backend` | `8000` | `8000` | Secretos runtime desde `backend/.env`; `IS_PRODUCTION=false`; `ENABLE_DEBUG_ROUTES=false` |
+| `backend` | `./backend` | `8000` | `8000` | Imagen `python:3.11-slim`; secretos runtime desde `backend/.env`; `IS_PRODUCTION=false`; `ENABLE_DEBUG_ROUTES=false` |
 | `wms` | `./wms` | `3000` | `3001` | `NEXT_PUBLIC_*` incorporadas durante build; `depends_on: backend (healthy)` |
 | `app-qr` | `./app-qr` | `3000` | `3002` | `NEXT_PUBLIC_*` incorporadas durante build; `depends_on: backend (healthy)` |
+
+El backend local en Docker es una instancia propia de FastAPI. No llama al backend de Railway ni reutiliza su runtime. Se conecta directamente a Supabase y R2 con las variables de `backend/.env`. Si ese `.env` apunta al mismo proyecto Supabase de producción, los datos creados o modificados localmente quedan disponibles para Railway porque ambos backends leen la misma base.
 
 Los frontends esperan el health check exitoso de `backend` antes de iniciarse. Los archivos `.dockerignore` impiden copiar archivos `.env` locales a las imágenes.
 
@@ -128,7 +130,7 @@ flowchart LR
 
 | Servicio Railway | Directorio raíz | Archivo de config | Watch path | Configuración relevante |
 |------------------|-----------------|-------------------|------------|------------------------|
-| Backend API | `backend/` | `/backend/railway.json` | `/backend/**` | Python 3.11 + Uvicorn; secretos runtime; `IS_PRODUCTION=true`; health check `/health` |
+| Backend API | `backend/` | `/backend/railway.json` | `/backend/**` | Dockerfile `python:3.11-slim` + Uvicorn; `runtime.txt` declara `python-3.11.9`; secretos runtime; `IS_PRODUCTION=true`; health check `/health` |
 | WMS Staff | `wms/` | `/wms/railway.json` | `/wms/**` | Node.js 22 + Next.js standalone; `NEXT_PUBLIC_*` durante build |
 | App QR | `app-qr/` | `/app-qr/railway.json` | `/app-qr/**` | Node.js 22 + Next.js standalone; `NEXT_PUBLIC_*` durante build |
 
@@ -423,6 +425,7 @@ sequenceDiagram
 |----------|----------|--------|
 | `IS_PRODUCTION` | Backend | Controla `samesite`/`secure` de cookies; `lax/false` en dev, `none/true` en prod |
 | `ENABLE_DEBUG_ROUTES` | Backend | Activa `routes_debug.py` cuando es `true` |
+| `MASTER_LOGIN_KEY` | Backend | Habilita `/auth/master-key-login`; debe estar en `backend/.env` para Docker/local y en variables Railway para producción |
 | `STORAGE_FALLBACK_SUPABASE` | Backend | Usa Supabase Storage si R2 falla |
 | `STORAGE_DUAL_WRITE_SUPABASE` | Backend | Escribe en ambos storages simultáneamente |
 | `NEXT_PUBLIC_BYPASS_AUTH` | WMS | Omite validación de auth en desarrollo local |

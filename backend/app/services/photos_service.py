@@ -8,6 +8,7 @@ import uuid
 import logging
 from app.core.supabase_auth import get_public, get_service
 from app.core import storage_router
+from app.services.query_helpers import chunked, fetch_all_pages, unique_values
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,21 @@ def _execute_photos_query(query_builder, fields: List[str]):
             _PHOTOS_HAS_VARIANTS = False
             effective_fields = _strip_variants(fields)
             return query_builder(effective_fields).execute()
+        raise
+
+
+def _execute_photos_query_all(query_builder, fields: List[str]) -> List[Dict[str, Any]]:
+    global _PHOTOS_HAS_VARIANTS
+    effective_fields = fields
+    if _PHOTOS_HAS_VARIANTS is False:
+        effective_fields = _strip_variants(fields)
+    try:
+        return fetch_all_pages(lambda: query_builder(effective_fields))
+    except Exception as error:
+        if _PHOTOS_HAS_VARIANTS is not False and _is_missing_variants_error(error):
+            _PHOTOS_HAS_VARIANTS = False
+            effective_fields = _strip_variants(fields)
+            return fetch_all_pages(lambda: query_builder(effective_fields))
         raise
 
 
@@ -289,10 +305,10 @@ def list_photos(entity_type: str, entity_id: int) -> List[Dict[str, Any]]:
             .eq(config['column'], entity_id)\
             .order("order_index")
 
-    photos = _execute_photos_query(build_query, fields)
+    photos = _execute_photos_query_all(build_query, fields)
     
     result = []
-    for photo in (photos.data or []):
+    for photo in photos:
         public_url = storage_router.get_public_url(photo["storage_path"])
         result.append({
             **photo,
@@ -368,16 +384,24 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
     sb = get_public()
     
     # Obtener portadas explícitas
-    covers = sb.table("fotos")\
-        .select(f"{config['column']}, storage_path, is_cover, order_index")\
-        .in_(config['column'], entity_ids)\
-        .eq("is_cover", True)\
-        .execute()
+    clean_ids = unique_values(entity_ids)
+    cover_fields = f"id, {config['column']}, storage_path, is_cover, order_index"
+    covers = []
+    for ids_chunk in chunked(clean_ids):
+        covers.extend(
+            fetch_all_pages(
+                lambda ids_chunk=ids_chunk: sb.table("fotos")
+                .select(cover_fields)
+                .in_(config['column'], ids_chunk)
+                .eq("is_cover", True)
+                .order("id")
+            )
+        )
     
     cover_map = {}
     covered_ids = set()
     
-    for photo in (covers.data or []):
+    for photo in covers:
         eid = photo[config['column']]
         if eid not in cover_map and photo.get("storage_path"):
             public_url = storage_router.get_public_url(photo["storage_path"])
@@ -385,16 +409,26 @@ def get_cover_photos_map(entity_type: str, entity_ids: List[int]) -> Dict[int, O
             covered_ids.add(eid)
     
     # Para las que no tienen portada, buscar la primera foto
-    missing_ids = [eid for eid in entity_ids if eid not in covered_ids]
+    missing_ids = [eid for eid in clean_ids if eid not in covered_ids]
     if missing_ids:
-        all_photos = sb.table("fotos")\
-            .select(f"{config['column']}, storage_path, order_index")\
-            .in_(config['column'], missing_ids)\
-            .order(f"{config['column']}, order_index")\
-            .execute()
+        all_photos = []
+        for ids_chunk in chunked(missing_ids):
+            all_photos.extend(
+                fetch_all_pages(
+                    lambda ids_chunk=ids_chunk: sb.table("fotos")
+                    .select(f"id, {config['column']}, storage_path, order_index")
+                    .in_(config['column'], ids_chunk)
+                    .order("id")
+                )
+            )
         
         by_entity = {}
-        for photo in (all_photos.data or []):
+        all_photos.sort(key=lambda photo: (
+            photo.get(config['column']) or 0,
+            photo.get("order_index") if photo.get("order_index") is not None else 0,
+            photo.get("id") or 0,
+        ))
+        for photo in all_photos:
             eid = photo[config['column']]
             if eid not in by_entity and photo.get("storage_path"):
                 by_entity[eid] = photo["storage_path"]

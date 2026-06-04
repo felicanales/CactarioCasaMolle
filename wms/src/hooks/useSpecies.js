@@ -3,25 +3,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../app/context/AuthContext";
 import { getApiUrl } from "../utils/api-config";
+import { fetchAllStaffSpecies, fetchStaffSpeciesPage } from "../utils/species-api";
 
 const API = getApiUrl();
 
-export function useSpeciesList(params = {}) {
+export function useSpeciesList(params = {}, options = {}) {
   const { apiRequest } = useAuth();
-  const { q, limit = 100, offset = 0 } = params;
+  const { q, limit, offset } = params;
+  const { all = true, ...queryOptions } = options;
 
   return useQuery({
-    queryKey: ["species", "list", q, limit, offset],
+    queryKey: ["species", "list", all ? "all" : "page", q, limit, offset],
     queryFn: async () => {
-      const search = new URLSearchParams();
-      if (q) search.set("q", q);
-      search.set("limit", limit);
-      search.set("offset", offset);
-      const res = await apiRequest(`${API}/species/staff?${search}`);
-      if (!res.ok) throw new Error("Error al cargar especies");
-      return res.json();
+      if (all) {
+        return fetchAllStaffSpecies(apiRequest, params);
+      }
+      return fetchStaffSpeciesPage(apiRequest, params);
     },
     enabled: true,
+    ...queryOptions,
   });
 }
 

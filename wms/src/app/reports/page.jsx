@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { getApiUrl } from "../../utils/api-config";
+import { fetchAllStaffSpecies } from "../../utils/species-api";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
@@ -101,13 +102,13 @@ export default function ReportsPage() {
             // Cargar especies y sectores en paralelo con la primera página de ejemplares
             const [firstEjRes, spRes, secRes] = await Promise.all([
                 authApiRequest(`${API}/ejemplar/staff?limit=200&offset=0`),
-                authApiRequest(`${API}/species/staff`),
+                fetchAllStaffSpecies(authApiRequest).catch(() => []),
                 authApiRequest(`${API}/sectors/staff`),
             ]);
             if (!firstEjRes.ok) throw new Error("Error al cargar ejemplares");
 
             const firstEjRaw = await firstEjRes.json();
-            const spRaw = spRes.ok ? await spRes.json() : [];
+            const spRaw = Array.isArray(spRes) ? spRes : [];
             const secRaw = secRes.ok ? await secRes.json() : [];
 
             // El endpoint devuelve { data: [...], total: N }

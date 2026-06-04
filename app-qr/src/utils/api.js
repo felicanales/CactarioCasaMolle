@@ -19,6 +19,8 @@ const api = axios.create({
   timeout: 30000, // 30 segundos de timeout (aumentado desde 10s)
 });
 
+const SPECIES_PAGE_SIZE = 100;
+
 // Interceptor para logging (solo cuando esta habilitado)
 if (typeof window !== 'undefined' && LOGS_ENABLED) {
   api.interceptors.request.use(
@@ -100,6 +102,31 @@ export const sectorsApi = {
 
 export const speciesApi = {
   list: (params = {}) => retryRequest(() => api.get('/species/public', { params })),
+  listAll: async (options = {}) => {
+    const { pageSize = SPECIES_PAGE_SIZE, ...params } = options;
+    const allSpecies = [];
+    let offset = 0;
+
+    while (true) {
+      const response = await retryRequest(() => api.get('/species/public', {
+        params: {
+          ...params,
+          limit: pageSize,
+          offset,
+        },
+      }));
+      const page = Array.isArray(response?.data) ? response.data : [];
+      allSpecies.push(...page);
+
+      if (page.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+
+    return allSpecies;
+  },
   getBySlug: (slug) => retryRequest(() => api.get(`/species/public/${slug}`)),
 };
 

@@ -2,6 +2,7 @@
 from typing import List, Dict, Any, Optional
 from app.core.supabase_auth import get_public, get_service
 from app.core.security import get_token_from_request
+from app.services.query_helpers import fetch_all_by_ids
 from fastapi import Request
 from datetime import datetime
 import logging
@@ -102,8 +103,15 @@ def get_purchases_grouped(
                     species_ids.add(item["species_id"])
         
         if species_ids:
-            species_result = sb.table("especies").select("id, scientific_name, nombre_común").in_("id", list(species_ids)).execute()
-            species_map = {s["id"]: s for s in species_result.data}
+            species_rows = fetch_all_by_ids(
+                sb,
+                "especies",
+                "id, scientific_name, nombre_común",
+                "id",
+                list(species_ids),
+                order_by="id",
+            )
+            species_map = {s["id"]: s for s in species_rows}
             
             # Agregar información de especie a cada item
             for purchase in purchases:
@@ -210,8 +218,15 @@ def get_sales_grouped(
                     species_ids.add(item["species_id"])
         
         if species_ids:
-            species_result = sb.table("especies").select("id, scientific_name, nombre_común").in_("id", list(species_ids)).execute()
-            species_map = {s["id"]: s for s in species_result.data}
+            species_rows = fetch_all_by_ids(
+                sb,
+                "especies",
+                "id, scientific_name, nombre_común",
+                "id",
+                list(species_ids),
+                order_by="id",
+            )
+            species_map = {s["id"]: s for s in species_rows}
             
             # Agregar información de especie a cada item
             for sale in sales:

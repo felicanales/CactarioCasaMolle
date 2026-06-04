@@ -9,9 +9,18 @@ import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
 import { getAccessTokenFromContext } from "../../utils/auth-helpers";
+import { fetchAllStaffSpecies } from "../../utils/species-api";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
+const EDITOR_SPECIES_PAGE_SIZE = 25;
+const SIDEBAR_DEFAULT_WIDTH = 480;
+const SIDEBAR_MIN_WIDTH = 320;
+const SIDEBAR_MAX_WIDTH = 680;
+const SIDEBAR_COLLAPSED_WIDTH = 64;
+const EDITOR_HEADER_FALLBACK_HEIGHT = 76;
+
+const clampSidebarWidth = (value) => Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, value));
 
 export default function SpeciesEditorPage() {
     const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
@@ -33,6 +42,7 @@ export default function SpeciesEditorPage() {
     const [filterMorfologia, setFilterMorfologia] = useState("");
     const [filterCategoria, setFilterCategoria] = useState("");
     const [sortOrder, setSortOrder] = useState("asc"); // "asc" o "desc"
+    const [currentEditorSpeciesPage, setCurrentEditorSpeciesPage] = useState(1);
     const [formData, setFormData] = useState({
         scientific_name: "", nombre_común: "", nombres_comunes: "",
         tipo_planta: "", tipo_morfología: "", habitat: "",
@@ -58,10 +68,95 @@ export default function SpeciesEditorPage() {
 
     const [checkedAuth, setCheckedAuth] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+    const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+    const [editorHeaderHeight, setEditorHeaderHeight] = useState(EDITOR_HEADER_FALLBACK_HEIGHT);
     const [showPhotoUploader, setShowPhotoUploader] = useState(false);
     const [speciesPhotos, setSpeciesPhotos] = useState([]);
     const [loadingPhotos, setLoadingPhotos] = useState(false);
     const fileInputRef = useRef(null);
+    const editorHeaderRef = useRef(null);
+    const speciesSidebarRef = useRef(null);
+    const sidebarResizeRef = useRef({
+        startX: 0,
+        startWidth: SIDEBAR_DEFAULT_WIDTH
+    });
+
+    const handleSidebarResizeStart = (event) => {
+        if (sidebarCollapsed) return;
+        event.preventDefault();
+        event.stopPropagation();
+        sidebarResizeRef.current = {
+            startX: event.clientX,
+            startWidth: sidebarWidth
+        };
+        setIsResizingSidebar(true);
+    };
+
+    const handleSidebarResizeKeyDown = (event) => {
+        if (sidebarCollapsed) return;
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            setSidebarWidth(width => clampSidebarWidth(width - 24));
+        }
+        if (event.key === "ArrowRight") {
+            event.preventDefault();
+            setSidebarWidth(width => clampSidebarWidth(width + 24));
+        }
+    };
+
+    useEffect(() => {
+        if (!isResizingSidebar) return;
+
+        const previousCursor = document.body.style.cursor;
+        const previousUserSelect = document.body.style.userSelect;
+
+        const handlePointerMove = (event) => {
+            const { startX, startWidth } = sidebarResizeRef.current;
+            setSidebarWidth(clampSidebarWidth(startWidth + event.clientX - startX));
+        };
+
+        const handlePointerUp = () => {
+            setIsResizingSidebar(false);
+        };
+
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerUp);
+
+        return () => {
+            document.body.style.cursor = previousCursor;
+            document.body.style.userSelect = previousUserSelect;
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
+        };
+    }, [isResizingSidebar]);
+
+    useEffect(() => {
+        if (!editorHeaderRef.current) return;
+
+        const updateHeaderHeight = () => {
+            const nextHeight = Math.ceil(editorHeaderRef.current?.getBoundingClientRect().height || EDITOR_HEADER_FALLBACK_HEIGHT);
+            setEditorHeaderHeight(nextHeight);
+        };
+
+        updateHeaderHeight();
+
+        const resizeObserver = typeof ResizeObserver !== "undefined"
+            ? new ResizeObserver(updateHeaderHeight)
+            : null;
+
+        resizeObserver?.observe(editorHeaderRef.current);
+        window.addEventListener("resize", updateHeaderHeight);
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", updateHeaderHeight);
+        };
+    }, []);
 
     useEffect(() => {
         if (BYPASS_AUTH) {
@@ -202,19 +297,8 @@ export default function SpeciesEditorPage() {
             setLoading(true);
             setError("");
 
-            const res = await apiRequest(`${API}/species/staff`, {}, accessToken);
-
-            if (!res.ok) {
-                if (res.status === 401 && !BYPASS_AUTH) {
-                    setError("Sesión expirada");
-                    setTimeout(() => router.replace("/login"), 1500);
-                    return;
-                }
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || "Error al cargar especies");
-            }
-
-            const data = await res.json();
+            const requestWithToken = (url, options = {}) => apiRequest(url, options, accessToken);
+            const data = await fetchAllStaffSpecies(requestWithToken);
             setSpecies(data);
             setSelectedSpecies(current => {
                 if (!current) return current;
@@ -222,6 +306,11 @@ export default function SpeciesEditorPage() {
             });
             // Los filtros se aplicarán automáticamente en el useEffect
         } catch (err) {
+            if (err.status === 401 && !BYPASS_AUTH) {
+                setError("Sesión expirada");
+                setTimeout(() => router.replace("/login"), 1500);
+                return;
+            }
             // Manejar errores de red sin mostrar en consola
             const errorMessage = err.message || "Error al cargar especies";
             if (!errorMessage.includes('Network error') && !errorMessage.includes('Load failed')) {
@@ -306,13 +395,11 @@ export default function SpeciesEditorPage() {
         if (user || BYPASS_AUTH) {
             const fetchAllSpecies = async () => {
                 try {
-                    const res = await apiRequest(`${API}/species/staff`, {}, accessToken);
-                    if (res.ok) {
-                        const data = await res.json();
-                        setAllSpeciesList(data.sort((a, b) =>
-                            (a.scientific_name || "").toLowerCase().localeCompare((b.scientific_name || "").toLowerCase())
-                        ));
-                    }
+                    const requestWithToken = (url, options = {}) => apiRequest(url, options, accessToken);
+                    const data = await fetchAllStaffSpecies(requestWithToken);
+                    setAllSpeciesList(data.sort((a, b) =>
+                        (a.scientific_name || "").toLowerCase().localeCompare((b.scientific_name || "").toLowerCase())
+                    ));
                 } catch (err) {
                     // Error silencioso al cargar todas las especies
                 }
@@ -370,6 +457,46 @@ export default function SpeciesEditorPage() {
 
         setFilteredSpecies(filtered);
     }, [species, searchQuery, filterMorfologia, filterCategoria, sortOrder]);
+
+    useEffect(() => {
+        setCurrentEditorSpeciesPage(1);
+    }, [searchQuery, filterMorfologia, filterCategoria, sortOrder, editorMode]);
+
+    const totalEditorSpeciesPages = Math.max(1, Math.ceil(filteredSpecies.length / EDITOR_SPECIES_PAGE_SIZE));
+    const normalizedEditorSpeciesPage = Math.min(currentEditorSpeciesPage, totalEditorSpeciesPages);
+    const editorSpeciesPageStart = (normalizedEditorSpeciesPage - 1) * EDITOR_SPECIES_PAGE_SIZE;
+    const paginatedEditorSpecies = filteredSpecies.slice(
+        editorSpeciesPageStart,
+        editorSpeciesPageStart + EDITOR_SPECIES_PAGE_SIZE
+    );
+    const firstVisibleEditorSpecies = filteredSpecies.length === 0 ? 0 : editorSpeciesPageStart + 1;
+    const lastVisibleEditorSpecies = Math.min(
+        editorSpeciesPageStart + paginatedEditorSpecies.length,
+        filteredSpecies.length
+    );
+
+    useEffect(() => {
+        if (currentEditorSpeciesPage > totalEditorSpeciesPages) {
+            setCurrentEditorSpeciesPage(totalEditorSpeciesPages);
+        }
+    }, [currentEditorSpeciesPage, totalEditorSpeciesPages]);
+
+    const scrollSpeciesSidebarToTop = () => {
+        window.requestAnimationFrame(() => {
+            speciesSidebarRef.current?.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    };
+
+    const handleEditorSpeciesPageChange = (page) => {
+        const nextPage = Number(page);
+        if (!Number.isFinite(nextPage)) return;
+
+        setCurrentEditorSpeciesPage(Math.min(totalEditorSpeciesPages, Math.max(1, nextPage)));
+        scrollSpeciesSidebarToTop();
+    };
 
     // Efecto para filtrar sectores
     useEffect(() => {
@@ -755,6 +882,22 @@ export default function SpeciesEditorPage() {
 
     if (!user && !BYPASS_AUTH) return null;
 
+    const sidebarResizeHandle = (
+        <div
+            className={`editor-sidebar-resize-handle${isResizingSidebar ? " is-resizing" : ""}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Ajustar ancho del panel"
+            aria-valuemin={SIDEBAR_MIN_WIDTH}
+            aria-valuemax={SIDEBAR_MAX_WIDTH}
+            aria-valuenow={sidebarWidth}
+            tabIndex={0}
+            title="Arrastrar para ajustar ancho"
+            onPointerDown={handleSidebarResizeStart}
+            onKeyDown={handleSidebarResizeKeyDown}
+        />
+    );
+
     return (
         <>
             <style jsx global>{`
@@ -810,12 +953,144 @@ export default function SpeciesEditorPage() {
                 }
                 
                 .editor-layout {
-                    transition: grid-template-columns 0.25s ease;
+                    --editor-sidebar-width: 480px;
+                    --editor-header-height: 76px;
+                    --species-card-media-size: clamp(96px, calc((var(--editor-sidebar-width) - 86px) / 3), 148px);
+                    min-height: 100dvh;
+                    position: relative;
+                }
+
+                .editor-sidebar {
+                    position: fixed !important;
+                    top: var(--editor-header-height) !important;
+                    left: 0 !important;
+                    bottom: 0 !important;
+                    width: var(--editor-sidebar-width) !important;
+                    max-height: none !important;
+                    min-height: auto !important;
+                    border-radius: 0 !important;
+                    border-right: 1px solid #e5e7eb !important;
+                    z-index: 8;
+                    transition: border-color 0.15s ease;
+                }
+
+                .editor-sidebar:hover,
+                .editor-sidebar-resizing,
+                .editor-sidebar:has(.editor-sidebar-resize-handle:focus-visible) {
+                    border-right-color: #3b82f6 !important;
+                }
+
+                .editor-sidebar-resize-handle {
+                    position: fixed;
+                    top: var(--editor-header-height);
+                    bottom: 0;
+                    left: calc(var(--editor-sidebar-width) + 17px);
+                    width: 38px;
+                    transform: translateX(-50%);
+                    cursor: col-resize;
+                    z-index: 20;
+                    touch-action: none;
+                    background: transparent;
+                }
+
+                .editor-sidebar-resize-handle::after {
+                    display: none;
+                }
+
+                .editor-sidebar-resize-handle:focus-visible {
+                    outline: 3px solid #93c5fd;
+                    outline-offset: -3px;
+                }
+
+                .editor-main {
+                    margin-left: var(--editor-sidebar-width);
+                    min-height: calc(100dvh - var(--editor-header-height));
+                    padding: clamp(16px, 4vw, 32px) clamp(16px, 4vw, 40px);
+                }
+
+                .editor-main .editor-content {
+                    max-width: 1120px;
+                    margin: 0 auto;
+                }
+
+                .species-list-item {
+                    overflow: hidden;
+                }
+
+                .species-card-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+                    gap: 8px;
+                    align-items: start;
+                }
+
+                .species-list-item:focus-visible {
+                    outline: 3px solid #93c5fd;
+                    outline-offset: 2px;
+                }
+
+                .species-card-cover {
+                    width: var(--species-card-media-size);
+                    height: var(--species-card-media-size);
+                    align-self: center;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+                    background: #f3f4f6;
+                    flex-shrink: 0;
+                }
+
+                .species-card-copy {
+                    min-width: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                    text-align: center;
+                }
+
+                .species-card-scientific,
+                .species-card-common {
+                    overflow-wrap: anywhere;
+                    word-break: normal;
+                }
+
+                .species-card-scientific {
+                    color: #111827;
+                    font-size: 13px;
+                    font-style: italic;
+                    font-weight: 700;
+                    line-height: 1.25;
+                }
+
+                .species-card-common {
+                    color: #4b5563;
+                    font-size: 12px;
+                    font-weight: 600;
+                    line-height: 1.35;
                 }
 
                 @media (max-width: 1024px) {
                     .editor-layout {
-                        grid-template-columns: 1fr !important;
+                        display: block !important;
+                        padding: calc(var(--editor-header-height) + clamp(16px, 4vw, 32px)) clamp(12px, 3vw, 24px) clamp(16px, 4vw, 32px) !important;
+                    }
+
+                    .editor-sidebar {
+                        position: static !important;
+                        width: 100% !important;
+                        max-height: 600px !important;
+                        min-height: 500px !important;
+                        border-radius: 12px !important;
+                        border-right: none !important;
+                        margin-bottom: 24px;
+                    }
+
+                    .editor-main {
+                        margin-left: 0 !important;
+                        min-height: auto !important;
+                        padding: 0 !important;
                     }
                     
                     .species-list {
@@ -826,6 +1101,19 @@ export default function SpeciesEditorPage() {
                     
                     .editor-content {
                         padding: 20px !important;
+                    }
+
+                    .species-card-cover {
+                        width: var(--species-card-media-size);
+                        height: var(--species-card-media-size);
+                    }
+
+                    .editor-layout {
+                        --species-card-media-size: 132px;
+                    }
+
+                    .editor-sidebar-resize-handle {
+                        display: none;
                     }
                 }
                 
@@ -847,6 +1135,15 @@ export default function SpeciesEditorPage() {
                         max-height: 250px !important;
                     }
 
+                    .species-card-cover {
+                        width: var(--species-card-media-size);
+                        height: var(--species-card-media-size);
+                    }
+
+                    .editor-layout {
+                        --species-card-media-size: 124px;
+                    }
+
                     .header-buttons {
                         gap: 6px !important;
                     }
@@ -859,8 +1156,17 @@ export default function SpeciesEditorPage() {
                 
                 @media (max-width: 480px) {
                     .species-list-item {
-                        padding: 10px 12px !important;
+                        padding: 10px !important;
                         font-size: 13px !important;
+                    }
+
+                    .species-card-cover {
+                        width: var(--species-card-media-size);
+                        height: var(--species-card-media-size);
+                    }
+
+                    .editor-layout {
+                        --species-card-media-size: 112px;
                     }
                     
                     .editor-content {
@@ -892,11 +1198,15 @@ export default function SpeciesEditorPage() {
             `}</style>
 
             <div style={{ minHeight: "100vh", backgroundColor: "#f9fafb" }}>
-                <header style={{
+                <header ref={editorHeaderRef} style={{
                     backgroundColor: "white",
                     borderBottom: "1px solid #e5e7eb",
                     padding: "12px clamp(12px, 4vw, 24px)",
-                    position: "sticky", top: 0, zIndex: 10,
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 30,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
                 }}>
                     <div style={{
@@ -1014,16 +1324,16 @@ export default function SpeciesEditorPage() {
                 </header>
 
                 <div className="editor-layout" style={{
-                    maxWidth: "1400px", margin: "0 auto",
-                    padding: "clamp(16px, 4vw, 32px) clamp(12px, 3vw, 24px)",
-                    display: "grid",
-                    gridTemplateColumns: sidebarCollapsed ? "52px 1fr" : "minmax(280px, 400px) 1fr",
-                    gap: "clamp(16px, 3vw, 24px)",
-                    transition: "grid-template-columns 0.25s ease"
+                    "--editor-sidebar-width": sidebarCollapsed ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth}px`,
+                    "--editor-header-height": `${editorHeaderHeight}px`,
+                    maxWidth: "none",
+                    margin: 0,
+                    paddingTop: `${editorHeaderHeight}px`,
+                    display: "block"
                 }}>
                     {/* Lista de especies o sectores */}
                     {sidebarCollapsed ? (
-                        <div style={{
+                        <div className="editor-sidebar" style={{
                             backgroundColor: "white",
                             borderRadius: "12px",
                             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -1073,7 +1383,7 @@ export default function SpeciesEditorPage() {
                             </div>
                         </div>
                     ) : editorMode === "species" ? (
-                        <div className="species-list" style={{
+                        <div ref={speciesSidebarRef} className={`editor-sidebar species-list${isResizingSidebar ? " editor-sidebar-resizing" : ""}`} style={{
                             backgroundColor: "white",
                             borderRadius: "12px",
                             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -1081,6 +1391,7 @@ export default function SpeciesEditorPage() {
                             maxHeight: "calc(100vh - 150px)",
                             overflowY: "auto"
                         }}>
+                            {sidebarResizeHandle}
                             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
                                 <button
                                     onClick={() => setSidebarCollapsed(true)}
@@ -1233,124 +1544,187 @@ export default function SpeciesEditorPage() {
                                 )}
                             </div>
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <div className="species-card-grid">
                                 {filteredSpecies.length === 0 ? (
                                     <div style={{
                                         padding: "32px 16px",
                                         textAlign: "center",
-                                        color: "#9ca3af"
+                                        color: "#9ca3af",
+                                        gridColumn: "1 / -1"
                                     }}>
                                         No hay especies que coincidan con la búsqueda
                                     </div>
                                 ) : (
-                                    filteredSpecies.map((sp) => (
+                                    paginatedEditorSpecies.map((sp) => (
                                         <button
                                             key={sp.id}
                                             className="species-list-item"
                                             onClick={() => handleSelect(sp)}
+                                            aria-label={`Editar ${sp.scientific_name || sp.nombre_común || "especie"}`}
                                             style={{
-                                                padding: "12px 16px",
+                                                padding: "10px",
                                                 border: selectedSpecies?.id === sp.id
                                                     ? "2px solid #ec4899"
                                                     : "1px solid #e5e7eb",
-                                                borderRadius: "8px",
+                                                borderRadius: "10px",
                                                 backgroundColor: selectedSpecies?.id === sp.id
-                                                    ? "#fce7f3"
+                                                    ? "#fdf2f8"
                                                     : "white",
                                                 textAlign: "left",
                                                 cursor: "pointer",
                                                 transition: "all 0.2s",
-                                                width: "100%"
+                                                width: "100%",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "10px"
                                             }}
                                             onMouseEnter={(e) => {
                                                 if (selectedSpecies?.id !== sp.id) {
-                                                    e.target.style.backgroundColor = "#f9fafb";
-                                                    e.target.style.borderColor = "#d1d5db";
+                                                    e.currentTarget.style.backgroundColor = "#f9fafb";
+                                                    e.currentTarget.style.borderColor = "#d1d5db";
                                                 }
                                             }}
                                             onMouseLeave={(e) => {
                                                 if (selectedSpecies?.id !== sp.id) {
-                                                    e.target.style.backgroundColor = "white";
-                                                    e.target.style.borderColor = "#e5e7eb";
+                                                    e.currentTarget.style.backgroundColor = "white";
+                                                    e.currentTarget.style.borderColor = "#e5e7eb";
                                                 }
                                             }}
                                         >
-                                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                                {(sp.cover_photo || sp.image_url) ? (
-                                                    <AuthenticatedImage
-                                                        src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=400" })}
-                                                        fallbackSrc={resolvePhotoUrl(sp.cover_photo || sp.image_url)}
-                                                        alt={sp.scientific_name}
-                                                        style={{
-                                                            width: "44px",
-                                                            height: "44px",
-                                                            minWidth: "44px",
-                                                            minHeight: "44px",
-                                                            objectFit: "cover",
-                                                            borderRadius: "8px",
-                                                            border: "1px solid #e5e7eb",
-                                                            boxShadow: "0 1px 2px rgba(0,0,0,0.06)"
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div style={{
-                                                        width: "44px",
-                                                        height: "44px",
-                                                        minWidth: "44px",
-                                                        minHeight: "44px",
+                                            {(sp.cover_photo || sp.image_url) ? (
+                                                <AuthenticatedImage
+                                                    className="species-card-cover"
+                                                    src={resolvePhotoUrl(sp.cover_photo || sp.image_url, { variant: "w=800" })}
+                                                    fallbackSrc={resolvePhotoUrl(sp.cover_photo || sp.image_url)}
+                                                    alt={sp.scientific_name || sp.nombre_común || "Portada de especie"}
+                                                    loading="lazy"
+                                                    style={{
+                                                        width: "var(--species-card-media-size)",
+                                                        height: "var(--species-card-media-size)",
+                                                        alignSelf: "center",
+                                                        objectFit: "cover",
+                                                        borderRadius: "8px",
+                                                        border: "1px solid #e5e7eb",
+                                                        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.12)",
+                                                        backgroundColor: "#f3f4f6",
+                                                        flexShrink: 0
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div
+                                                    className="species-card-cover"
+                                                    style={{
                                                         display: "flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
-                                                        borderRadius: "8px",
-                                                        backgroundColor: "#f3f4f6",
-                                                        border: "1px dashed #d1d5db",
+                                                        alignSelf: "center",
                                                         color: "#9ca3af",
-                                                        fontSize: "18px"
-                                                    }}>
-                                                        🌵
-                                                    </div>
-                                                )}
-                                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                                    <div style={{
-                                                        fontSize: "14px", fontWeight: "600",
-                                                        color: "#111827", marginBottom: "2px",
-                                                        fontStyle: "italic"
-                                                    }}>
-                                                        {sp.scientific_name}
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: "12px",
-                                                        color: "#6b7280",
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        gap: "2px"
-                                                    }}>
-                                                        {sp.nombre_común ? (
-                                                            <span>{sp.nombre_común}</span>
-                                                        ) : (
-                                                            <span style={{ fontStyle: "italic", color: "#9ca3af" }}>
-                                                                Sin nombre común
-                                                            </span>
-                                                        )}
-                                                        {sp.nombres_comunes && sp.nombres_comunes !== sp.nombre_común && (
-                                                            <span style={{
-                                                                fontSize: "11px",
-                                                                color: "#9ca3af",
-                                                                fontStyle: "italic"
-                                                            }}>
-                                                                ({sp.nombres_comunes})
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                        fontSize: "28px"
+                                                    }}
+                                                >
+                                                    🌵
+                                                </div>
+                                            )}
+                                            <div className="species-card-copy">
+                                                <div className="species-card-scientific">
+                                                    {sp.scientific_name || "Sin nombre científico"}
+                                                </div>
+                                                <div
+                                                    className="species-card-common"
+                                                    style={!sp.nombre_común && !sp.nombres_comunes ? {
+                                                        fontStyle: "italic",
+                                                        color: "#9ca3af",
+                                                        fontWeight: "500"
+                                                    } : undefined}
+                                                >
+                                                    {sp.nombre_común || sp.nombres_comunes || "Sin nombre común"}
                                                 </div>
                                             </div>
                                         </button>
                                     ))
                                 )}
                             </div>
+                            {filteredSpecies.length > 0 && (
+                                <div style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    marginTop: "14px",
+                                    paddingTop: "14px",
+                                    borderTop: "1px solid #e5e7eb"
+                                }}>
+                                    <div style={{
+                                        fontSize: "12px",
+                                        color: "#6b7280",
+                                        fontWeight: "600"
+                                    }}>
+                                        Mostrando {firstVisibleEditorSpecies}-{lastVisibleEditorSpecies} de {filteredSpecies.length}
+                                    </div>
+                                    <div style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr auto 1fr",
+                                        gap: "8px",
+                                        alignItems: "center"
+                                    }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleEditorSpeciesPageChange(normalizedEditorSpeciesPage - 1)}
+                                            disabled={normalizedEditorSpeciesPage === 1}
+                                            style={{
+                                                padding: "8px 10px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                backgroundColor: normalizedEditorSpeciesPage === 1 ? "#f3f4f6" : "white",
+                                                color: normalizedEditorSpeciesPage === 1 ? "#9ca3af" : "#374151",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                cursor: normalizedEditorSpeciesPage === 1 ? "not-allowed" : "pointer"
+                                            }}
+                                        >
+                                            Anterior
+                                        </button>
+                                        <select
+                                            value={normalizedEditorSpeciesPage}
+                                            onChange={(event) => handleEditorSpeciesPageChange(event.target.value)}
+                                            style={{
+                                                padding: "8px 10px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                backgroundColor: "white",
+                                                color: "#111827",
+                                                fontSize: "12px",
+                                                fontWeight: "600"
+                                            }}
+                                        >
+                                            {Array.from({ length: totalEditorSpeciesPages }, (_, index) => index + 1).map(page => (
+                                                <option key={page} value={page}>
+                                                    {page}/{totalEditorSpeciesPages}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleEditorSpeciesPageChange(normalizedEditorSpeciesPage + 1)}
+                                            disabled={normalizedEditorSpeciesPage === totalEditorSpeciesPages}
+                                            style={{
+                                                padding: "8px 10px",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                backgroundColor: normalizedEditorSpeciesPage === totalEditorSpeciesPages ? "#f3f4f6" : "white",
+                                                color: normalizedEditorSpeciesPage === totalEditorSpeciesPages ? "#9ca3af" : "#374151",
+                                                fontSize: "12px",
+                                                fontWeight: "600",
+                                                cursor: normalizedEditorSpeciesPage === totalEditorSpeciesPages ? "not-allowed" : "pointer"
+                                            }}
+                                        >
+                                            Siguiente
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <div className="species-list" style={{
+                        <div className={`editor-sidebar species-list${isResizingSidebar ? " editor-sidebar-resizing" : ""}`} style={{
                             backgroundColor: "white",
                             borderRadius: "12px",
                             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -1359,6 +1733,7 @@ export default function SpeciesEditorPage() {
                             overflowY: "auto",
                             minHeight: "600px"
                         }}>
+                            {sidebarResizeHandle}
                             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
                                 <button
                                     onClick={() => setSidebarCollapsed(true)}
@@ -1506,12 +1881,14 @@ export default function SpeciesEditorPage() {
                     )}
 
                     {/* Editor */}
-                    <div className="editor-content" style={{
-                        backgroundColor: "white",
-                        borderRadius: "12px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                        padding: "clamp(16px, 3vw, 24px)"
-                    }}>
+                    {(editorMode === "species" ? selectedSpecies : selectedSector) && (
+                        <main className="editor-main">
+                            <div className="editor-content" style={{
+                                backgroundColor: "transparent",
+                                borderRadius: 0,
+                                boxShadow: "none",
+                                padding: 0
+                            }}>
                         {editorMode === "species" ? (
                             !selectedSpecies ? (
                                 <div style={{
@@ -2437,7 +2814,9 @@ export default function SpeciesEditorPage() {
                                 </>
                             )
                         )}
-                    </div>
+                            </div>
+                        </main>
+                    )}
                 </div>
             </div>
         </>

@@ -145,6 +145,30 @@ Implementado en memoria (dict por IP). Se resetea al reiniciar el servidor.
 
 ---
 
+## Login alternativo con clave maestra
+
+Endpoint: `POST /auth/master-key-login`
+
+Este flujo existe como fallback operativo cuando Supabase limita el envío de emails OTP. No reemplaza la whitelist: el email igualmente debe existir en `usuarios` con `active = true`.
+
+Requisitos:
+- `MASTER_LOGIN_KEY` debe estar configurada en el entorno del backend que recibe la request.
+- En Railway, se configura en las variables del servicio Backend API.
+- En Docker/local, se configura en `backend/.env`; tenerla solo en Railway no habilita el login del WMS local.
+- `SUPABASE_SERVICE_ROLE_KEY` debe estar disponible porque el backend valida la whitelist y prepara el usuario con permisos admin.
+
+Errores frecuentes:
+
+| Error | Causa probable |
+|-------|----------------|
+| `Inicio de sesión alternativo no disponible` | Falta `MASTER_LOGIN_KEY` en el entorno del backend activo |
+| `Clave maestra inválida` | La clave enviada no coincide con `MASTER_LOGIN_KEY` |
+| `Este correo no está autorizado o está inactivo` | El email no existe activo en `usuarios` |
+
+Este login no activa `BYPASS_AUTH`; crea una sesión real de Supabase y setea las mismas cookies que el flujo OTP.
+
+---
+
 ## Whitelist de usuarios
 
 Solo los emails registrados en la tabla `usuarios` con `active = true` pueden recibir el OTP. El flujo valida esto **antes** de llamar a Supabase Auth, lo que evita envíos de correo no autorizados.

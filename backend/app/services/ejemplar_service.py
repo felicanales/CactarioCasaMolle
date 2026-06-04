@@ -1,6 +1,7 @@
 # app/services/ejemplar_service.py
 from typing import List, Optional, Dict, Any
 from app.core.supabase_auth import get_public, get_service
+from app.services.query_helpers import chunked, fetch_all_by_ids, fetch_all_pages
 
 def _ensure_sector_species_relation(sector_id: int, species_id: int) -> None:
     """
@@ -69,51 +70,68 @@ def list_staff(
         # evitando traer todos los ejemplares para filtrar en Python.
         filter_species_ids: Optional[List[int]] = None
         if morfologia or nombre_comun:
-            sp_q = sb.table("especies").select("id")
-            if morfologia:
-                sp_q = sp_q.ilike("tipo_morfología", f"%{morfologia}%")
-            if nombre_comun:
-                sp_q = sp_q.or_(
-                    f"nombre_común.ilike.%{nombre_comun}%,"
-                    f"nombres_comunes.ilike.%{nombre_comun}%"
-                )
-            sp_res = sp_q.execute()
-            filter_species_ids = [s["id"] for s in (sp_res.data or [])]
+            def build_species_filter_query():
+                sp_q = sb.table("especies").select("id")
+                if morfologia:
+                    sp_q = sp_q.ilike("tipo_morfología", f"%{morfologia}%")
+                if nombre_comun:
+                    sp_q = sp_q.or_(
+                        f"nombre_común.ilike.%{nombre_comun}%,"
+                        f"nombres_comunes.ilike.%{nombre_comun}%"
+                    )
+                return sp_q.order("id")
+
+            filter_species_rows = fetch_all_pages(build_species_filter_query)
+            filter_species_ids = [s["id"] for s in filter_species_rows]
             if not filter_species_ids:
                 return {"data": [], "total": 0}
 
         # --- Paso 2: query principal con filtros directos en DB ---
-        query = sb.table("ejemplar").select("*")
+        def build_ejemplar_query(species_ids_chunk: Optional[List[int]] = None):
+            query = sb.table("ejemplar").select("*")
 
-        if species_id:
-            query = query.eq("species_id", species_id)
-        elif filter_species_ids is not None:
-            query = query.in_("species_id", filter_species_ids)
+            if species_id:
+                query = query.eq("species_id", species_id)
+            elif species_ids_chunk is not None:
+                query = query.in_("species_id", species_ids_chunk)
 
-        if sector_id is not None:
-            if sector_id == 0 or str(sector_id).lower() == "null":
-                query = query.is_("sector_id", "null")
-            else:
-                query = query.eq("sector_id", sector_id)
+            if sector_id is not None:
+                if sector_id == 0 or str(sector_id).lower() == "null":
+                    query = query.is_("sector_id", "null")
+                else:
+                    query = query.eq("sector_id", sector_id)
 
-        if tamaño:
-            query = query.eq("tamaño", tamaño)
-        if health_status:
-            query = query.eq("health_status", health_status)
-        if nursery:
-            query = query.ilike("nursery", f"%{nursery}%")
-        if invoice_number:
-            query = query.ilike("invoice_number", f"%{invoice_number}%")
-        if purchase_date:
-            query = query.eq("purchase_date", purchase_date)
-        if purchase_date_from:
-            query = query.gte("purchase_date", purchase_date_from)
-        if purchase_date_to:
-            query = query.lte("purchase_date", purchase_date_to)
+            if tamaño:
+                query = query.eq("tamaño", tamaño)
+            if health_status:
+                query = query.eq("health_status", health_status)
+            if nursery:
+                query = query.ilike("nursery", f"%{nursery}%")
+            if invoice_number:
+                query = query.ilike("invoice_number", f"%{invoice_number}%")
+            if purchase_date:
+                query = query.eq("purchase_date", purchase_date)
+            if purchase_date_from:
+                query = query.gte("purchase_date", purchase_date_from)
+            if purchase_date_to:
+                query = query.lte("purchase_date", purchase_date_to)
 
-        query = query.limit(MAX_DB_FETCH)
-        res = query.execute()
-        ejemplares = res.data or []
+            return query.order("id")
+
+        if filter_species_ids is not None and not species_id:
+            ejemplares = []
+            for species_ids_chunk in chunked(filter_species_ids):
+                remaining = MAX_DB_FETCH - len(ejemplares)
+                if remaining <= 0:
+                    break
+                ejemplares.extend(
+                    fetch_all_pages(
+                        lambda species_ids_chunk=species_ids_chunk: build_ejemplar_query(species_ids_chunk),
+                        max_rows=remaining,
+                    )
+                )
+        else:
+            ejemplares = fetch_all_pages(lambda: build_ejemplar_query(), max_rows=MAX_DB_FETCH)
 
         if not ejemplares:
             return {"data": [], "total": 0}
@@ -125,10 +143,15 @@ def list_staff(
         especies_map: Dict[int, Dict] = {}
         if species_ids_needed:
             try:
-                esp_res = sb.table("especies").select(
-                    "id, scientific_name, nombre_común, nombres_comunes, tipo_morfología"
-                ).in_("id", species_ids_needed).execute()
-                for e in (esp_res.data or []):
+                especies_rows = fetch_all_by_ids(
+                    sb,
+                    "especies",
+                    "id, scientific_name, nombre_común, nombres_comunes, tipo_morfología",
+                    "id",
+                    species_ids_needed,
+                    order_by="id",
+                )
+                for e in especies_rows:
                     especies_map[e["id"]] = e
             except Exception as e:
                 logger.warning(f"[list_staff] Error cargando especies: {e}")
@@ -136,10 +159,15 @@ def list_staff(
         sectores_map: Dict[int, Dict] = {}
         if sector_ids_needed:
             try:
-                sec_res = sb.table("sectores").select(
-                    "id, name, description"
-                ).in_("id", sector_ids_needed).execute()
-                for s in (sec_res.data or []):
+                sectores_rows = fetch_all_by_ids(
+                    sb,
+                    "sectores",
+                    "id, name, description",
+                    "id",
+                    sector_ids_needed,
+                    order_by="id",
+                )
+                for s in sectores_rows:
                     sectores_map[s["id"]] = s
             except Exception as e:
                 logger.warning(f"[list_staff] Error cargando sectores: {e}")
@@ -201,10 +229,10 @@ def list_nurseries() -> list:
     ordenados alfabéticamente, excluyendo nulos y vacíos.
     """
     sb = get_public()
-    res = sb.table("ejemplar").select("nursery").execute()
+    rows = fetch_all_pages(lambda: sb.table("ejemplar").select("id, nursery").order("id"))
     seen = set()
     result = []
-    for row in (res.data or []):
+    for row in rows:
         v = (row.get("nursery") or "").strip()
         if v and v not in seen:
             seen.add(v)

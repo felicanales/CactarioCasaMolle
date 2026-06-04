@@ -2,6 +2,7 @@
 from typing import List, Optional, Dict, Any, Set
 from app.core.supabase_auth import get_public, get_public_clean, get_service
 from app.services import photos_service
+from app.services.query_helpers import fetch_all_by_ids, fetch_all_pages
 
 PUBLIC_SECTOR_FIELDS = ["id", "name", "description", "qr_code"]
 STAFF_SECTOR_FIELDS = PUBLIC_SECTOR_FIELDS + ["created_at", "updated_at"]
@@ -9,11 +10,13 @@ STAFF_SECTOR_FIELDS = PUBLIC_SECTOR_FIELDS + ["created_at", "updated_at"]
 def list_public(q: Optional[str] = None) -> List[Dict[str, Any]]:
     # Usar cliente limpio sin sesión para consultas públicas
     sb = get_public_clean()
-    query = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS))
-    if q:
-        query = query.ilike("name", f"%{q}%")
-    res = query.order("name").execute()
-    return res.data or []
+    def build_query():
+        query = sb.table("sectores").select(",".join(PUBLIC_SECTOR_FIELDS))
+        if q:
+            query = query.ilike("name", f"%{q}%")
+        return query.order("name")
+
+    return fetch_all_pages(build_query)
 
 def get_public_by_qr(qr_code: str) -> Optional[Dict[str, Any]]:
     import logging
@@ -124,15 +127,20 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
     logger.info(f"[list_species_public_by_sector_qr] Buscando especies para sector_id: {sector_id}")
 
     # 1) Obtener los IDs de especies desde sectores_especies (tabla de relación)
-    relations = sb.table("sectores_especies").select("especie_id").eq("sector_id", sector_id).execute()
+    relations = fetch_all_pages(
+        lambda: sb.table("sectores_especies")
+        .select("id, especie_id")
+        .eq("sector_id", sector_id)
+        .order("id")
+    )
     
-    logger.info(f"[list_species_public_by_sector_qr] Relaciones encontradas: {len(relations.data) if relations.data else 0}")
+    logger.info(f"[list_species_public_by_sector_qr] Relaciones encontradas: {len(relations)}")
     
-    if not relations.data:
+    if not relations:
         logger.info(f"[list_species_public_by_sector_qr] No hay relaciones en sectores_especies para sector_id: {sector_id}")
         return []
     
-    especie_ids = [r["especie_id"] for r in relations.data if r.get("especie_id")]
+    especie_ids = [r["especie_id"] for r in relations if r.get("especie_id")]
     
     if not especie_ids:
         logger.warning(f"[list_species_public_by_sector_qr] No hay especie_ids válidos en las relaciones")
@@ -142,8 +150,14 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
 
     # 2) Obtener información de las especies (campos públicos)
     #    NOTA: nombres en tu schema: scientific_name, nombre_común, slug
-    sp = sb.table("especies").select("id, slug, scientific_name, nombre_común").in_("id", especie_ids).execute()
-    species = sp.data or []
+    species = fetch_all_by_ids(
+        sb,
+        "especies",
+        "id, slug, scientific_name, nombre_común",
+        "id",
+        especie_ids,
+        order_by="scientific_name",
+    )
 
     logger.info(f"[list_species_public_by_sector_qr] Especies obtenidas: {len(species)}")
 
@@ -175,11 +189,14 @@ def list_species_public_by_sector_qr(qr_code: str) -> List[Dict[str, Any]]:
 
 def list_staff(q: Optional[str] = None) -> List[Dict[str, Any]]:
     sb = get_public()
-    query = sb.table("sectores").select("*")
-    if q:
-        query = query.ilike("name", f"%{q}%")
-    res = query.order("name").execute()
-    return res.data or []
+
+    def build_query():
+        query = sb.table("sectores").select("*")
+        if q:
+            query = query.ilike("name", f"%{q}%")
+        return query.order("name")
+
+    return fetch_all_pages(build_query)
 
 def get_staff(sector_id: int) -> Optional[Dict[str, Any]]:
     sb = get_public()
@@ -431,17 +448,28 @@ def get_sector_species_staff(sector_id: int) -> List[Dict[str, Any]]:
     """
     sb = get_public()
     # Obtener los IDs de especies desde sectores_especies
-    relations = sb.table("sectores_especies").select("especie_id").eq("sector_id", sector_id).execute()
-    if not relations.data:
+    relations = fetch_all_pages(
+        lambda: sb.table("sectores_especies")
+        .select("id, especie_id")
+        .eq("sector_id", sector_id)
+        .order("id")
+    )
+    if not relations:
         return []
     
-    especie_ids = [r["especie_id"] for r in relations.data]
+    especie_ids = [r["especie_id"] for r in relations if r.get("especie_id")]
     
     # Obtener información de las especies
-    especies = sb.table("especies").select("id, scientific_name, nombre_común, slug").in_("id", especie_ids).execute()
+    result = fetch_all_by_ids(
+        sb,
+        "especies",
+        "id, scientific_name, nombre_común, slug",
+        "id",
+        especie_ids,
+        order_by="scientific_name",
+    )
     
     # Ordenar por nombre científico
-    result = especies.data or []
     result.sort(key=lambda x: x.get("scientific_name", "").lower())
     return result
 
@@ -466,15 +494,19 @@ def update_sector_species_staff(sector_id: int, especie_ids: List[int], user_id:
     
     # Validar que las especies existan (si hay IDs)
     if especie_ids:
-        especies_check = sb.table("especies").select("id").in_("id", especie_ids).execute()
-        found_ids = {e["id"] for e in (especies_check.data or [])}
+        especies_check = fetch_all_by_ids(sb, "especies", "id", "id", especie_ids, order_by="id")
+        found_ids = {e["id"] for e in especies_check}
         invalid_ids = set(especie_ids) - found_ids
         if invalid_ids:
             raise ValueError(f"Especies con IDs {invalid_ids} no existen")
     
     # Obtener relaciones anteriores para auditoría
-    old_relations_res = sb.table("sectores_especies").select("*").eq("sector_id", sector_id).execute()
-    old_relations = old_relations_res.data or []
+    old_relations = fetch_all_pages(
+        lambda: sb.table("sectores_especies")
+        .select("*")
+        .eq("sector_id", sector_id)
+        .order("id")
+    )
     old_especie_ids = [r["especie_id"] for r in old_relations]
     
     # Eliminar relaciones existentes para este sector

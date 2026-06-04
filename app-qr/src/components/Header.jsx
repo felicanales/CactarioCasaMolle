@@ -5,12 +5,12 @@ import Image from 'next/image';
 import SpeciesVerticalCarousel from '@/components/SpeciesVerticalCarousel';
 import { speciesApi } from '@/utils/api';
 
-const CAROUSEL_SECONDS_PER_ITEM = 4;
+const CAROUSEL_SECONDS_PER_ITEM = 2;
 
 export default function Header() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [featuredSpecies, setFeaturedSpecies] = useState([]);
-  const [speciesLoading, setSpeciesLoading] = useState(false);
+  const [speciesLoading, setSpeciesLoading] = useState(true);
   const [speciesError, setSpeciesError] = useState(false);
 
   useEffect(() => {
@@ -42,10 +42,9 @@ export default function Header() {
       try {
         setSpeciesLoading(true);
         setSpeciesError(false);
-        const response = await speciesApi.list();
-        const data = Array.isArray(response?.data) ? response.data : [];
+        const data = await speciesApi.listAll();
         if (isActive) {
-          setFeaturedSpecies(data.slice(0, 8));
+          setFeaturedSpecies(data);
         }
       } catch (error) {
         console.error('Error loading featured species:', error);
@@ -77,12 +76,12 @@ export default function Header() {
       </div>
       {isDesktop && (
         <div className="header-species-carousel">
-            <SpeciesVerticalCarousel
-              species={featuredSpecies}
-              loading={speciesLoading}
-              secondsPerItem={CAROUSEL_SECONDS_PER_ITEM}
-              emptyText={speciesError ? 'No se pudieron cargar las especies.' : 'No hay especies para mostrar.'}
-            />
+          <SpeciesVerticalCarousel
+            species={featuredSpecies}
+            loading={speciesLoading}
+            secondsPerItem={CAROUSEL_SECONDS_PER_ITEM}
+            emptyText={speciesError ? 'No se pudieron cargar las especies.' : 'No hay especies para mostrar.'}
+          />
         </div>
       )}
       <div className="header-cactus">{'\u{1F335}'}</div>

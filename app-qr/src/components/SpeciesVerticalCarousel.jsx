@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { resolvePhotoUrl } from '@/utils/images';
 
-const MIN_VISIBLE_ITEMS = 3;
+const MIN_BELT_ITEMS = 6;
 const DEFAULT_SECONDS_PER_ITEM = 4;
 
 const getDisplayName = (specie, index) => {
@@ -28,6 +28,23 @@ const getCoverPhoto = (specie) => {
   );
 };
 
+const getSpeciesSlug = (specie) => {
+  return typeof specie?.slug === 'string' ? specie.slug.trim() : '';
+};
+
+const getSpeciesKey = (specie, index) => {
+  if (specie?.id !== undefined && specie?.id !== null) {
+    return `id:${specie.id}`;
+  }
+
+  const slug = getSpeciesSlug(specie);
+  if (slug) {
+    return `slug:${slug}`;
+  }
+
+  return `fallback:${getDisplayName(specie, index)}:${index}`;
+};
+
 export default function SpeciesVerticalCarousel({
   species = [],
   loading = false,
@@ -35,120 +52,98 @@ export default function SpeciesVerticalCarousel({
   secondsPerItem = DEFAULT_SECONDS_PER_ITEM,
 }) {
   const router = useRouter();
-  const trackRef = useRef(null);
-  const animationRef = useRef(null);
-  const lastTimeRef = useRef(0);
-  const offsetRef = useRef(0);
-  const contentHeightRef = useRef(0);
 
-  const normalizedSpecies = useMemo(() => {
+  const beltSpecies = useMemo(() => {
     if (!Array.isArray(species) || species.length === 0) {
       return [];
     }
 
-    if (species.length >= MIN_VISIBLE_ITEMS) {
-      return species;
-    }
+    const seen = new Set();
+    const uniqueSpecies = [];
 
-    const repeats = Math.ceil(MIN_VISIBLE_ITEMS / species.length);
-    return Array.from({ length: repeats }, () => species).flat();
-  }, [species]);
-
-  const scrollSpecies = useMemo(() => {
-    if (normalizedSpecies.length === 0) {
-      return [];
-    }
-
-    return [...normalizedSpecies, ...normalizedSpecies];
-  }, [normalizedSpecies]);
-
-  const totalDuration = Math.max(6, normalizedSpecies.length * secondsPerItem);
-
-  useEffect(() => {
-    if (loading || !normalizedSpecies.length || !trackRef.current) {
-      return undefined;
-    }
-
-    const track = trackRef.current;
-    offsetRef.current = 0;
-    lastTimeRef.current = 0;
-
-    const updateMetrics = () => {
-      const trackHeight = track.scrollHeight;
-      if (!trackHeight) {
-        return false;
-      }
-      contentHeightRef.current = trackHeight / 2;
-      return contentHeightRef.current > 0;
-    };
-
-    const step = (timestamp) => {
-      if (!contentHeightRef.current && !updateMetrics()) {
-        animationRef.current = requestAnimationFrame(step);
+    species.forEach((specie, index) => {
+      if (!specie) {
         return;
       }
 
-      if (!lastTimeRef.current) {
-        lastTimeRef.current = timestamp;
+      const key = getSpeciesKey(specie, index);
+      if (seen.has(key)) {
+        return;
       }
-      const deltaSeconds = (timestamp - lastTimeRef.current) / 1000;
-      lastTimeRef.current = timestamp;
 
-      const speed = contentHeightRef.current / totalDuration;
-      offsetRef.current = (offsetRef.current + speed * deltaSeconds) % contentHeightRef.current;
-      track.style.transform = `translateY(${offsetRef.current - contentHeightRef.current}px)`;
+      seen.add(key);
+      uniqueSpecies.push(specie);
+    });
 
-      animationRef.current = requestAnimationFrame(step);
-    };
-
-    animationRef.current = requestAnimationFrame(step);
-
-    let resizeObserver = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => {
-        updateMetrics();
-      });
-      resizeObserver.observe(track);
+    if (uniqueSpecies.length === 0) {
+      return [];
     }
 
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      track.style.transform = '';
-    };
-  }, [loading, normalizedSpecies.length, totalDuration]);
+    if (uniqueSpecies.length >= MIN_BELT_ITEMS) {
+      return uniqueSpecies;
+    }
 
-  if (loading) {
-    return <div className="vertical-carousel-loading">Cargando especies...</div>;
+    const repeats = Math.ceil(MIN_BELT_ITEMS / uniqueSpecies.length);
+    return Array.from({ length: repeats }, () => uniqueSpecies).flat();
+  }, [species]);
+
+  const scrollSpecies = useMemo(() => {
+    if (beltSpecies.length === 0) {
+      return [];
+    }
+
+    return [...beltSpecies, ...beltSpecies];
+  }, [beltSpecies]);
+
+  const animationDuration = `${Math.max(18, beltSpecies.length * secondsPerItem)}s`;
+  const carouselStyle = {
+    '--carousel-scroll-duration': animationDuration,
+    '--species-count': beltSpecies.length || MIN_BELT_ITEMS,
+  };
+
+  if (loading && !beltSpecies.length) {
+    return (
+      <div className="vertical-carousel" style={carouselStyle}>
+        <div className="vertical-carousel-loading">Cargando especies...</div>
+      </div>
+    );
   }
 
-  if (!normalizedSpecies.length) {
-    return <div className="vertical-carousel-empty">{emptyText}</div>;
+  if (!beltSpecies.length) {
+    return (
+      <div className="vertical-carousel" style={carouselStyle}>
+        <div className="vertical-carousel-empty">{emptyText}</div>
+      </div>
+    );
   }
 
   return (
-    <div className="vertical-carousel">
+    <div className="vertical-carousel" style={carouselStyle}>
       <div className="vertical-carousel-viewport">
-        <div className="vertical-carousel-track" ref={trackRef}>
+        <div className="vertical-carousel-track">
           {scrollSpecies.map((specie, index) => {
             const coverPhoto = getCoverPhoto(specie);
             const name = getDisplayName(specie, index);
-            const slug = specie?.slug || `especie-${specie?.id || index + 1}`;
+            const slug = getSpeciesSlug(specie);
+            const canNavigate = Boolean(slug);
+            const handleNavigate = () => {
+              if (canNavigate) {
+                router.push(`/especies/${slug}`);
+              }
+            };
 
             return (
-              <div key={`${specie?.id || slug}-${index}`} className="vertical-carousel-slide">
+              <div key={`${getSpeciesKey(specie, index)}-${index}`} className="vertical-carousel-slide">
                 <div
-                  className="grid-item vertical-carousel-item"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(`/especies/${slug}`)}
+                  className={`grid-item vertical-carousel-item${canNavigate ? '' : ' vertical-carousel-item-static'}`}
+                  role={canNavigate ? 'button' : undefined}
+                  tabIndex={canNavigate ? 0 : -1}
+                  aria-disabled={canNavigate ? undefined : true}
+                  onClick={handleNavigate}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      router.push(`/especies/${slug}`);
+                    if (canNavigate && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault();
+                      handleNavigate();
                     }
                   }}
                 >

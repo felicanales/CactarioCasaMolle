@@ -7,7 +7,7 @@
 ### Prerrequisitos
 
 - Node.js 22.13+ (solo si se ejecuta sin Docker)
-- Python 3.9+
+- Python 3.11.x (solo si se ejecuta el backend sin Docker)
 - Docker Desktop, si se usara la ejecucion con contenedores
 - Acceso a las variables de entorno del proyecto (ver sección siguiente)
 
@@ -34,13 +34,19 @@ uvicorn app.main:app --reload --port 8000
 
 ### Docker Compose
 
-La raiz del repositorio incluye `compose.yaml` para ejecutar los mismos tres servicios que se despliegan en Railway:
+La raiz del repositorio incluye `compose.yaml` para construir y ejecutar localmente los tres servicios del proyecto. Cada servicio crea su propia imagen local: `backend`, `wms` y `app-qr`.
+
+El backend del contenedor usa `backend/Dockerfile`, basado en `python:3.11-slim`; no usa el Python instalado en Windows. Esto evita problemas de dependencias cuando la maquina local tiene otra version de Python.
 
 ```bash
 # backend/.env debe contener los secretos del backend.
 # .env en la raiz solo contiene variables NEXT_PUBLIC_* de build.
 cp compose.env.example .env
 
+# Crear las imagenes de todo el proyecto
+docker compose build
+
+# Crear imagenes y levantar todos los servicios
 docker compose up --build
 ```
 
@@ -51,6 +57,47 @@ En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
 | Backend API | `http://localhost:8000` |
 | WMS Staff | `http://localhost:3001` |
 | App QR | `http://localhost:3002` |
+
+Comandos utiles:
+
+```bash
+# Levantar solo el backend local
+docker compose up backend --build
+
+# Levantar backend + WMS
+docker compose up backend wms --build
+
+# Levantar todo en segundo plano
+docker compose up --build -d
+
+# Ver estado de contenedores
+docker compose ps
+
+# Ver logs del backend
+docker compose logs backend --tail=100
+
+# Validar health check
+curl http://localhost:8000/health
+```
+
+### Alcance del backend Docker local
+
+El backend Docker local **no se conecta al backend de Railway**. Es otra instancia de FastAPI corriendo en `localhost:8000`.
+
+```text
+Docker backend local -> Supabase / R2
+Railway backend      -> Supabase / R2
+```
+
+No existe una llamada intermedia:
+
+```text
+Docker backend local -> Railway backend
+```
+
+La conexion a Supabase/R2 depende exclusivamente de las variables en `backend/.env`. Si ese archivo apunta al mismo proyecto Supabase usado en produccion, cualquier mutacion hecha desde Docker local tambien queda visible para el backend de Railway, porque ambos leen la misma base de datos.
+
+Antes de migraciones masivas o pruebas destructivas, confirmar `SUPABASE_URL` y las keys en `backend/.env`.
 
 Los archivos `.dockerignore` excluyen `.env`, dependencias y artefactos locales de las imagenes. Los frontends en Compose ejecutan Next.js standalone y no observan cambios del código fuente. Después de modificar JSX o variables `NEXT_PUBLIC_*`, reconstruir el servicio afectado:
 
@@ -82,6 +129,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 JWT_SECRET=<mismo valor que el JWT secret de Supabase>
 JWT_EXPIRE_MIN=120
 
+# Login alternativo por clave maestra (opcional, recomendado para scripts/migraciones)
+MASTER_LOGIN_KEY=<clave_larga_y_secreta>
+
 # Cloudflare R2 (obligatorio para fotos)
 R2_ACCOUNT_ID=<account_id>
 R2_ACCESS_KEY_ID=<access_key>
@@ -108,6 +158,8 @@ SMTP_FROM=noreply@casamolle.cl
 IS_PRODUCTION=true               # Solo en Railway. Controla samesite/secure de cookies.
 ENABLE_DEBUG_ROUTES=false        # true para activar /debug/* endpoints
 ```
+
+En Docker/local, si el WMS usa el login con clave maestra, `MASTER_LOGIN_KEY` debe estar en `backend/.env`. Configurar esta variable solo en Railway no habilita `/auth/master-key-login` en el contenedor local.
 
 ### WMS Staff — `wms/.env.local`
 

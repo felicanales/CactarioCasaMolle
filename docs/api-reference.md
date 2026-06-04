@@ -43,7 +43,7 @@ Archivo: `backend/app/api/routes_species.py` · Servicio: `backend/app/services/
 
 | Método | Path | Descripción |
 |--------|------|-------------|
-| GET | `/species/public` | Lista especies. Query params: `q` (búsqueda), `limit` (default 50), `offset` (default 0). |
+| GET | `/species/public` | Lista especies paginadas. Query params: `q` (búsqueda), `limit` (default 50), `offset` (default 0). Si un cliente necesita el catálogo completo, debe recorrer `offset` hasta recibir menos filas que `limit`. |
 | GET | `/species/public/{slug}` | Detalle de especie por slug + lista de fotos. |
 
 **Campos retornados (públicos):** `id`, `slug`, `nombre_común`, `scientific_name`, `habitat`, `estado_conservación`, `tipo_planta`, `distribución`, `floración`, `cuidado`, `usos`, `nombres_comunes`, `historia_y_leyendas`, `historia_nombre`, `Endémica`, `expectativa_vida`, `tipo_morfología`, `categoría_de_conservación`, `cover_photo`
@@ -52,7 +52,7 @@ Archivo: `backend/app/api/routes_species.py` · Servicio: `backend/app/services/
 
 | Método | Path | Descripción |
 |--------|------|-------------|
-| GET | `/species/staff` | Lista de especies para staff, incluyendo `cover_photo` para listados y selectores visuales. Query params: `q`, `limit`, `offset`. |
+| GET | `/species/staff` | Lista de especies paginadas para staff, incluyendo `cover_photo` para listados y selectores visuales. Query params: `q`, `limit` (default 100), `offset` (default 0). Si un cliente necesita el catálogo completo, debe recorrer `offset` hasta recibir menos filas que `limit`. |
 | GET | `/species/staff/{species_id}` | Detalle por ID. |
 | POST | `/species/staff` | Crea especie. Valida slug único. Registra en auditoría. |
 | PUT | `/species/staff/{species_id}` | Actualiza especie. Limpia campos calculados antes de enviar a Supabase. Registra en auditoría. |
