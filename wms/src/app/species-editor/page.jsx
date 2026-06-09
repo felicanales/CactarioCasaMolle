@@ -1278,11 +1278,35 @@ export default function SpeciesEditorPage() {
                     }
 
                     .editor-header-inner {
-                        justify-content: center !important;
+                        display: grid !important;
+                        grid-template-columns: 46px minmax(0, 1fr);
+                        align-items: center !important;
+                        justify-content: stretch !important;
+                        gap: 8px !important;
+                        flex-wrap: nowrap !important;
                     }
 
                     .editor-header-title {
+                        display: flex !important;
+                        min-width: 0 !important;
+                        flex: 0 0 46px !important;
+                     }
+
+                    .editor-header-copy {
                         display: none !important;
+                    }
+
+                    .editor-header-back {
+                        width: 44px !important;
+                        height: 44px !important;
+                        padding: 0 !important;
+                        display: inline-flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        border-radius: 999px !important;
+                        font-size: 20px !important;
+                        font-weight: 800 !important;
+                        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
                     }
 
                     .header-buttons {
@@ -1453,7 +1477,7 @@ export default function SpeciesEditorPage() {
                             flex: 1,
                             minWidth: "200px"
                         }}>
-                            <Link href="/staff" style={{
+                            <Link href="/staff" className="editor-header-back" style={{
                                 padding: "8px", borderRadius: "6px",
                                 border: "1px solid #e5e7eb", backgroundColor: "white",
                                 color: "#374151", textDecoration: "none",
@@ -1461,7 +1485,7 @@ export default function SpeciesEditorPage() {
                             }}>
                                 ←
                             </Link>
-                            <div style={{ minWidth: 0 }}>
+                            <div className="editor-header-copy" style={{ minWidth: 0 }}>
                                 <h1 style={{
                                     fontSize: "clamp(16px, 4vw, 20px)",
                                     fontWeight: "700", color: "#111827", margin: 0
