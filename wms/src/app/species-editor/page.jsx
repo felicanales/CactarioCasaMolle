@@ -1077,6 +1077,14 @@ export default function SpeciesEditorPage() {
                     display: none;
                 }
 
+                .mobile-module-picker {
+                    display: none;
+                }
+
+                .mobile-home-arrow {
+                    display: none;
+                }
+
                 .species-list-item {
                     overflow: hidden;
                 }
@@ -1182,6 +1190,93 @@ export default function SpeciesEditorPage() {
                 }
                 
                 @media (max-width: 768px) {
+                    .species-editor-shell.mobile-editor-view-modules header {
+                        display: none !important;
+                    }
+
+                    .species-editor-shell.mobile-editor-view-modules .editor-layout {
+                        min-height: 100dvh;
+                        padding: max(24px, env(safe-area-inset-top)) clamp(20px, 6vw, 32px) max(24px, env(safe-area-inset-bottom)) !important;
+                        display: flex !important;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .mobile-module-picker {
+                        width: min(100%, 420px);
+                        display: none;
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 16px;
+                    }
+
+                    .mobile-editor-view-modules .mobile-module-picker {
+                        display: flex !important;
+                    }
+
+                    .mobile-home-arrow {
+                        position: fixed;
+                        top: max(16px, env(safe-area-inset-top));
+                        left: max(16px, env(safe-area-inset-left));
+                        z-index: 35;
+                        width: 46px;
+                        height: 46px;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        border: 1px solid #d1d5db;
+                        border-radius: 999px;
+                        background: white;
+                        color: #111827;
+                        text-decoration: none;
+                        font-size: 22px;
+                        font-weight: 800;
+                        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+                    }
+
+                    .mobile-editor-view-modules .mobile-home-arrow {
+                        display: inline-flex !important;
+                    }
+
+                    .mobile-home-arrow:focus-visible {
+                        outline: 3px solid #93c5fd;
+                        outline-offset: 3px;
+                    }
+
+                    .mobile-module-question {
+                        margin: 0;
+                        color: #111827;
+                        font-size: 24px;
+                        line-height: 1.2;
+                        font-weight: 800;
+                        text-align: center;
+                    }
+
+                    .mobile-module-actions {
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 12px;
+                    }
+
+                    .mobile-module-button {
+                        min-height: 64px;
+                        width: 100%;
+                        padding: 14px 18px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 10px;
+                        background: white;
+                        color: #111827;
+                        font-size: 17px;
+                        font-weight: 800;
+                        cursor: pointer;
+                        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+                    }
+
+                    .mobile-module-button:focus-visible {
+                        outline: 3px solid #93c5fd;
+                        outline-offset: 3px;
+                    }
+
                     .editor-header-inner {
                         justify-content: center !important;
                     }
@@ -1333,7 +1428,7 @@ export default function SpeciesEditorPage() {
                 }
             `}</style>
 
-            <div style={{ minHeight: "100vh", backgroundColor: "#f9fafb" }}>
+            <div className={`species-editor-shell mobile-editor-view-${mobileEditorView}`} style={{ minHeight: "100vh", backgroundColor: "#f9fafb" }}>
                 <header ref={editorHeaderRef} style={{
                     backgroundColor: "white",
                     borderBottom: "1px solid #e5e7eb",
@@ -1449,6 +1544,10 @@ export default function SpeciesEditorPage() {
                     </div>
                 </header>
 
+                <Link href="/staff" className="mobile-home-arrow" aria-label="Volver al home">
+                    ←
+                </Link>
+
                 <div className={`editor-layout mobile-editor-view-${mobileEditorView}`} style={{
                     "--editor-sidebar-width": sidebarCollapsed ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth}px`,
                     "--editor-header-height": `${editorHeaderHeight}px`,
@@ -1457,6 +1556,26 @@ export default function SpeciesEditorPage() {
                     paddingTop: `${editorHeaderHeight}px`,
                     display: "block"
                 }}>
+                    <section className="mobile-module-picker" aria-label="Elegir submódulo para editar">
+                        <h2 className="mobile-module-question">¿Qué quieres editar?</h2>
+                        <div className="mobile-module-actions">
+                            <button
+                                type="button"
+                                className="mobile-module-button"
+                                onClick={() => handleModeChange("species")}
+                            >
+                                🌵 Especies
+                            </button>
+                            <button
+                                type="button"
+                                className="mobile-module-button"
+                                onClick={() => handleModeChange("sectors")}
+                            >
+                                📍 Sectores
+                            </button>
+                        </div>
+                    </section>
+
                     {/* Lista de especies o sectores */}
                     {sidebarCollapsed ? (
                         <div className="editor-sidebar" style={{
