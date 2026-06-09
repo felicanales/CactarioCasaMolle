@@ -7,6 +7,25 @@ import { useRouter } from "next/navigation";
 const OTP_ATTEMPT_LIMIT = 3;
 const RESEND_COOLDOWN_SECONDS = 30;
 
+const shouldShowMasterKeyFallback = (error, message = "") => {
+  // docs/security.md: master-key-login is the operational fallback when Supabase limits OTP email delivery.
+  if (error?.isSupabaseOtpLimit) return true;
+
+  const code = String(error?.code || "").toLowerCase();
+  const normalized = String(message || error?.message || "").toLowerCase();
+
+  return (
+    code === "over_email_send_rate_limit" ||
+    code === "otp_request_cooldown" ||
+    normalized.includes("2/hr") ||
+    normalized.includes("2 correos por hora") ||
+    normalized.includes("2 emails per hour") ||
+    normalized.includes("email rate limit") ||
+    normalized.includes("antes de pedir otro codigo") ||
+    normalized.includes("you can only request this after")
+  );
+};
+
 // Utilidades de sanitización y validación
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return '';
@@ -266,7 +285,7 @@ export default function LoginPage() {
     } catch (err) {
       const msg = err.message || "Error al solicitar código";
       setError(msg);
-      if (msg.includes("2/hr") || msg.includes("2 correos por hora")) {
+      if (shouldShowMasterKeyFallback(err, msg)) {
         setShowMasterKeyOption(true);
       }
     } finally {
@@ -322,7 +341,7 @@ export default function LoginPage() {
     } catch (err) {
       const msg = err.message || "Error al reenviar codigo";
       setError(msg);
-      if (msg.includes("2/hr") || msg.includes("2 correos por hora")) {
+      if (shouldShowMasterKeyFallback(err, msg)) {
         setShowMasterKeyOption(true);
       }
     } finally {

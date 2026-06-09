@@ -27,6 +27,10 @@ const clearPersistedAccessToken = () => {
   }
 };
 
+const isLoginPage = () => (
+  typeof window !== "undefined" && window.location.pathname.startsWith("/login")
+);
+
 const parseJwtPayload = (token) => {
   if (!token) return null;
   const parts = token.split(".");
@@ -68,27 +72,41 @@ const getTokenSource = () => {
   return "none";
 };
 
-const isSupabaseEmailRateLimitError = (status, detail) => {
+const getAuthErrorCode = (detail) => {
+  if (detail && typeof detail === "object") {
+    return String(detail.code || "").toLowerCase();
+  }
+
+  return "";
+};
+
+const isSupabaseOtpLimitError = (status, detail) => {
   if (status !== 429) return false;
 
   if (detail && typeof detail === "object") {
-    const code = String(detail.code || "").toLowerCase();
+    const code = getAuthErrorCode(detail);
     const message = String(detail.message || "").toLowerCase();
     return (
       code === "over_email_send_rate_limit" ||
+      code === "otp_request_cooldown" ||
       message.includes("2/hr") ||
       message.includes("2 por hora") ||
-      message.includes("2 emails per hour")
+      message.includes("2 emails per hour") ||
+      message.includes("you can only request this after") ||
+      message.includes("antes de pedir otro codigo")
     );
   }
 
   const raw = String(detail || "").toLowerCase();
   return (
     raw.includes("over_email_send_rate_limit") ||
+    raw.includes("otp_request_cooldown") ||
     raw.includes("2/hr") ||
     raw.includes("2 por hora") ||
     raw.includes("2 emails per hour") ||
-    raw.includes("email rate limit")
+    raw.includes("email rate limit") ||
+    raw.includes("you can only request this after") ||
+    raw.includes("antes de pedir otro codigo")
   );
 };
 
@@ -393,6 +411,13 @@ export function AuthProvider({ children }) {
 
       // Check if user is authenticated
       if (data.authenticated === false) {
+        if (isLoginPage()) {
+          setUser(null);
+          setAccessToken(null);
+          clearPersistedAccessToken();
+          return false;
+        }
+
         const refreshed = await runRefresh();
         if (refreshed) {
           const retryToken = accessTokenRef.current || getAccessToken();
@@ -495,12 +520,17 @@ export function AuthProvider({ children }) {
       // Intentar obtener el mensaje de error del servidor
       let errorMessage = "No se pudo solicitar OTP";
       let detail = null;
+      let errorCode = "";
       try {
         const errorData = await res.json();
         detail = errorData?.detail ?? null;
+        errorCode = getAuthErrorCode(detail);
 
-        if (isSupabaseEmailRateLimitError(res.status, detail)) {
-          errorMessage = SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
+        if (isSupabaseOtpLimitError(res.status, detail)) {
+          errorMessage =
+            detail && typeof detail === "object" && typeof detail.message === "string"
+              ? detail.message
+              : SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
         } else if (detail && typeof detail === "object" && typeof detail.message === "string") {
           errorMessage = detail.message;
         } else if (typeof detail === "string" && detail.trim()) {
@@ -509,10 +539,16 @@ export function AuthProvider({ children }) {
       } catch {
         // Si no se puede parsear, usar mensaje genérico
       }
-      if (isSupabaseEmailRateLimitError(res.status, detail)) {
-        errorMessage = SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
+      if (isSupabaseOtpLimitError(res.status, detail)) {
+        errorMessage =
+          detail && typeof detail === "object" && typeof detail.message === "string"
+            ? detail.message
+            : SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
       }
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      error.code = errorCode;
+      error.isSupabaseOtpLimit = isSupabaseOtpLimitError(res.status, detail);
+      throw error;
     }
     return true;
   };

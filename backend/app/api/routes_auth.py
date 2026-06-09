@@ -285,6 +285,21 @@ def request_otp(request: Request, payload: RequestOtpIn):
     except Exception as e:
         print(f"[request_otp] Error al enviar OTP: {e}")
         error_text = str(e).lower()
+        cooldown_match = re.search(r"after\s+(\d+)\s+seconds?", error_text)
+        if "you can only request this after" in error_text:
+            wait_seconds = cooldown_match.group(1) if cooldown_match else None
+            message = (
+                f"Debes esperar {wait_seconds} segundos antes de pedir otro codigo."
+                if wait_seconds
+                else "Debes esperar unos segundos antes de pedir otro codigo."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "code": "otp_request_cooldown",
+                    "message": message,
+                },
+            )
         if "over_email_send_rate_limit" in error_text or "2 emails per hour" in error_text or "email rate limit" in error_text:
             raise HTTPException(
                 status_code=429,

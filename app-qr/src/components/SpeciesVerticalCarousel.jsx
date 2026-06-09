@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthenticatedImage from '@/components/AuthenticatedImage';
 import { resolvePhotoUrl } from '@/utils/images';
 
 const MIN_BELT_ITEMS = 6;
 const DEFAULT_SECONDS_PER_ITEM = 4;
+const HOVER_PLAYBACK_RATE = 0.35;
 
 const getDisplayName = (specie, index) => {
   return (
@@ -52,6 +53,7 @@ export default function SpeciesVerticalCarousel({
   secondsPerItem = DEFAULT_SECONDS_PER_ITEM,
 }) {
   const router = useRouter();
+  const trackRef = useRef(null);
 
   const beltSpecies = useMemo(() => {
     if (!Array.isArray(species) || species.length === 0) {
@@ -100,6 +102,28 @@ export default function SpeciesVerticalCarousel({
     '--carousel-scroll-duration': animationDuration,
     '--species-count': beltSpecies.length || MIN_BELT_ITEMS,
   };
+  const setTrackPlaybackRate = useCallback((rate) => {
+    const animation = trackRef.current?.getAnimations?.()[0];
+
+    if (!animation) {
+      return;
+    }
+
+    if (typeof animation.updatePlaybackRate === 'function') {
+      animation.updatePlaybackRate(rate);
+      return;
+    }
+
+    animation.playbackRate = rate;
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    setTrackPlaybackRate(HOVER_PLAYBACK_RATE);
+  }, [setTrackPlaybackRate]);
+
+  const handleMouseLeave = useCallback(() => {
+    setTrackPlaybackRate(1);
+  }, [setTrackPlaybackRate]);
 
   if (loading && !beltSpecies.length) {
     return (
@@ -118,9 +142,14 @@ export default function SpeciesVerticalCarousel({
   }
 
   return (
-    <div className="vertical-carousel" style={carouselStyle}>
+    <div
+      className="vertical-carousel"
+      style={carouselStyle}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="vertical-carousel-viewport">
-        <div className="vertical-carousel-track">
+        <div className="vertical-carousel-track" ref={trackRef}>
           {scrollSpecies.map((specie, index) => {
             const coverPhoto = getCoverPhoto(specie);
             const name = getDisplayName(specie, index);

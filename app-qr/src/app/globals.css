@@ -577,12 +577,6 @@ body {
   padding: 12px;
 }
 
-@media (min-width: 1024px) {
-  .vertical-carousel:hover .vertical-carousel-track {
-    animation-play-state: paused;
-  }
-}
-
 @keyframes species-belt-scroll {
   from {
     transform: translateY(0);
