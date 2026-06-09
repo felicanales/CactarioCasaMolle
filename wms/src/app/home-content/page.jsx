@@ -131,18 +131,13 @@ export default function HomeContentPage() {
 
         try {
             const token = getAccessTokenFromContext(accessToken);
-            if (!token) {
-                setError("No estás autenticado. Por favor, inicia sesión.");
-                setUploadingImageIndex(null);
-                return;
-            }
-
             const formData = new FormData();
             formData.append('file', file);
 
-            const headers = {
-                'Authorization': `Bearer ${token}`
-            };
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
                 method: 'POST',
                 headers,
@@ -275,18 +270,13 @@ export default function HomeContentPage() {
 
         try {
             const token = getAccessTokenFromContext(accessToken);
-            if (!token) {
-                setError("No estás autenticado. Por favor, inicia sesión.");
-                setUploadingImageIndex(null);
-                return;
-            }
-
             const formData = new FormData();
             formData.append('file', file);
 
-            const headers = {
-                'Authorization': `Bearer ${token}`
-            };
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
             const uploadRes = await fetch(`${API}/home-content/staff/upload-image`, {
                 method: 'POST',
                 headers,

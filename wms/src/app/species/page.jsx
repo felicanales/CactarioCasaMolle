@@ -397,28 +397,27 @@ export default function SpeciesPage() {
             if (pendingPhotos.length > 0 && createdSpeciesId) {
                 try {
                     const token = getAccessTokenFromContext(accessToken);
+                    const uploadFormData = new FormData();
+                    pendingPhotos.forEach(file => {
+                        uploadFormData.append('files', file);
+                    });
+
+                    const headers = {};
                     if (token) {
-                        const uploadFormData = new FormData();
-                        pendingPhotos.forEach(file => {
-                            uploadFormData.append('files', file);
-                        });
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    const uploadRes = await fetch(`${API}/photos/especie/${createdSpeciesId}`, {
+                        method: 'POST',
+                        headers,
+                        body: uploadFormData,
+                        credentials: 'include'
+                    });
 
-                        const headers = {
-                            'Authorization': `Bearer ${token}`
-                        };
-                        const uploadRes = await fetch(`${API}/photos/especie/${createdSpeciesId}`, {
-                            method: 'POST',
-                            headers,
-                            body: uploadFormData,
-                            credentials: 'include'
-                        });
-
-                        if (uploadRes.ok) {
-                            // Revocar URLs antes de limpiar
-                            pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
-                            setPendingPhotos([]);
-                            setPendingPhotoUrls([]);
-                        }
+                    if (uploadRes.ok) {
+                        // Revocar URLs antes de limpiar
+                        pendingPhotoUrls.forEach(url => URL.revokeObjectURL(url));
+                        setPendingPhotos([]);
+                        setPendingPhotoUrls([]);
                     }
                 } catch (uploadErr) {
                     console.error('[SpeciesPage] Error al subir fotos automáticamente:', uploadErr);

@@ -16,22 +16,13 @@ const API = getApiUrl();
 const ACCESS_TOKEN_STORAGE_KEY = "access_token";
 const TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 const SUPABASE_EMAIL_LIMIT_UI_MESSAGE = "Limite para enviar correos: Supabase permite 2 correos por hora (2/hr).";
+const SESSION_EXPIRED_NOTICE = "Tu sesion expiro. Redirigiendo al login...";
+const SESSION_REDIRECT_DELAY_MS = 350;
 
-const getStoredAccessToken = () => {
+const clearPersistedAccessToken = () => {
+  if (typeof window === "undefined") return;
   try {
-    return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-};
-
-const setStoredAccessToken = (token) => {
-  try {
-    if (token) {
-      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
-    } else {
-      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-    }
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
   } catch {
   }
 };
@@ -67,9 +58,6 @@ const isTokenExpired = (token, skewMs = 0) => {
 };
 
 const getTokenSource = () => {
-  const storedToken = getStoredAccessToken();
-  if (storedToken) return "localStorage";
-
   try {
     if (document.cookie && document.cookie.includes("sb-access-token=")) {
       return "cookie";
@@ -113,7 +101,7 @@ const formatClockTime = (isoString) => {
 
 const AuthDebugPanel = ({ user, accessToken, debugState, refreshInFlight, tick }) => {
   if (!AUTH_DEBUG) return null;
-  const token = getAccessToken();
+  const token = accessToken || getAccessToken();
   const expMs = getTokenExpirationMs(token);
   const timeLeftSec = expMs ? Math.max(0, Math.floor((expMs - Date.now()) / 1000)) : null;
   const source = getTokenSource();
@@ -159,11 +147,6 @@ const AuthDebugPanel = ({ user, accessToken, debugState, refreshInFlight, tick }
 const getAccessToken = () => {
   if (typeof window === 'undefined') return null;
 
-  const storedToken = getStoredAccessToken();
-  if (storedToken) {
-    return storedToken;
-  }
-
   // Intentar leer cookies de diferentes formas para cross-domain
   try {
     // Método 1: Regex estándar
@@ -195,6 +178,8 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
   const accessTokenRef = useRef(null);          // Ref para leer el token sin dependencia en useCallback
   const refreshInFlightRef = useRef(null);
+  const loginRedirectScheduledRef = useRef(false);
+  const [sessionNotice, setSessionNotice] = useState("");
   const [debugState, setDebugState] = useState({
     lastRefreshAt: null,
     lastRefreshOk: null,
@@ -202,6 +187,20 @@ export function AuthProvider({ children }) {
     lastAuthCheckAt: null,
   });
   const [debugTick, setDebugTick] = useState(0);
+
+  const redirectToLogin = useCallback((reason = "expired") => {
+    if (BYPASS_AUTH || typeof window === "undefined") return;
+    if (window.location.pathname.startsWith("/login")) return;
+    if (loginRedirectScheduledRef.current) return;
+
+    loginRedirectScheduledRef.current = true;
+    setSessionNotice(SESSION_EXPIRED_NOTICE);
+
+    window.setTimeout(() => {
+      const url = `/login?session=${encodeURIComponent(reason)}`;
+      window.location.replace(url);
+    }, SESSION_REDIRECT_DELAY_MS);
+  }, []);
 
   const runRefresh = useCallback(async () => {
     if (refreshInFlightRef.current) {
@@ -230,7 +229,6 @@ export function AuthProvider({ children }) {
         const data = await res.json();
         if (data && data.access_token) {
           setAccessToken(data.access_token);
-          setStoredAccessToken(data.access_token);
         }
 
         if (AUTH_DEBUG) {
@@ -246,7 +244,8 @@ export function AuthProvider({ children }) {
         if (!token || isTokenExpired(token)) {
           setUser(null);
           setAccessToken(null);
-          setStoredAccessToken(null);
+          clearPersistedAccessToken();
+          redirectToLogin("expired");
         }
         if (AUTH_DEBUG) {
           setDebugState(prev => ({
@@ -263,7 +262,7 @@ export function AuthProvider({ children }) {
 
     refreshInFlightRef.current = refreshPromise;
     return refreshPromise;
-  }, [API, refreshInFlightRef, setUser, setAccessToken]);
+  }, [redirectToLogin, refreshInFlightRef, setUser, setAccessToken]);
 
   // Mantener accessTokenRef sincronizado para leerlo sin listar accessToken como dependencia
   useEffect(() => {
@@ -280,7 +279,7 @@ export function AuthProvider({ children }) {
 
     if (!headers.Authorization && !headers.authorization) {
       // Prioridad 1: Ref del token (siempre actual, sin causar re-render)
-      // Prioridad 2: Token almacenado en localStorage / cookie
+      // Prioridad 2: Cookie legible en desarrollo; en prod se usan cookies HttpOnly.
       const token = accessTokenRef.current || getAccessToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -295,7 +294,7 @@ export function AuthProvider({ children }) {
         url.includes("/auth/logout"));
 
     if (!shouldSkipRefresh) {
-      const token = getAccessToken();
+      const token = accessTokenRef.current || getAccessToken();
       const exp = getTokenExpirationMs(token);
       if (token && exp && (exp - Date.now()) < TOKEN_REFRESH_WINDOW_MS) {
         await runRefresh();
@@ -328,7 +327,7 @@ export function AuthProvider({ children }) {
           ...options.headers,
         };
         if (!retryHeaders.Authorization && !retryHeaders.authorization) {
-          const retryToken = getAccessToken();
+          const retryToken = accessTokenRef.current || getAccessToken();
           if (retryToken) {
             retryHeaders['Authorization'] = `Bearer ${retryToken}`;
           }
@@ -337,17 +336,18 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
         setAccessToken(null);
-        setStoredAccessToken(null);
+        clearPersistedAccessToken();
+        redirectToLogin("expired");
       }
     }
 
     return response;
-  }, [runRefresh]); // accessToken se lee desde accessTokenRef, no como dependencia
+  }, [redirectToLogin, runRefresh]); // accessToken se lee desde accessTokenRef, no como dependencia
 
   // Función para verificar si el token está expirando pronto
   const isTokenExpiringSoon = () => {
     try {
-      const token = getAccessToken();
+      const token = accessTokenRef.current || getAccessToken();
       if (!token) return true;
       const exp = getTokenExpirationMs(token);
       if (!exp) return true;
@@ -384,45 +384,59 @@ export function AuthProvider({ children }) {
       if (!res.ok) {
         setUser(null);
         setAccessToken(null);
-        setStoredAccessToken(null);
+        clearPersistedAccessToken();
+        redirectToLogin("expired");
         return false;
       }
 
-      const data = await res.json();
+      let data = await res.json();
 
       // Check if user is authenticated
       if (data.authenticated === false) {
+        const refreshed = await runRefresh();
+        if (refreshed) {
+          const retryToken = accessTokenRef.current || getAccessToken();
+          const retryHeaders = retryToken ? { Authorization: `Bearer ${retryToken}` } : undefined;
+          const retryRes = await apiRequest(`${API}/auth/me`, {
+            method: "GET",
+            headers: retryHeaders,
+          });
+
+          if (retryRes.ok) {
+            data = await retryRes.json();
+            if (data.authenticated !== false) {
+              setUser(data);
+              return true;
+            }
+          }
+        }
+
         setUser(null);
         setAccessToken(null);
-        setStoredAccessToken(null);
+        clearPersistedAccessToken();
+        redirectToLogin("expired");
         return false;
       } else {
+        if (tokenOverride) {
+          setAccessToken(tokenOverride);
+        }
         setUser(data);
         // Token se maneja solo a través de cookies (más seguro)
-        if (data.access_token) {
-          setAccessToken(data.access_token);
-          setStoredAccessToken(data.access_token);
-        }
         return true;
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching user:', error);
       setUser(null);
       setAccessToken(null);
-      setStoredAccessToken(null);
+      clearPersistedAccessToken();
+      redirectToLogin("expired");
       return false;
     }
-  }, [apiRequest]);
+  }, [apiRequest, redirectToLogin, runRefresh]);
 
   useEffect(() => {
     if (BYPASS_AUTH) return;
-
-    const storedToken = getStoredAccessToken();
-    if (storedToken && isTokenExpired(storedToken)) {
-      setStoredAccessToken(null);
-    } else if (storedToken && !accessToken) {
-      setAccessToken(storedToken);
-    }
+    clearPersistedAccessToken();
   }, []);
 
   useEffect(() => {
@@ -455,7 +469,7 @@ export function AuthProvider({ children }) {
     if (BYPASS_AUTH) return;
 
     const intervalId = setInterval(async () => {
-      const token = getAccessToken();
+      const token = accessTokenRef.current || getAccessToken();
       if (!token) return;
 
       if (isTokenExpired(token, 60 * 1000)) {
@@ -544,7 +558,6 @@ export function AuthProvider({ children }) {
     // Token se guarda en cookies autom?ticamente por el backend (m?s seguro)
     if (data.access_token) {
       setAccessToken(data.access_token);
-      setStoredAccessToken(data.access_token);
     }
     if (data.user) {
       setUser(data.user);
@@ -588,7 +601,6 @@ const loginWithMasterKey = async (email, masterKey) => {
     const data = await res.json();
     if (data.access_token) {
       setAccessToken(data.access_token);
-      setStoredAccessToken(data.access_token);
     }
     if (data.user) setUser(data.user);
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -609,7 +621,7 @@ const logout = async ({ redirectTo = "/login" } = {}) => {
     } finally {
       setUser(null);
       setAccessToken(null);
-      setStoredAccessToken(null);
+      clearPersistedAccessToken();
       if (redirectTo && typeof window !== "undefined") {
         window.location.replace(redirectTo);
       }
@@ -619,6 +631,31 @@ const logout = async ({ redirectTo = "/login" } = {}) => {
   return (
     <AuthContext.Provider value={{ user, loading, accessToken, apiRequest, requestOtp, verifyOtp, loginWithMasterKey, refreshToken, logout, fetchMe, isTokenExpiringSoon }}>
       {children}
+      {sessionNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "18px",
+            transform: "translateX(-50%)",
+            zIndex: 10000,
+            maxWidth: "calc(100vw - 32px)",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            border: "1px solid #f59e0b",
+            backgroundColor: "#fffbeb",
+            color: "#92400e",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+            fontSize: "14px",
+            fontWeight: 600,
+            textAlign: "center"
+          }}
+        >
+          {sessionNotice}
+        </div>
+      )}
       <AuthDebugPanel
         user={user}
         accessToken={accessToken}

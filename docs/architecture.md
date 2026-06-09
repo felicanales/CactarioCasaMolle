@@ -247,7 +247,7 @@ flowchart TD
 
   subgraph utils["utils/ + lib/ + providers/ — Utilidades"]
     api_cfg["utils/api-config.js\ngetApiUrl()"]
-    auth_h["utils/auth-helpers.js\ngetAccessTokenFromContext()\nfuente: AuthContext → cookie → localStorage"]
+    auth_h["utils/auth-helpers.js\ngetAccessTokenFromContext()\nfuente: AuthContext -> cookie legible; prod usa HttpOnly"]
     images["utils/images.js\nbuildR2PublicUrl() · resolvePhotoUrl(photo, {variant})"]
     qclient["providers/query-client.js\ninstancia QueryClient"]
     mw["middleware.js\nredirección por autenticación Next.js"]

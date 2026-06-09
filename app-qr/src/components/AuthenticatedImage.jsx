@@ -108,9 +108,6 @@ export default function AuthenticatedImage({
                     return value;
                 }
             }
-            
-            // Fallback a localStorage
-            return localStorage.getItem('access_token');
         } catch (error) {
             console.warn('[AuthenticatedImage] Error reading token:', error);
             return null;

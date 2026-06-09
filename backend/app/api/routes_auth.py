@@ -462,13 +462,12 @@ def me(request: Request):
     if not validate_user_active(user_claims["id"]):
         raise HTTPException(403, "User account is inactive")
     
-    # Return user information including the access token
+    # Return only session state and minimal user information.
     response_data = {
         "id": user_claims["id"],
         "email": user_claims["email"],
         "role": user_claims.get("role", "authenticated"),
         "authenticated": True,
-        "access_token": token  # Include the token so frontend can update localStorage
     }
     
     return response_data

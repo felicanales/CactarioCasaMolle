@@ -81,13 +81,6 @@ export default function PhotoUploader({
         try {
             const token = getAccessTokenFromContext(accessTokenFromContext);
 
-            if (!token) {
-                console.error('[PhotoUploader] No token available for upload');
-                setError("No estás autenticado. Por favor, inicia sesión.");
-                setUploading(false);
-                return;
-            }
-
             const formData = new FormData();
             files.forEach(file => {
                 formData.append('files', file);
@@ -98,10 +91,10 @@ export default function PhotoUploader({
 
 
 
-            const headers = {
-                'Authorization': `Bearer ${token}`
-                // NO incluir 'Content-Type' - el navegador lo establece automáticamente con boundary para FormData
-            };
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
             const response = await fetch(url, {
                 method: 'POST',

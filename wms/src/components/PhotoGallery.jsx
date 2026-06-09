@@ -25,11 +25,6 @@ const getAccessToken = () => {
         }
     } catch {}
     
-    // Fallback a localStorage (para compatibilidad)
-    try {
-    return localStorage.getItem('access_token');
-    } catch {}
-    
     return null;
 };
 
@@ -89,20 +84,17 @@ export default function PhotoGallery({
     const handleSetCover = async (photoId) => {
         try {
             const token = getAccessToken();
-            if (!token) {
-                console.error('No hay token de autenticación');
-                setError('No estás autenticado. Por favor, inicia sesión.');
-                return;
-            }
-
             const API = getApiUrl();
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
             const response = await fetch(`${API}/photos/${photoId}`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
+                headers,
                 body: new URLSearchParams({
                     is_cover: 'true'
                 }),
@@ -123,19 +115,15 @@ export default function PhotoGallery({
 
         try {
             const token = getAccessToken();
-            if (!token) {
-                console.error('No hay token de autenticación');
-                setError('No estás autenticado. Por favor, inicia sesión.');
-                return;
-            }
-
             const API = getApiUrl();
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
             const response = await fetch(`${API}/photos/${photoId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers,
                 credentials: 'include'
             });
 

@@ -27,7 +27,7 @@ sequenceDiagram
   end
 
   Staff->>WMS: Ingresa código OTP
-  WMS->>API: POST /auth/verify-otp {email, token}
+  WMS->>API: POST /auth/verify-otp {email, code}
   API->>API: sanitize_otp_code() + check rate limit (10/min IP)
   API->>Supabase: supabase.auth.verify_otp(email, token)
   alt Token inválido o expirado
@@ -38,7 +38,7 @@ sequenceDiagram
     API->>API: set_supabase_session_cookies(response, session)
     Note right of API: Cookie sb-access-token (1h)<br/>Cookie sb-refresh-token (30d)
     API-->>WMS: 200 {user, access_token}
-    WMS->>WMS: AuthContext: guarda token en estado + localStorage
+    WMS->>WMS: AuthContext: token solo en memoria; sesion por cookies HttpOnly
     WMS-->>Staff: Redirige al dashboard
   end
 ```

@@ -238,6 +238,11 @@ pip-log.txt
 logs/
 *.log
 
+# --- Photo migration local data ---
+data/photo-migration/*
+!data/photo-migration/
+!data/photo-migration/.gitkeep
+
 # --- Editor / IDE temporary files ---
 # Vim
 *.swp

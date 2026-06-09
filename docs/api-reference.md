@@ -17,11 +17,11 @@ Archivo: `backend/app/api/routes_auth.py`
 | Método | Path | Auth | Rate limit | Descripción |
 |--------|------|------|-----------|-------------|
 | POST | `/auth/request-otp` | No | 5/min por IP | Envía código OTP al email. El email debe existir en `usuarios` con `active=true`. |
-| POST | `/auth/verify-otp` | No | 10/min por IP | Verifica código OTP. Si es válido, setea cookies `sb-access-token` y `sb-refresh-token`. Retorna `{user, access_token}`. |
+| POST | `/auth/verify-otp` | No | 10/min por IP | Verifica codigo OTP. Si es valido, setea cookies `sb-access-token` y `sb-refresh-token`. Retorna `{user, access_token}` para mantener el token solo en memoria. |
 | POST | `/auth/master-key-login` | No | 5/min por IP | Login alternativo con clave maestra (variable de entorno). Solo para emergencias. |
 | POST | `/auth/refresh` | No | — | Refresca el access token usando el refresh token (cookie). Setea nuevas cookies. |
 | POST | `/auth/logout` | No | — | Limpia las cookies de sesión. |
-| GET | `/auth/me` | JWT (manual) | — | Retorna info del usuario autenticado o `{authenticated: false}` si no hay sesión. |
+| GET | `/auth/me` | JWT (manual) | - | Retorna info del usuario autenticado o `{authenticated: false}` si no hay sesion. No retorna `access_token`. |
 
 **Body de `/auth/request-otp`:**
 ```json
@@ -30,7 +30,7 @@ Archivo: `backend/app/api/routes_auth.py`
 
 **Body de `/auth/verify-otp`:**
 ```json
-{ "email": "usuario@ejemplo.com", "token": "123456" }
+{ "email": "usuario@ejemplo.com", "code": "123456" }
 ```
 
 ---

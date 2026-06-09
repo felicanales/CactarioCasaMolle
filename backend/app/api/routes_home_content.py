@@ -5,6 +5,7 @@ from app.middleware.auth_middleware import get_current_user
 from app.services import home_content_service as svc
 from app.services import photos_service
 from app.core import storage_router
+from app.core.security import get_token_from_request
 
 router = APIRouter()
 
@@ -45,9 +46,8 @@ def get_home_content_staff(request: Request):
     Obtiene el contenido del home para staff (requiere usuario autenticado).
     """
     try:
-        # Obtener el token del header Authorization
-        auth_header = request.headers.get("Authorization", "")
-        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        # Obtener el token del header Authorization o de la cookie HttpOnly.
+        access_token = get_token_from_request(request)
         
         content = svc.get_staff(access_token)
         if not content:
@@ -151,10 +151,9 @@ def create_or_update_home_content_staff(
     
     try:
         # Obtener el token del header Authorization o de las cookies
-        from app.core.security import get_token_from_request
         access_token = get_token_from_request(request)
         
-        logger.info(f"[create_or_update_home_content_staff] Token obtenido: {bool(access_token)}, length: {len(access_token) if access_token else 0}")
+        logger.info(f"[create_or_update_home_content_staff] Token obtenido: {bool(access_token)}")
         
         if not access_token:
             logger.error("[create_or_update_home_content_staff] No se encontró token de autenticación")
@@ -191,9 +190,8 @@ def update_home_content_staff(
     Alias para POST (mismo comportamiento).
     """
     try:
-        # Obtener el token del header Authorization
-        auth_header = request.headers.get("Authorization", "")
-        access_token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else None
+        # Obtener el token del header Authorization o de la cookie HttpOnly.
+        access_token = get_token_from_request(request)
         
         if not access_token:
             raise HTTPException(status_code=401, detail="Token de autenticación no encontrado")

@@ -184,6 +184,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [notice, setNotice] = useState("");
   const [showMasterKeyOption, setShowMasterKeyOption] = useState(false);
 
   // Rate limiting simple (cliente)
@@ -204,6 +205,15 @@ export default function LoginPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("session") === "expired") {
+      setNotice("Tu sesion expiro. Vuelve a iniciar sesion.");
+    }
+  }, []);
 
   const checkRateLimit = () => {
     const now = Date.now();
@@ -229,6 +239,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setNotice("");
 
     // Validar rate limiting
     if (!checkRateLimit()) return;
@@ -266,6 +277,7 @@ export default function LoginPage() {
   const handleMasterKeyLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setNotice("");
     if (!masterKey.trim()) { setError("Ingresa la clave maestra."); return; }
     setLoading(true);
     try {
@@ -282,6 +294,7 @@ export default function LoginPage() {
   const handleResendOtp = async () => {
     setError("");
     setSuccess("");
+    setNotice("");
 
     if (loading || resendCooldown > 0) return;
 
@@ -320,6 +333,7 @@ export default function LoginPage() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError("");
+    setNotice("");
 
     if (otpAttempts >= OTP_ATTEMPT_LIMIT) {
       setError("Maximo de intentos alcanzado. Reenvia el codigo.");
@@ -422,6 +436,21 @@ export default function LoginPage() {
         }}>
           Se enviará un codigo a tu correo.
         </p>
+
+        {notice && (
+          <div style={{
+            padding: "12px",
+            backgroundColor: "#fffbeb",
+            border: "1px solid #f59e0b",
+            borderRadius: "8px",
+            color: "#92400e",
+            fontSize: "14px",
+            marginBottom: "16px",
+            textAlign: "center"
+          }}>
+            {notice}
+          </div>
+        )}
 
         {step === "email" ? (
           <form onSubmit={handleRequestOtp}>
