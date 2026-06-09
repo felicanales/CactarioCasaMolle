@@ -88,25 +88,20 @@ const isSupabaseOtpLimitError = (status, detail) => {
     const message = String(detail.message || "").toLowerCase();
     return (
       code === "over_email_send_rate_limit" ||
-      code === "otp_request_cooldown" ||
       message.includes("2/hr") ||
       message.includes("2 por hora") ||
       message.includes("2 emails per hour") ||
-      message.includes("you can only request this after") ||
-      message.includes("antes de pedir otro codigo")
+      message.includes("email rate limit")
     );
   }
 
   const raw = String(detail || "").toLowerCase();
   return (
     raw.includes("over_email_send_rate_limit") ||
-    raw.includes("otp_request_cooldown") ||
     raw.includes("2/hr") ||
     raw.includes("2 por hora") ||
     raw.includes("2 emails per hour") ||
-    raw.includes("email rate limit") ||
-    raw.includes("you can only request this after") ||
-    raw.includes("antes de pedir otro codigo")
+    raw.includes("email rate limit")
   );
 };
 

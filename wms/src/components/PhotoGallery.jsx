@@ -37,11 +37,13 @@ export default function PhotoGallery({
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [actionError, setActionError] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
 
     const fetchPhotos = async () => {
         setLoading(true);
         setError("");
+        setActionError("");
         try {
             const API = getApiUrl();
             const token = getAccessToken();
@@ -83,6 +85,7 @@ export default function PhotoGallery({
 
     const handleSetCover = async (photoId) => {
         try {
+            setActionError("");
             const token = getAccessToken();
             const API = getApiUrl();
             const headers = {
@@ -104,9 +107,14 @@ export default function PhotoGallery({
             if (response.ok) {
                 fetchPhotos();
                 if (onRefresh) onRefresh();
+                return;
             }
+
+            const data = await response.json().catch(() => ({}));
+            setActionError(data.detail || `Error al establecer portada (${response.status})`);
         } catch (err) {
             console.error('Error al establecer portada:', err);
+            setActionError(`Error al establecer portada: ${err.message}`);
         }
     };
 
@@ -114,6 +122,7 @@ export default function PhotoGallery({
         if (!confirm('¿Estás seguro de eliminar esta foto?')) return;
 
         try {
+            setActionError("");
             const token = getAccessToken();
             const API = getApiUrl();
             const headers = {};
@@ -130,9 +139,14 @@ export default function PhotoGallery({
             if (response.ok || response.status === 204) {
                 fetchPhotos();
                 if (onRefresh) onRefresh();
+                return;
             }
+
+            const data = await response.json().catch(() => ({}));
+            setActionError(data.detail || `Error al eliminar foto (${response.status})`);
         } catch (err) {
             console.error('Error al eliminar foto:', err);
+            setActionError(`Error al eliminar foto: ${err.message}`);
         }
     };
 
@@ -176,6 +190,17 @@ export default function PhotoGallery({
 
     return (
         <div>
+            {actionError && (
+                <div style={{
+                    padding: '12px',
+                    backgroundColor: '#fee2e2',
+                    color: '#dc2626',
+                    borderRadius: '6px',
+                    marginBottom: '16px'
+                }}>
+                    {actionError}
+                </div>
+            )}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',

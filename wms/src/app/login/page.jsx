@@ -16,13 +16,10 @@ const shouldShowMasterKeyFallback = (error, message = "") => {
 
   return (
     code === "over_email_send_rate_limit" ||
-    code === "otp_request_cooldown" ||
     normalized.includes("2/hr") ||
     normalized.includes("2 correos por hora") ||
     normalized.includes("2 emails per hour") ||
-    normalized.includes("email rate limit") ||
-    normalized.includes("antes de pedir otro codigo") ||
-    normalized.includes("you can only request this after")
+    normalized.includes("email rate limit")
   );
 };
 

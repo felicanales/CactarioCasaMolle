@@ -7,6 +7,16 @@ import { fetchAllStaffSpecies, fetchStaffSpeciesPage } from "../utils/species-ap
 
 const API = getApiUrl();
 
+function invalidateSpeciesDependentQueries(queryClient, speciesId = null) {
+  queryClient.invalidateQueries({ queryKey: ["species"] });
+  if (speciesId) {
+    queryClient.invalidateQueries({ queryKey: ["species", speciesId] });
+  }
+  queryClient.invalidateQueries({ queryKey: ["ejemplares"] });
+  queryClient.invalidateQueries({ queryKey: ["sectors"] });
+  queryClient.invalidateQueries({ queryKey: ["transactions"] });
+}
+
 export function useSpeciesList(params = {}, options = {}) {
   const { apiRequest } = useAuth();
   const { q, limit, offset } = params;
@@ -53,7 +63,7 @@ export function useCreateSpecies() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["species"] });
+      invalidateSpeciesDependentQueries(queryClient);
     },
   });
 }
@@ -72,8 +82,7 @@ export function useUpdateSpecies() {
       return res.json();
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["species"] });
-      queryClient.invalidateQueries({ queryKey: ["species", id] });
+      invalidateSpeciesDependentQueries(queryClient, id);
     },
   });
 }
@@ -88,7 +97,7 @@ export function useDeleteSpecies() {
       if (!res.ok) throw new Error("Error al eliminar especie");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["species"] });
+      invalidateSpeciesDependentQueries(queryClient);
     },
   });
 }

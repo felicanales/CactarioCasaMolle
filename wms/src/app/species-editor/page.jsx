@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
 import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
@@ -25,6 +26,7 @@ const clampSidebarWidth = (value) => Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBA
 export default function SpeciesEditorPage() {
     const { user, loading: authLoading, logout, accessToken, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const [species, setSpecies] = useState([]);
     const [filteredSpecies, setFilteredSpecies] = useState([]);
@@ -36,6 +38,7 @@ export default function SpeciesEditorPage() {
     const [selectedSpecies, setSelectedSpecies] = useState(null);
     const [selectedSector, setSelectedSector] = useState(null);
     const [editorMode, setEditorMode] = useState("species"); // "species" or "sectors"
+    const [mobileEditorView, setMobileEditorView] = useState("modules"); // "modules" | "list" | "detail"
 
     // Estados para filtros y ordenamiento de especies
     const [searchQuery, setSearchQuery] = useState("");
@@ -292,6 +295,16 @@ export default function SpeciesEditorPage() {
         }
     };
 
+    const invalidateSpeciesDependentQueries = (speciesId = null) => {
+        queryClient.invalidateQueries({ queryKey: ["species"] });
+        if (speciesId) {
+            queryClient.invalidateQueries({ queryKey: ["species", speciesId] });
+        }
+        queryClient.invalidateQueries({ queryKey: ["ejemplares"] });
+        queryClient.invalidateQueries({ queryKey: ["sectors"] });
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    };
+
     const fetchSpecies = async () => {
         try {
             setLoading(true);
@@ -498,6 +511,30 @@ export default function SpeciesEditorPage() {
         scrollSpeciesSidebarToTop();
     };
 
+    const scrollPageToTop = () => {
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    };
+
+    const handleModeChange = (mode) => {
+        setEditorMode(mode);
+        setSelectedSpecies(null);
+        setSelectedSector(null);
+        setShowPhotoUploader(false);
+        setSidebarCollapsed(false);
+        setMobileEditorView("list");
+        setError("");
+        setSuccess("");
+        scrollPageToTop();
+    };
+
+    const handleMobileDetailBack = () => {
+        setMobileEditorView("list");
+        setError("");
+        scrollPageToTop();
+    };
+
     // Efecto para filtrar sectores
     useEffect(() => {
         let filtered = [...sectors];
@@ -563,6 +600,8 @@ export default function SpeciesEditorPage() {
     const handleSelect = (sp) => {
         setSelectedSpecies(sp);
         setShowPhotoUploader(false);
+        setSidebarCollapsed(false);
+        setMobileEditorView("detail");
         fetchSpeciesPhotos(sp.id);
 
         // Usar tipo_morfología tal cual viene de la base de datos
@@ -628,6 +667,7 @@ export default function SpeciesEditorPage() {
             image_url: sp.image_url || ""
         });
         setError("");
+        scrollPageToTop();
     };
 
     const fetchSectorSpecies = async (sectorId) => {
@@ -674,6 +714,8 @@ export default function SpeciesEditorPage() {
 
     const handleSelectSector = (sector) => {
         setSelectedSector(sector);
+        setSidebarCollapsed(false);
+        setMobileEditorView("detail");
         setSectorFormData({
             name: sector.name || "",
             description: sector.description || "",
@@ -686,6 +728,7 @@ export default function SpeciesEditorPage() {
         if (speciesEndpointAvailable !== false) {
             fetchSectorSpecies(sector.id);
         }
+        scrollPageToTop();
     };
 
     const handleSubmit = async (e) => {
@@ -694,12 +737,16 @@ export default function SpeciesEditorPage() {
         setError("");
         try {
             if (editorMode === "species" && selectedSpecies) {
-                const slug = formData.scientific_name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
+                const scientificName = formData.scientific_name.trim();
+                if (!scientificName) {
+                    throw new Error("El nombre científico es obligatorio");
+                }
+                const slug = scientificName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
                 // Construir payload y mapear campos al nombre correcto de Supabase
                 // IMPORTANTE: Crear payload solo con los campos permitidos, NO usar spread de formData
                 // para evitar copiar campos no deseados como morfología_cactus
                 const payload = {
-                    scientific_name: formData.scientific_name,
+                    scientific_name: scientificName,
                     nombre_común: formData.nombre_común,
                     nombres_comunes: formData.nombres_comunes,
                     tipo_planta: formData.tipo_planta,
@@ -774,6 +821,19 @@ export default function SpeciesEditorPage() {
                     throw new Error(errorData.detail || errorData.message || `Error al guardar (${res.status})`);
                 }
 
+                const updatedSpecies = await res.json();
+                const mergeUpdatedSpecies = (sp) => (
+                    sp.id === updatedSpecies.id ? { ...sp, ...updatedSpecies } : sp
+                );
+                setSelectedSpecies(current => (
+                    current?.id === updatedSpecies.id ? { ...current, ...updatedSpecies } : current
+                ));
+                setSpecies(current => current.map(mergeUpdatedSpecies));
+                setAllSpeciesList(current => current
+                    .map(mergeUpdatedSpecies)
+                    .sort((a, b) => (a.scientific_name || "").toLowerCase().localeCompare((b.scientific_name || "").toLowerCase()))
+                );
+                invalidateSpeciesDependentQueries(selectedSpecies.id);
                 setSuccess("Cambios guardados correctamente");
                 fetchSpecies();
             } else if (editorMode === "sectors" && selectedSector) {
@@ -1013,6 +1073,10 @@ export default function SpeciesEditorPage() {
                     margin: 0 auto;
                 }
 
+                .mobile-detail-back {
+                    display: none;
+                }
+
                 .species-list-item {
                     overflow: hidden;
                 }
@@ -1118,6 +1182,80 @@ export default function SpeciesEditorPage() {
                 }
                 
                 @media (max-width: 768px) {
+                    .editor-header-inner {
+                        justify-content: center !important;
+                    }
+
+                    .editor-header-title {
+                        display: none !important;
+                    }
+
+                    .header-buttons {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        width: 100% !important;
+                        gap: 8px !important;
+                        flex-shrink: 1 !important;
+                    }
+
+                    .header-buttons button {
+                        width: 100% !important;
+                        min-height: 44px !important;
+                        padding: 8px 12px !important;
+                        font-size: 14px !important;
+                        white-space: nowrap;
+                    }
+
+                    .mobile-editor-view-modules .editor-sidebar,
+                    .mobile-editor-view-modules .editor-main,
+                    .mobile-editor-view-list .editor-main,
+                    .mobile-editor-view-detail .editor-sidebar {
+                        display: none !important;
+                    }
+
+                    .mobile-editor-view-list .editor-sidebar {
+                        display: block !important;
+                        position: static !important;
+                        width: 100% !important;
+                        min-height: auto !important;
+                        max-height: none !important;
+                        margin-bottom: 0 !important;
+                        overflow: visible !important;
+                    }
+
+                    .mobile-editor-view-detail .editor-main {
+                        display: block !important;
+                        margin-left: 0 !important;
+                        min-height: auto !important;
+                        padding: 0 !important;
+                    }
+
+                    .mobile-detail-back {
+                        display: inline-flex !important;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 44px;
+                        padding: 10px 14px;
+                        margin-bottom: 16px;
+                        border: 1px solid #d1d5db;
+                        border-radius: 8px;
+                        background: white;
+                        color: #374151;
+                        font-size: 14px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    }
+
+                    .sidebar-collapse-control {
+                        display: none !important;
+                    }
+
+                    .editor-sidebar,
+                    .species-list {
+                        min-height: auto !important;
+                        max-height: none !important;
+                    }
+
                     .grid-2-cols {
                         grid-template-columns: 1fr !important;
                     }
@@ -1129,6 +1267,12 @@ export default function SpeciesEditorPage() {
                     .species-list {
                         max-height: 500px !important;
                         min-height: 400px !important;
+                    }
+
+                    .mobile-editor-view-list .editor-sidebar,
+                    .mobile-editor-view-list .species-list {
+                        max-height: none !important;
+                        min-height: auto !important;
                     }
 
                     .species-selector {
@@ -1144,14 +1288,6 @@ export default function SpeciesEditorPage() {
                         --species-card-media-size: 124px;
                     }
 
-                    .header-buttons {
-                        gap: 6px !important;
-                    }
-
-                    .header-buttons button {
-                        padding: 6px 12px !important;
-                        font-size: 13px !important;
-                    }
                 }
                 
                 @media (max-width: 480px) {
@@ -1209,13 +1345,13 @@ export default function SpeciesEditorPage() {
                     zIndex: 30,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
                 }}>
-                    <div style={{
+                    <div className="editor-header-inner" style={{
                         maxWidth: "1400px", margin: "0 auto",
                         display: "flex", justifyContent: "space-between",
                         alignItems: "center", gap: "clamp(8px, 2vw, 16px)",
                         flexWrap: "wrap"
                     }}>
-                        <div style={{
+                        <div className="editor-header-title" style={{
                             display: "flex",
                             alignItems: "center",
                             gap: "clamp(8px, 2vw, 12px)",
@@ -1252,12 +1388,7 @@ export default function SpeciesEditorPage() {
                             flexWrap: "wrap"
                         }}>
                             <button
-                                onClick={() => {
-                                    setEditorMode("species");
-                                    setSelectedSpecies(null);
-                                    setSelectedSector(null);
-                                    setError("");
-                                }}
+                                onClick={() => handleModeChange("species")}
                                 style={{
                                     padding: "8px 16px",
                                     borderRadius: "8px",
@@ -1286,12 +1417,7 @@ export default function SpeciesEditorPage() {
                                 🌵 Especies
                             </button>
                             <button
-                                onClick={() => {
-                                    setEditorMode("sectors");
-                                    setSelectedSpecies(null);
-                                    setSelectedSector(null);
-                                    setError("");
-                                }}
+                                onClick={() => handleModeChange("sectors")}
                                 style={{
                                     padding: "8px 16px",
                                     borderRadius: "8px",
@@ -1323,7 +1449,7 @@ export default function SpeciesEditorPage() {
                     </div>
                 </header>
 
-                <div className="editor-layout" style={{
+                <div className={`editor-layout mobile-editor-view-${mobileEditorView}`} style={{
                     "--editor-sidebar-width": sidebarCollapsed ? `${SIDEBAR_COLLAPSED_WIDTH}px` : `${sidebarWidth}px`,
                     "--editor-header-height": `${editorHeaderHeight}px`,
                     maxWidth: "none",
@@ -1392,7 +1518,7 @@ export default function SpeciesEditorPage() {
                             overflowY: "auto"
                         }}>
                             {sidebarResizeHandle}
-                            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                            <div className="sidebar-collapse-control" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
                                 <button
                                     onClick={() => setSidebarCollapsed(true)}
                                     title="Ocultar panel"
@@ -1734,7 +1860,7 @@ export default function SpeciesEditorPage() {
                             minHeight: "600px"
                         }}>
                             {sidebarResizeHandle}
-                            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                            <div className="sidebar-collapse-control" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
                                 <button
                                     onClick={() => setSidebarCollapsed(true)}
                                     title="Ocultar panel"
@@ -1889,6 +2015,13 @@ export default function SpeciesEditorPage() {
                                 boxShadow: "none",
                                 padding: 0
                             }}>
+                                <button
+                                    type="button"
+                                    className="mobile-detail-back"
+                                    onClick={handleMobileDetailBack}
+                                >
+                                    {editorMode === "species" ? "Volver a especies" : "Volver a sectores"}
+                                </button>
                         {editorMode === "species" ? (
                             !selectedSpecies ? (
                                 <div style={{
@@ -2123,6 +2256,23 @@ export default function SpeciesEditorPage() {
                                                     Información Básica
                                                 </h3>
                                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                    <div>
+                                                        <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
+                                                            Nombre Científico *
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            required
+                                                            value={formData.scientific_name}
+                                                            onChange={(e) => setFormData({ ...formData, scientific_name: e.target.value })}
+                                                            placeholder="Ej: Echinopsis chiloensis"
+                                                            style={{
+                                                                width: "100%", padding: "8px 12px",
+                                                                border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px",
+                                                                fontStyle: "italic"
+                                                            }}
+                                                        />
+                                                    </div>
                                                     <div>
                                                         <label style={{ fontSize: "13px", fontWeight: "500", color: "#374151", marginBottom: "5px", display: "block" }}>
                                                             Nombre Común

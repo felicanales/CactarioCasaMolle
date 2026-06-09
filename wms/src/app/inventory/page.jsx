@@ -1,19 +1,46 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getApiUrl } from "../../utils/api-config";
 import Modal from "../../components/inventory/InventoryModal";
 import InventoryTable from "../../components/inventory/InventoryTable";
-import { useQueryClient } from "@tanstack/react-query";
+import AuthenticatedImage from "../../components/AuthenticatedImage";
+import { resolvePhotoUrl } from "../../utils/images";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEjemplaresList, useNurseryList } from "../../hooks/useEjemplares";
 import { useSpeciesList } from "../../hooks/useSpecies";
 import { useSectorsList } from "../../hooks/useSectors";
 
 const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
+
+const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL"];
+const HEALTH_STATUS_OPTIONS = ["muy bien", "estable", "leve enfermo", "enfermo", "crítico"];
+
+const createEmptyFormData = () => ({
+    species_id: "",
+    sector_id: "",
+    purchase_date: "",
+    sale_date: "",
+    nursery: "",
+    invoice_number: "",
+    age_months: "",
+    age_unit: "months",
+    tamaño: "",
+    health_status: "",
+    location: "",
+    purchase_price: "",
+    sale_price: "",
+    has_offshoots: 0,
+    cantidad: 1
+});
+
+const createEmptyPurchaseItems = () => ([
+    { id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }
+]);
 
 export default function InventoryPage() {
     const { user, loading: authLoading, apiRequest: authApiRequest } = useAuth();
@@ -108,12 +135,25 @@ export default function InventoryPage() {
     const { data: speciesList = [] } = useSpeciesList({}, { enabled: !!checkedAuth });
     const { data: sectorsList = [] } = useSectorsList({}, { enabled: !!checkedAuth });
     const { data: nurseryList = [] } = useNurseryList();
+    const { data: purchaseGroups = [] } = useQuery({
+        queryKey: ["transactions", "purchases", "invoice-options"],
+        queryFn: async () => {
+            const res = await authApiRequest(`${API}/transactions/purchases?limit=2000`);
+            if (!res.ok) throw new Error("Error al cargar facturas existentes");
+            const data = await res.json();
+            return Array.isArray(data) ? data : [];
+        },
+        enabled: !!checkedAuth,
+        staleTime: 5 * 60 * 1000,
+    });
 
     // Modal
     const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState("view"); // "view" | "compra" | "venta"
+    const [modalMode, setModalMode] = useState("view"); // "view" | "ingreso" | "compra" | "venta"
     const [selectedEjemplar, setSelectedEjemplar] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [speciesSearch, setSpeciesSearch] = useState("");
+    const [selectedInvoiceKey, setSelectedInvoiceKey] = useState("");
 
     // Estados para modal de venta (selección de ejemplares)
     const [availableEjemplares, setAvailableEjemplares] = useState([]); // Ejemplares disponibles para venta
@@ -254,28 +294,99 @@ export default function InventoryPage() {
     };
 
     // Form data para crear nuevo ejemplar
-    const [formData, setFormData] = useState({
-        species_id: "",
-        sector_id: "",
-        purchase_date: "",
-        sale_date: "",
-        nursery: "",
-        invoice_number: "", // Número de factura
-        age_months: "",
-        age_unit: "months", // "months" o "years"
-        tamaño: "",
-        health_status: "",
-        location: "",
-        purchase_price: "",
-        sale_price: "",
-        has_offshoots: 0, // Cantidad de retoños/hijos (número)
-        cantidad: 1 // Cantidad de ejemplares a crear
-    });
+    const [formData, setFormData] = useState(createEmptyFormData);
 
     // Items de compra (múltiples especies)
-    const [purchaseItems, setPurchaseItems] = useState([
-        { id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }
-    ]);
+    const [purchaseItems, setPurchaseItems] = useState(createEmptyPurchaseItems);
+
+    const sortedSpeciesList = useMemo(() => {
+        return [...speciesList].sort((a, b) => {
+            const scientificCompare = (a.scientific_name || "").localeCompare(
+                b.scientific_name || "",
+                "es",
+                { sensitivity: "base" }
+            );
+            if (scientificCompare !== 0) return scientificCompare;
+            return (a.nombre_común || "").localeCompare(
+                b.nombre_común || "",
+                "es",
+                { sensitivity: "base" }
+            );
+        });
+    }, [speciesList]);
+
+    const filteredEntrySpecies = useMemo(() => {
+        const term = speciesSearch.trim().toLowerCase();
+        if (!term) return sortedSpeciesList;
+        return sortedSpeciesList.filter((species) => {
+            const searchable = `${species.scientific_name || ""} ${species.nombre_común || ""} ${species.nombres_comunes || ""}`.toLowerCase();
+            return searchable.includes(term);
+        });
+    }, [sortedSpeciesList, speciesSearch]);
+
+    const invoiceOptions = useMemo(() => {
+        const seen = new Set();
+        return purchaseGroups
+            .filter((purchase) => purchase.invoice_number)
+            .map((purchase) => {
+                const key = [
+                    purchase.purchase_date || "",
+                    purchase.invoice_number || "",
+                    purchase.nursery || ""
+                ].join("|");
+                return {
+                    key,
+                    invoice_number: purchase.invoice_number || "",
+                    purchase_date: purchase.purchase_date || "",
+                    nursery: purchase.nursery || "",
+                    total_quantity: purchase.total_quantity || 0,
+                    total_amount: purchase.total_amount || 0,
+                };
+            })
+            .filter((purchase) => {
+                if (seen.has(purchase.key)) return false;
+                seen.add(purchase.key);
+                return true;
+            });
+    }, [purchaseGroups]);
+
+    const selectedEntrySpecies = useMemo(() => {
+        if (!formData.species_id) return null;
+        return sortedSpeciesList.find((species) => String(species.id) === String(formData.species_id)) || null;
+    }, [formData.species_id, sortedSpeciesList]);
+
+    const selectedInvoice = useMemo(() => {
+        if (!selectedInvoiceKey) return null;
+        return invoiceOptions.find((invoice) => invoice.key === selectedInvoiceKey) || null;
+    }, [invoiceOptions, selectedInvoiceKey]);
+
+    const resetEntryState = () => {
+        setFormData(createEmptyFormData());
+        setPurchaseItems(createEmptyPurchaseItems());
+        setSpeciesSearch("");
+        setSelectedInvoiceKey("");
+    };
+
+    const applyExistingInvoice = (invoiceKey) => {
+        setSelectedInvoiceKey(invoiceKey);
+        const invoice = invoiceOptions.find((option) => option.key === invoiceKey);
+
+        if (!invoice) {
+            setFormData((current) => ({
+                ...current,
+                invoice_number: "",
+                purchase_date: "",
+            }));
+            return;
+        }
+
+        setFormData((current) => ({
+            ...current,
+            invoice_number: invoice.invoice_number,
+            purchase_date: invoice.purchase_date,
+            nursery: invoice.nursery || current.nursery,
+        }));
+    };
 
     // Funciones para manejar items de compra
     const addPurchaseItem = () => {
@@ -535,7 +646,21 @@ export default function InventoryPage() {
         // No es obligatorio, así que no validamos aquí
 
         // Validar campos según el modo
-        if (modalMode === "compra") {
+        if (modalMode === "ingreso") {
+            if (!formData.species_id) {
+                setError("La especie es obligatoria");
+                return;
+            }
+            const cantidad = parseInt(formData.cantidad, 10) || 0;
+            if (cantidad < 1) {
+                setError("La cantidad debe ser al menos 1");
+                return;
+            }
+            if (cantidad > 100) {
+                setError("La cantidad máxima permitida es 100 ejemplares por operación");
+                return;
+            }
+        } else if (modalMode === "compra") {
             if (!formData.purchase_date) {
                 setError("La fecha de compra es obligatoria");
                 return;
@@ -580,8 +705,9 @@ export default function InventoryPage() {
                 for (const item of validItems) {
                     const quantity = parseInt(item.quantity) || 1;
                     const price = item.price ? parseFloat(parseNumber(item.price)) : null;
-                    const parsedAgeValue = item.age_value === "" ? null : parseInt(item.age_value, 10);
-                    const ageMonths = Number.isNaN(parsedAgeValue)
+                    const hasAgeValue = String(item.age_value ?? "").trim() !== "";
+                    const parsedAgeValue = hasAgeValue ? parseInt(item.age_value, 10) : null;
+                    const ageMonths = !hasAgeValue || Number.isNaN(parsedAgeValue)
                         ? null
                         : (item.age_unit === "years" ? parsedAgeValue * 12 : parsedAgeValue);
 
@@ -593,7 +719,6 @@ export default function InventoryPage() {
                         sale_date: null,
                         nursery: formData.nursery || null,
                         invoice_number: formData.invoice_number || null,
-                        age_months: ageMonths,
                         tamaño: item.lot_size || null,
                         health_status: item.health_status || null,
                         location: formData.location || null,
@@ -601,6 +726,9 @@ export default function InventoryPage() {
                         sale_price: null,
                         has_offshoots: formData.has_offshoots || 0
                     };
+                    if (ageMonths !== null) {
+                        basePayload.age_months = ageMonths;
+                    }
 
                     // Crear la cantidad de ejemplares para este item
                     for (let i = 0; i < quantity; i++) {
@@ -621,6 +749,51 @@ export default function InventoryPage() {
                             const speciesName = speciesList.find(s => s.id === parseInt(item.species_id))?.scientific_name || "especie";
                             errors.push(`${speciesName} (${i + 1}/${quantity}): ${err.message}`);
                         }
+                    }
+                }
+            } else if (modalMode === "ingreso") {
+                const hasAgeValue = String(formData.age_months ?? "").trim() !== "";
+                const parsedAgeValue = hasAgeValue ? parseInt(formData.age_months, 10) : null;
+                const ageMonths = !hasAgeValue || Number.isNaN(parsedAgeValue)
+                    ? null
+                    : (formData.age_unit === "years" ? parsedAgeValue * 12 : parsedAgeValue);
+
+                const basePayload = {
+                    species_id: parseInt(formData.species_id),
+                    sector_id: formData.sector_id === "standby" || formData.sector_id === "" ? null : parseInt(formData.sector_id),
+                    purchase_date: formData.purchase_date || null,
+                    sale_date: null,
+                    nursery: formData.nursery || null,
+                    invoice_number: formData.invoice_number || null,
+                    tamaño: formData.tamaño || null,
+                    health_status: formData.health_status || null,
+                    location: formData.location || null,
+                    purchase_price: formData.purchase_price ? parseFloat(parseNumber(formData.purchase_price)) : null,
+                    sale_price: null,
+                    has_offshoots: parseInt(formData.has_offshoots, 10) || 0
+                };
+                if (ageMonths !== null) {
+                    basePayload.age_months = ageMonths;
+                }
+                const quantity = parseInt(formData.cantidad, 10) || 1;
+
+                for (let i = 0; i < quantity; i++) {
+                    try {
+                        const res = await authApiRequest(`${API}/ejemplar/staff`, {
+                            method: "POST",
+                            body: JSON.stringify(basePayload)
+                        });
+
+                        if (!res.ok) {
+                            const errorData = await res.json().catch(() => ({}));
+                            throw new Error(errorData.detail || "Error al crear el ejemplar");
+                        }
+
+                        created++;
+                    } catch (err) {
+                        failed++;
+                        const speciesName = selectedEntrySpecies?.scientific_name || "especie";
+                        errors.push(`${speciesName} (${i + 1}/${quantity}): ${err.message}`);
                     }
                 }
             } else {
@@ -692,24 +865,7 @@ export default function InventoryPage() {
 
                 if (failed === 0) {
                     setShowModal(false);
-                    setFormData({
-                        species_id: "",
-                        sector_id: "",
-                        purchase_date: "",
-                        sale_date: "",
-                        nursery: "",
-                        invoice_number: "",
-                        age_months: "",
-                        age_unit: "months",
-                        tamaño: "",
-                        health_status: "",
-                        location: "",
-                        purchase_price: "",
-                        sale_price: "",
-                        has_offshoots: 0,
-                        cantidad: 1
-                    });
-                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
+                    resetEntryState();
                 } else {
                     setError(`Se crearon ${created} ejemplares. ${failed} fallaron: ${errors.join('; ')}`);
                 }
@@ -727,7 +883,10 @@ export default function InventoryPage() {
     const formatDate = (dateString) => {
         if (!dateString) return "-";
         try {
-            const date = new Date(dateString);
+            const dateOnlyMatch = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})/);
+            const date = dateOnlyMatch
+                ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+                : new Date(dateString);
             return date.toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' });
         } catch {
             return dateString;
@@ -829,6 +988,376 @@ export default function InventoryPage() {
         }
     };
 
+    const renderEntryForm = () => (
+        <form onSubmit={handleCreate}>
+            {error && (
+                <div style={{
+                    padding: "12px",
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: "8px",
+                    color: "#dc2626",
+                    marginBottom: "20px",
+                    fontSize: "14px"
+                }}>
+                    {error}
+                </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <section>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "12px", marginBottom: "12px", flexWrap: "wrap" }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#111827" }}>
+                                Especie <span style={{ color: "#dc2626" }}>*</span>
+                            </h3>
+                            <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: "13px" }}>
+                                Ordenado por nombre científico.
+                            </p>
+                        </div>
+                        <input
+                            type="search"
+                            value={speciesSearch}
+                            onChange={(e) => setSpeciesSearch(e.target.value)}
+                            placeholder="Buscar especie..."
+                            style={{
+                                width: "min(100%, 280px)",
+                                minHeight: "44px",
+                                padding: "10px 12px",
+                                border: "1px solid #d1d5db",
+                                borderRadius: "8px",
+                                fontSize: "14px",
+                                outline: "none",
+                                boxSizing: "border-box"
+                            }}
+                        />
+                    </div>
+
+                    <div className="entry-species-grid">
+                        {filteredEntrySpecies.length === 0 ? (
+                            <div style={{
+                                padding: "24px",
+                                border: "1px dashed #d1d5db",
+                                borderRadius: "8px",
+                                color: "#6b7280",
+                                backgroundColor: "#f9fafb"
+                            }}>
+                                No hay especies que coincidan con la búsqueda.
+                            </div>
+                        ) : filteredEntrySpecies.map((species) => {
+                            const selected = String(formData.species_id) === String(species.id);
+                            const photo = species.cover_photo || species.image_url;
+
+                            return (
+                                <button
+                                    key={species.id}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    onClick={() => setFormData({ ...formData, species_id: String(species.id) })}
+                                    style={{
+                                        minHeight: "132px",
+                                        padding: "10px",
+                                        borderRadius: "8px",
+                                        border: selected ? "2px solid #059669" : "1px solid #d1d5db",
+                                        backgroundColor: selected ? "#ecfdf5" : "white",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        gap: "12px",
+                                        alignItems: "stretch",
+                                        textAlign: "left",
+                                        boxShadow: selected ? "0 0 0 3px rgba(5, 150, 105, 0.12)" : "none",
+                                        transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s"
+                                    }}
+                                >
+                                    {photo ? (
+                                        <AuthenticatedImage
+                                            src={resolvePhotoUrl(photo, { variant: "w=400" })}
+                                            fallbackSrc={resolvePhotoUrl(photo)}
+                                            alt={species.nombre_común || species.scientific_name}
+                                            style={{
+                                                width: "112px",
+                                                height: "112px",
+                                                minWidth: "112px",
+                                                objectFit: "cover",
+                                                borderRadius: "8px",
+                                                border: "1px solid #e5e7eb",
+                                                backgroundColor: "#f3f4f6"
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{
+                                            width: "112px",
+                                            height: "112px",
+                                            minWidth: "112px",
+                                            borderRadius: "8px",
+                                            border: "1px dashed #d1d5db",
+                                            backgroundColor: "#f3f4f6",
+                                            color: "#9ca3af",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: "12px",
+                                            fontWeight: "600"
+                                        }}>
+                                            Sin foto
+                                        </div>
+                                    )}
+                                    <span style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
+                                        <span style={{
+                                            fontSize: "15px",
+                                            fontWeight: "700",
+                                            color: "#111827",
+                                            fontStyle: "italic",
+                                            lineHeight: 1.3,
+                                            overflowWrap: "anywhere"
+                                        }}>
+                                            {species.scientific_name || "Sin nombre científico"}
+                                        </span>
+                                        <span style={{
+                                            marginTop: "6px",
+                                            fontSize: "13px",
+                                            color: "#4b5563",
+                                            lineHeight: 1.35,
+                                            overflowWrap: "anywhere"
+                                        }}>
+                                            {species.nombre_común || "Sin nombre común"}
+                                        </span>
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                <section style={{
+                    padding: "16px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    backgroundColor: "#f9fafb"
+                }}>
+                    <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: "700", color: "#111827" }}>
+                        Datos del ejemplar
+                    </h3>
+                    <div className="entry-two-column-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Cantidad <span style={{ color: "#dc2626" }}>*</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                required
+                                value={formData.cantidad}
+                                onChange={(e) => setFormData({ ...formData, cantidad: Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)) })}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Sector
+                            </label>
+                            <select
+                                value={formData.sector_id}
+                                onChange={(e) => setFormData({ ...formData, sector_id: e.target.value })}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            >
+                                <option value="">Seleccionar sector...</option>
+                                <option value="standby">Sin Asignar (Standby)</option>
+                                {sectorsList.map((sector) => (
+                                    <option key={sector.id} value={sector.id}>
+                                        {sector.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Tamaño
+                            </label>
+                            <select
+                                value={formData.tamaño}
+                                onChange={(e) => setFormData({ ...formData, tamaño: e.target.value })}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            >
+                                <option value="">Seleccionar tamaño...</option>
+                                {SIZE_OPTIONS.map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Estado
+                            </label>
+                            <select
+                                value={formData.health_status}
+                                onChange={(e) => setFormData({ ...formData, health_status: e.target.value })}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            >
+                                <option value="">Seleccionar estado...</option>
+                                {HEALTH_STATUS_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>{status}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Edad
+                            </label>
+                            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 96px", gap: "8px" }}>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={formData.age_months}
+                                    onChange={(e) => setFormData({ ...formData, age_months: e.target.value })}
+                                    placeholder="0"
+                                    style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                                />
+                                <select
+                                    value={formData.age_unit}
+                                    onChange={(e) => setFormData({ ...formData, age_unit: e.target.value })}
+                                    style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                                >
+                                    <option value="months">Meses</option>
+                                    <option value="years">Años</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Vivero
+                            </label>
+                            <input
+                                type="text"
+                                list="nursery-options-entry"
+                                value={formData.nursery}
+                                onChange={(e) => setFormData({ ...formData, nursery: e.target.value })}
+                                placeholder="Seleccionar o escribir vivero"
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                            <datalist id="nursery-options-entry">
+                                {nurseryList.map((nursery) => (
+                                    <option key={nursery} value={nursery} />
+                                ))}
+                            </datalist>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Factura existente
+                            </label>
+                            <select
+                                value={selectedInvoiceKey}
+                                onChange={(e) => applyExistingInvoice(e.target.value)}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            >
+                                <option value="">Sin factura asociada</option>
+                                {invoiceOptions.map((invoice) => (
+                                    <option key={invoice.key} value={invoice.key}>
+                                        {invoice.invoice_number} · {formatDate(invoice.purchase_date)}{invoice.nursery ? ` · ${invoice.nursery}` : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Número de factura
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.invoice_number}
+                                onChange={(e) => {
+                                    setSelectedInvoiceKey("");
+                                    setFormData({ ...formData, invoice_number: e.target.value });
+                                }}
+                                placeholder="Ej: FAC-001234"
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "6px", display: "block", letterSpacing: 0 }}>
+                                Fecha de compra
+                            </label>
+                            <input
+                                type="date"
+                                value={formData.purchase_date}
+                                onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                                style={{ width: "100%", minHeight: "44px", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                    </div>
+
+                    {selectedInvoice && (
+                        <div style={{
+                            marginTop: "12px",
+                            padding: "10px 12px",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: "8px",
+                            backgroundColor: "#f0fdf4",
+                            color: "#166534",
+                            fontSize: "13px",
+                            lineHeight: 1.45
+                        }}>
+                            Asociado a factura {selectedInvoice.invoice_number}: {selectedInvoice.total_quantity} ejemplar{selectedInvoice.total_quantity === 1 ? "" : "es"} registrado{selectedInvoice.total_quantity === 1 ? "" : "s"} por CLP {formatCLP(selectedInvoice.total_amount)}.
+                        </div>
+                    )}
+                </section>
+
+                <div className="entry-form-actions" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "4px" }}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowModal(false);
+                            setError("");
+                            resetEntryState();
+                        }}
+                        style={{
+                            minHeight: "44px",
+                            padding: "10px 20px",
+                            borderRadius: "8px",
+                            border: "1px solid #d1d5db",
+                            backgroundColor: "white",
+                            color: "#374151",
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            cursor: submitting ? "not-allowed" : "pointer"
+                        }}
+                        disabled={submitting}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        style={{
+                            minHeight: "44px",
+                            padding: "10px 20px",
+                            borderRadius: "8px",
+                            border: "none",
+                            backgroundColor: submitting ? "#9ca3af" : "#10b981",
+                            color: "white",
+                            fontSize: "14px",
+                            fontWeight: "700",
+                            cursor: submitting ? "not-allowed" : "pointer"
+                        }}
+                        disabled={submitting}
+                    >
+                        {submitting
+                            ? "Guardando..."
+                            : `Ingresar ${parseInt(formData.cantidad, 10) || 1} ejemplar${(parseInt(formData.cantidad, 10) || 1) === 1 ? "" : "es"}`}
+                    </button>
+                </div>
+            </div>
+        </form>
+    );
+
     return (
         <>
             <style jsx global>{`
@@ -843,6 +1372,27 @@ export default function InventoryPage() {
                     .table-header {
                         padding: 8px !important;
                     }
+                    .entry-species-grid {
+                        grid-template-columns: 1fr !important;
+                        max-height: 340px !important;
+                    }
+                    .entry-two-column-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .entry-form-actions {
+                        flex-direction: column-reverse;
+                    }
+                    .entry-form-actions button {
+                        width: 100%;
+                    }
+                }
+                .entry-species-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                    gap: 12px;
+                    max-height: 420px;
+                    overflow-y: auto;
+                    padding: 2px;
                 }
             `}</style>
 
@@ -921,25 +1471,9 @@ export default function InventoryPage() {
                             )}
                             <button
                                 onClick={() => {
-                                    setModalMode("compra");
-                                    setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
-                                    setFormData({
-                                        species_id: "",
-                                        sector_id: "",
-                                        purchase_date: "",
-                                        sale_date: "",
-                                        nursery: "",
-                                        invoice_number: "",
-                                        age_months: "",
-                                        age_unit: "months",
-                                        tamaño: "",
-                                        health_status: "",
-                                        location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
-                                    });
+                                    setSelectedEjemplar(null);
+                                    setModalMode("ingreso");
+                                    resetEntryState();
                                     setShowModal(true);
                                 }}
                                 style={{
@@ -959,52 +1493,7 @@ export default function InventoryPage() {
                                 }}
                             >
                                 <span>+</span>
-                                <span>Ingresar Compra</span>
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    setModalMode("venta");
-                                    setSaleSelectedIds(new Set());
-                                    setSaleFilters({ species: "", sector: "", search: "" });
-                                    setFormData({
-                                        species_id: "",
-                                        sector_id: "",
-                                        purchase_date: "",
-                                        sale_date: "",
-                                        nursery: "",
-                                        invoice_number: "",
-                                        age_months: "",
-                                        age_unit: "months",
-                                        tamaño: "",
-                                        health_status: "",
-                                        location: "",
-                                        purchase_price: "",
-                                        sale_price: "",
-                                        has_offshoots: 0,
-                                        cantidad: 1
-                                    });
-                                    setShowModal(true);
-                                    // Cargar ejemplares disponibles cuando se abre el modal
-                                    await fetchAvailableEjemplares();
-                                }}
-                                style={{
-                                    padding: "8px 16px",
-                                    borderRadius: "6px",
-                                    border: "none",
-                                    backgroundColor: "#f59e0b",
-                                    color: "white",
-                                    fontSize: "clamp(12px, 3vw, 14px)",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    whiteSpace: "nowrap"
-                                }}
-                            >
-                                <span>+</span>
-                                <span>Ingresar Venta</span>
+                                <span>Ingresar especie</span>
                             </button>
                             <Link
                                 href="/transactions"
@@ -1453,36 +1942,18 @@ export default function InventoryPage() {
                 onClose={() => {
                     setShowModal(false);
                     setError("");
-                    if (modalMode === "compra" || modalMode === "venta") {
-                        setFormData({
-                            species_id: "",
-                            sector_id: "",
-                            purchase_date: "",
-                            sale_date: "",
-                            nursery: "",
-                            invoice_number: "",
-                            age_months: "",
-                            age_unit: "months",
-                            tamaño: "",
-                            health_status: "",
-                            location: "",
-                            purchase_price: "",
-                            sale_price: "",
-                            has_offshoots: 0,
-                            cantidad: 1
-                        });
-                        if (modalMode === "compra") {
-                            setPurchaseItems([{ id: 1, species_id: "", quantity: 1, price: "", lot_size: "", age_value: "", age_unit: "months", health_status: "" }]);
-                        }
+                    if (modalMode === "ingreso" || modalMode === "compra" || modalMode === "venta") {
+                        resetEntryState();
                     }
                 }}
                 title={
-                    modalMode === "compra" ? "Ingresar Compra" :
-                        modalMode === "venta" ? "Ingresar Venta" :
-                            "Detalle del Ejemplar"
+                    modalMode === "ingreso" ? "Ingresar Especie" :
+                        modalMode === "compra" ? "Ingresar Compra" :
+                            modalMode === "venta" ? "Ingresar Venta" :
+                                "Detalle del Ejemplar"
                 }
             >
-                {modalMode === "compra" ? (
+                {modalMode === "ingreso" ? renderEntryForm() : modalMode === "compra" ? (
                     <form onSubmit={selectedEjemplar ? handleUpdate : handleCreate}>
                         {error && (
                             <div style={{

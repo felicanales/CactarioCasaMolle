@@ -455,7 +455,7 @@ def update_photo(
     """
     Actualiza una foto.
     """
-    sb = get_public()
+    sb = get_service()
     
     # Obtener la foto completa antes de actualizar para auditoría
     photo = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
@@ -498,10 +498,13 @@ def update_photo(
     
     if update_data:
         result = sb.table("fotos").update(update_data).eq("id", photo_id).execute()
-        if not result.data:
-            raise LookupError("No se pudo actualizar la foto")
-        
-        updated_photo = result.data[0]
+        if result.data:
+            updated_photo = result.data[0]
+        else:
+            refreshed = sb.table("fotos").select("*").eq("id", photo_id).limit(1).execute()
+            if not refreshed.data:
+                raise LookupError("No se pudo actualizar la foto")
+            updated_photo = refreshed.data[0]
         
         # Registrar en auditoría
         if user_id or user_email:

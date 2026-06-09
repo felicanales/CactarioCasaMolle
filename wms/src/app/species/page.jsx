@@ -346,13 +346,18 @@ export default function SpeciesPage() {
 
         try {
             // Generate slug from scientific name
-            const slug = formData.scientific_name
+            const scientificName = formData.scientific_name.trim();
+            if (!scientificName) {
+                throw new Error("El nombre científico es obligatorio");
+            }
+            const slug = scientificName
                 .toLowerCase()
                 .replace(/\s+/g, '-')
                 .replace(/[^\w\-]/g, '');
 
             const payload = {
                 ...formData,
+                scientific_name: scientificName,
                 slug,
             };
 
