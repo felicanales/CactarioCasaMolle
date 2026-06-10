@@ -188,35 +188,122 @@ Todos los endpoints requieren JWT.
 
 | Método | Path | Descripción |
 |--------|------|-------------|
-| GET | `/transactions/purchases` | Lista compras agrupadas por fecha, número de factura y vivero. |
+| GET | `/transactions/purchases` | Lista facturas de compra registradas en `facturas_compra`. |
+| POST | `/transactions/purchases` | Crea una factura de compra. Registra auditoria. |
+| PUT | `/transactions/purchases/{factura_id}` | Actualiza una factura de compra. Registra auditoria. |
+| DELETE | `/transactions/purchases/{factura_id}` | Elimina una factura de compra y su documento de storage si existe. Registra auditoria. |
+| POST | `/transactions/purchases/document` | Sube imagen o PDF de factura a R2 y retorna metadata del documento. Body `multipart/form-data` con `file`. |
 | GET | `/transactions/sales` | Lista ventas agrupadas por fecha. |
+| POST | `/transactions/sales` | Registra la venta de uno o mas ejemplares, seteando `sale_date` y `sale_price`. |
 
-**Query params comunes:**
+**Query params de listado:**
 
 | Parámetro | Tipo | Descripción |
 |-----------|------|-------------|
-| `date_from` | date | Fecha inicio del rango |
-| `date_to` | date | Fecha fin del rango |
-| `limit` | int | Default 50 |
+| `date_from` | date | Fecha inicio del rango. En compras filtra `issue_date`; en ventas filtra `sale_date`. |
+| `date_to` | date | Fecha fin del rango. En compras filtra `issue_date`; en ventas filtra `sale_date`. |
+| `limit` | int | Default 500 en compras, 50 en ventas |
 | `offset` | int | Default 0 |
 
 **Respuesta de `/transactions/purchases`:**
 ```json
+[
+  {
+    "id": 12,
+    "nursery": "Vivero El Cactus",
+    "invoice_number": "F-001",
+    "issue_date": "2026-06-10",
+    "net_amount": 100000,
+    "tax_amount": 19000,
+    "total_amount": 119000,
+    "document_path": "facturas/uuid.pdf",
+    "document_url": "https://r2.example.com/facturas/uuid.pdf",
+    "document_name": "factura-f001.pdf",
+    "document_content_type": "application/pdf"
+  }
+]
+```
+
+**Body de `POST /transactions/purchases`:**
+```json
 {
-  "data": [
-    {
-      "purchase_date": "2025-01-15",
-      "nursery": "Vivero El Cactus",
-      "invoice_number": "F-001",
-      "items": [
-        {"species_id": 1, "nombre_común": "Cardón", "cantidad": 3, "purchase_price": 5000}
-      ],
-      "total": 15000
-    }
-  ],
-  "total": 1
+  "nursery": "Vivero El Cactus",
+  "invoice_number": "F-001",
+  "issue_date": "2026-06-10",
+  "net_amount": 100000,
+  "tax_amount": 19000,
+  "total_amount": 119000,
+  "document_path": "facturas/uuid.pdf",
+  "document_name": "factura-f001.pdf",
+  "document_content_type": "application/pdf"
 }
 ```
+
+**Respuesta de `POST /transactions/purchases/document`:**
+```json
+{
+  "document_path": "facturas/uuid.pdf",
+  "document_url": "https://r2.example.com/facturas/uuid.pdf",
+  "document_name": "factura-f001.pdf",
+  "document_content_type": "application/pdf"
+}
+```
+
+**Body de `POST /transactions/sales`:**
+```json
+{
+  "ejemplar_ids": [101, 102],
+  "sale_date": "2026-06-10",
+  "sale_price": 25000
+}
+```
+
+**Respuesta de `POST /transactions/sales`:**
+```json
+{
+  "sold": [101, 102],
+  "skipped": [],
+  "errors": [],
+  "sold_count": 2
+}
+```
+
+---
+
+## Tickets de Soporte (`/support-tickets`)
+
+Archivo: `backend/app/api/routes_support_tickets.py` · Servicio: `backend/app/services/support_tickets_service.py`
+
+Todos los endpoints requieren JWT y usan el prefijo `/staff`. No hay API publica de tickets.
+
+| Método | Path | Descripción |
+|--------|------|-------------|
+| GET | `/support-tickets/staff` | Lista tickets con filtros `status`, `type`, `module`, `q`, `limit`, `offset`. |
+| GET | `/support-tickets/staff/summary` | Retorna conteos por estado, tickets abiertos y si el usuario puede gestionar todos. |
+| POST | `/support-tickets/staff` | Crea ticket. Registra auditoria. |
+| PUT | `/support-tickets/staff/{ticket_id}` | Actualiza estado o nota de resolucion segun permisos. Registra auditoria. |
+| DELETE | `/support-tickets/staff/{ticket_id}` | Elimina ticket si el usuario es creador o admin de soporte. Registra auditoria. |
+
+**Body de `POST /support-tickets/staff`:**
+```json
+{
+  "type": "error",
+  "module": "Inventario",
+  "title": "No puedo guardar un ejemplar",
+  "description": "Detalle del problema",
+  "steps_to_reproduce": "1. Entrar a inventario...",
+  "expected_result": "El ejemplar se guarda",
+  "actual_result": "Aparece error",
+  "page_url": "https://wms.example.com/inventory"
+}
+```
+
+**Estados permitidos:** `en_espera`, `en_revision`, `resuelto`, `cancelado`.
+
+**Permisos:**
+- Todos los usuarios autenticados pueden crear y listar.
+- El creador puede cancelar o eliminar su ticket si el servicio lo permite.
+- Solo emails en `SUPPORT_TICKET_ADMIN_EMAILS` pueden cambiar a revision/resuelto y escribir `resolution_note`.
 
 ---
 
@@ -308,7 +395,7 @@ const species = await speciesApi.getBySlug("echinopsis-atacamensis");
 ### CORS configurado
 
 El backend acepta requests desde:
-- `http://localhost:3000`, `http://localhost:3001`, `http://localhost:3002`
+- `http://localhost:3000`, `http://localhost:3001`, `http://localhost:3002`, `http://localhost:3011`
 - `https://*.railway.app` (regex)
 - `https://*.ngrok*` (regex — para desarrollo con túnel)
 

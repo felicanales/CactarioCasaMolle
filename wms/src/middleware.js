@@ -7,7 +7,8 @@ export const config = {
     matcher: [
         "/staff/:path*",
         "/species/:path*",
-        "/sectors/:path*"
+        "/sectors/:path*",
+        "/tickets/:path*"
     ],
 };
 

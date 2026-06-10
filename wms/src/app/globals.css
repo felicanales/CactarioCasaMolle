@@ -86,6 +86,99 @@ input:focus {
   border: 1px solid #e5e7eb;
 }
 
+/* Filtros desplegables */
+.collapsible-filters {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.collapsible-filters__summary {
+  align-items: center;
+  color: #111827;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 48px;
+  padding: 14px 20px;
+  user-select: none;
+}
+
+.collapsible-filters__summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-filters__summary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.collapsible-filters__icon {
+  align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  color: #374151;
+  display: inline-flex;
+  flex: 0 0 28px;
+  font-size: 18px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.collapsible-filters__icon::before {
+  content: "+";
+}
+
+.collapsible-filters[open] .collapsible-filters__icon::before {
+  content: "-";
+}
+
+.collapsible-filters__body {
+  padding: 0 20px 20px;
+}
+
+.collapsible-filters--inline {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: none;
+  margin-bottom: 16px;
+}
+
+.collapsible-filters--inline .collapsible-filters__summary {
+  font-size: 13px;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.collapsible-filters--inline .collapsible-filters__body {
+  padding: 0 12px 12px;
+}
+
+.collapsible-filters--subtle {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.collapsible-filters--subtle .collapsible-filters__summary {
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+.collapsible-filters--subtle .collapsible-filters__body {
+  padding: 0 14px 14px;
+}
+
 /* Encabezados */
 h1,
 h2,
@@ -133,5 +226,13 @@ h3 {
 
   h2 {
     font-size: 18px;
+  }
+
+  .collapsible-filters__summary {
+    padding: 12px 16px;
+  }
+
+  .collapsible-filters__body {
+    padding: 0 16px 16px;
   }
 }

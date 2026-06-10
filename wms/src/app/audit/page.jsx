@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { getApiUrl } from "../../utils/api-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL
@@ -376,21 +377,7 @@ export default function AuditPage() {
                     padding: "clamp(16px, 3vw, 24px)"
                 }}>
                     {/* Filtros */}
-                    <div style={{
-                        backgroundColor: "white",
-                        borderRadius: "12px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                        padding: "20px",
-                        marginBottom: "24px"
-                    }}>
-                        <h2 style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: "#111827",
-                            marginBottom: "16px"
-                        }}>
-                            🔍 Filtros
-                        </h2>
+                    <CollapsibleFilters>
                         <div style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -535,7 +522,7 @@ export default function AuditPage() {
                                 Limpiar filtros
                             </button>
                         )}
-                    </div>
+                    </CollapsibleFilters>
 
                     {/* Error */}
                     {error && (

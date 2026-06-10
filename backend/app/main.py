@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
-from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos, routes_audit, routes_transactions, routes_home_content
+from app.api import routes_species, routes_sectors, routes_auth, routes_ejemplar, routes_debug, routes_photos, routes_audit, routes_transactions, routes_home_content, routes_support_tickets
 from app.middleware.auth_middleware import AuthMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -202,6 +202,8 @@ app.include_router(routes_transactions.router, prefix="/transactions", tags=["Tr
 logger.info("   ✅ /transactions/* - Rutas de transacciones (compras y ventas)")
 app.include_router(routes_home_content.router, prefix="/home-content", tags=["Home Content"])
 logger.info("   ✅ /home-content/* - Rutas de contenido del home")
+app.include_router(routes_support_tickets.router, prefix="/support-tickets", tags=["Support Tickets"])
+logger.info("   ✅ /support-tickets/* - Rutas de tickets de soporte")
 
 @app.get("/")
 def root():

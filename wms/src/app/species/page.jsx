@@ -7,6 +7,7 @@ import Link from "next/link";
 import PhotoUploader from "../../components/PhotoUploader";
 import PhotoGallery from "../../components/PhotoGallery";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
+import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
 import { getAccessTokenFromContext } from "../../utils/auth-helpers";
@@ -632,25 +633,8 @@ export default function SpeciesPage() {
                         gap: "12px",
                         flexWrap: "wrap",
                         alignItems: "center",
-                        justifyContent: "space-between"
+                        justifyContent: "flex-end"
                     }}>
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre científico o nombre común..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{
-                                flex: "1",
-                                minWidth: "200px",
-                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)",
-                                border: "1px solid #d1d5db",
-                                borderRadius: "8px",
-                                fontSize: "clamp(13px, 3vw, 14px)",
-                                outline: "none",
-                                transition: "border-color 0.2s"
-                            }}
-                        />
-
                         <button
                             onClick={handleCreate}
                             style={{
@@ -677,17 +661,24 @@ export default function SpeciesPage() {
                     </div>
 
                     {/* Controles de filtros y ordenamiento */}
-                    <div style={{
-                        backgroundColor: "white",
-                        borderRadius: "12px",
-                        padding: "clamp(12px, 3vw, 16px) clamp(12px, 4vw, 20px)",
-                        marginBottom: "24px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "12px"
-                    }}>
+                    <CollapsibleFilters bodyStyle={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre científico o nombre común..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    flex: "2",
+                                    minWidth: "220px",
+                                    padding: "8px 10px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                    outline: "none"
+                                }}
+                            />
+
                             {/* Ordenamiento */}
                             <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: "1", minWidth: "150px" }}>
                                 <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", minWidth: "60px" }}>
@@ -788,7 +779,7 @@ export default function SpeciesPage() {
                                 Limpiar filtros
                             </button>
                         )}
-                    </div>
+                    </CollapsibleFilters>
 
                     {/* Error Message */}
                     {error && (

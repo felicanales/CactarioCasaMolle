@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { getApiUrl } from "../../utils/api-config";
 import { useSectorsList, useCreateSector, useUpdateSector, useDeleteSector } from "../../hooks/useSectors";
 
@@ -363,25 +364,8 @@ export default function SectorsPage() {
                         gap: "12px",
                         flexWrap: "wrap",
                         alignItems: "center",
-                        justifyContent: "space-between"
+                        justifyContent: "flex-end"
                     }}>
-                        <input
-                            type="text"
-                            placeholder="Buscar..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{
-                                flex: "1",
-                                minWidth: "200px",
-                                padding: "clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)",
-                                border: "1px solid #d1d5db",
-                                borderRadius: "8px",
-                                fontSize: "clamp(13px, 3vw, 14px)",
-                                outline: "none",
-                                transition: "border-color 0.2s"
-                            }}
-                        />
-
                         <button
                             onClick={handleCreate}
                             style={{
@@ -406,6 +390,44 @@ export default function SectorsPage() {
                             <span className="btn-text">Nuevo Sector</span>
                         </button>
                     </div>
+
+                    <CollapsibleFilters>
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                            <input
+                                type="text"
+                                placeholder="Buscar..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    flex: "1",
+                                    minWidth: "220px",
+                                    padding: "10px 12px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    outline: "none"
+                                }}
+                            />
+                        </div>
+
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                style={{
+                                    marginTop: "12px",
+                                    padding: "8px 16px",
+                                    backgroundColor: "#f3f4f6",
+                                    color: "#374151",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Limpiar filtros
+                            </button>
+                        )}
+                    </CollapsibleFilters>
 
                     {error && (
                         <div style={{

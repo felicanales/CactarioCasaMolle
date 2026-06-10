@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
+import CollapsibleFilters from "../../components/CollapsibleFilters";
 import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
@@ -1706,7 +1707,10 @@ export default function SpeciesEditorPage() {
                             </div>
 
                             {/* Controles de ordenamiento y filtros */}
-                            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                            <CollapsibleFilters
+                                className="collapsible-filters--inline"
+                                bodyStyle={{ display: "flex", flexDirection: "column", gap: "12px" }}
+                            >
                                 {/* Ordenamiento */}
                                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                                     <label style={{ fontSize: "12px", fontWeight: "500", color: "#374151", minWidth: "80px" }}>
@@ -1811,7 +1815,7 @@ export default function SpeciesEditorPage() {
                                         Limpiar filtros
                                     </button>
                                 )}
-                            </div>
+                            </CollapsibleFilters>
 
                             <div className="species-card-grid">
                                 {filteredSpecies.length === 0 ? (
@@ -2048,7 +2052,7 @@ export default function SpeciesEditorPage() {
                             </div>
 
                             {/* Búsqueda de sectores */}
-                            <div style={{ marginBottom: "16px" }}>
+                            <CollapsibleFilters className="collapsible-filters--inline">
                                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                                     <input
                                         type="text"
@@ -2082,7 +2086,7 @@ export default function SpeciesEditorPage() {
                                         {sectorSortOrder === "asc" ? "A-Z ↑" : "Z-A ↓"}
                                     </button>
                                 </div>
-                            </div>
+                            </CollapsibleFilters>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                                 {filteredSectors.length === 0 ? (

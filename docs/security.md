@@ -204,6 +204,7 @@ RLS está habilitado en todas las tablas. Las policies controlan qué operacione
 - Endpoints `/public` → `get_public_clean()`
 - Endpoints `/staff` (reads) → `get_public()` con el token del usuario seteado en el cliente
 - Escrituras y auditoría → `get_service()`
+- Tablas internas sin acceso directo desde frontend, como `facturas_compra` y `support_tickets`, se operan desde FastAPI con `get_service()` y permisos aplicados en el servicio correspondiente.
 
 Para ver las policies SQL actuales, revisar `backend/app/core/security.py` y el archivo `verify_rls.sql` en la raíz de `backend/`.
 
@@ -214,12 +215,12 @@ Para ver las policies SQL actuales, revisar `backend/app/core/security.py` y el 
 Archivo: `backend/app/main.py`
 
 El middleware CORS acepta orígenes:
-- Lista fija: `localhost:3000`, `localhost:3001`, `127.0.0.1:3000`
+- Lista fija y/o variable: `localhost:3000`, `localhost:3001`, `localhost:3002`, `localhost:3011`, `127.0.0.1:*`
 - Regex dinámico: `https://.*\.railway\.app`
 - Regex ngrok: `https://.*\.ngrok.*` (para desarrollo con túnel)
 
 ```python
-allow_origins=["http://localhost:3000", "http://localhost:3001", ...]
+allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3011", ...]
 allow_origin_regex=r"https://.*\.(railway\.app|ngrok.*)"
 allow_credentials=True
 allow_methods=["*"]

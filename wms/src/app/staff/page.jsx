@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSupportTicketSummary } from "../../hooks/useSupportTickets";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
@@ -14,6 +15,9 @@ export default function StaffPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
+  const ticketsEnabled = !loading && Boolean(user || BYPASS_AUTH);
+  const { data: ticketSummary } = useSupportTicketSummary({ enabled: ticketsEnabled });
+  const openTicketCount = ticketSummary?.open_count || 0;
 
   useEffect(() => {
     // BYPASS: No redirigir en desarrollo
@@ -129,6 +133,15 @@ export default function StaffPage() {
       href: "/home-content",
       color: "#14b8a6",
       bgColor: "#ccfbf1"
+    },
+    {
+      title: "Tickets de Soporte",
+      description: "Reporta errores, mejoras o dudas para soporte",
+      icon: "!",
+      href: "/tickets",
+      color: "#b45309",
+      bgColor: "#ffedd5",
+      badgeCount: openTicketCount
     }
   ];
 
@@ -358,6 +371,26 @@ export default function StaffPage() {
                     position: "relative"
                   }}
                 >
+                  {module.badgeCount > 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: "16px",
+                      right: "16px",
+                      minWidth: "28px",
+                      height: "28px",
+                      padding: "0 8px",
+                      borderRadius: "999px",
+                      backgroundColor: module.color,
+                      color: "white",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: 800
+                    }}>
+                      {module.badgeCount}
+                    </span>
+                  )}
                   <div style={{
                     width: "56px",
                     height: "56px",
@@ -413,7 +446,8 @@ export default function StaffPage() {
                     textDecoration: "none",
                     transition: "all 0.3s ease",
                     cursor: "pointer",
-                    display: "block"
+                    display: "block",
+                    position: "relative"
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
@@ -426,6 +460,26 @@ export default function StaffPage() {
                     e.currentTarget.style.borderColor = "#e5e7eb";
                   }}
                 >
+                  {module.badgeCount > 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: "16px",
+                      right: "16px",
+                      minWidth: "28px",
+                      height: "28px",
+                      padding: "0 8px",
+                      borderRadius: "999px",
+                      backgroundColor: module.color,
+                      color: "white",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      fontWeight: 800
+                    }}>
+                      {module.badgeCount}
+                    </span>
+                  )}
                   <div style={{
                     width: "56px",
                     height: "56px",

@@ -12,7 +12,7 @@ Muestra quién interactúa con el sistema y qué sistemas externos utiliza.
 C4Context
   title Cactario Casa Molle — Contexto del sistema
 
-  Person(staff, "Staff del hotel", "Administra inventario de cactus, sectores y fotos desde el WMS interno")
+  Person(staff, "Staff del hotel", "Administra inventario, facturas, ventas, tickets, sectores y fotos desde el WMS interno")
   Person(huesped, "Huésped", "Escanea QR en el cactario y explora especies desde su celular")
 
   System(cactario, "Sistema Cactario Casa Molle", "WMS interno + App pública conectados por un backend FastAPI y una base de datos Supabase")
@@ -42,12 +42,12 @@ C4Container
   Person(huesped, "Huésped")
 
   System_Boundary(cactario, "Sistema Cactario Casa Molle") {
-    Container(wms, "WMS Staff (wms/)", "Next.js 15 · React 19 · Node.js 22 · Docker", "Panel de gestión interna. Contenedor :3000, publicado localmente en :3001")
+    Container(wms, "WMS Staff (wms/)", "Next.js 15 · React 19 · Node.js 22 · Docker", "Panel de gestión interna. Contenedor :3000, publicado por Compose en :3011")
     Container(app_qr, "App QR pública (app-qr/)", "Next.js 15 · React 19 · Node.js 22 · Docker", "Experiencia huéspedes y escáner QR. Contenedor :3000, publicado localmente en :3002")
     Container(backend, "Backend API (backend/)", "FastAPI 0.119 · Python 3.11 · Docker", "API REST con endpoints /public y /staff. Contenedor y puerto local :8000")
   }
 
-  ContainerDb(supabase_db, "PostgreSQL", "Supabase", "Base de datos principal: especies, ejemplares, sectores, fotos, usuarios, auditoría")
+  ContainerDb(supabase_db, "PostgreSQL", "Supabase", "Base de datos principal: especies, ejemplares, sectores, fotos, facturas, tickets, usuarios, auditoría")
   Container_Ext(supabase_auth, "Supabase Auth", "Supabase", "Autenticación OTP por email + emisión de JWT")
   Container_Ext(r2, "R2 Bucket", "Cloudflare", "Imágenes originales + variantes (w=400, w=800)")
 
@@ -68,11 +68,11 @@ C4Container
 
 ```mermaid
 flowchart LR
-  browser_staff["Browser staff<br/>localhost:3001"]
+  browser_staff["Browser staff<br/>localhost:3011"]
   browser_guest["Browser huésped<br/>localhost:3002"]
 
   subgraph compose["Docker Compose — red cactario-casa-molle_default"]
-    wms_local["wms<br/>Next.js standalone<br/>host 3001 → container 3000"]
+    wms_local["wms<br/>Next.js standalone<br/>host 3011 → container 3000"]
     app_local["app-qr<br/>Next.js standalone<br/>host 3002 → container 3000"]
     backend_local["backend<br/>FastAPI / Uvicorn<br/>host 8000 → container 8000<br/>healthcheck /health"]
   end
@@ -91,8 +91,10 @@ flowchart LR
 | Servicio Compose | Contexto de build | Puerto contenedor | Puerto host | Configuración |
 |------------------|-------------------|-------------------|-------------|---------------|
 | `backend` | `./backend` | `8000` | `8000` | Imagen `python:3.11-slim`; secretos runtime desde `backend/.env`; `IS_PRODUCTION=false`; `ENABLE_DEBUG_ROUTES=false` |
-| `wms` | `./wms` | `3000` | `3001` | `NEXT_PUBLIC_*` incorporadas durante build; `depends_on: backend (healthy)` |
+| `wms` | `./wms` | `3000` | `3011` | `NEXT_PUBLIC_*` incorporadas durante build; `depends_on: backend (healthy)` |
 | `app-qr` | `./app-qr` | `3000` | `3002` | `NEXT_PUBLIC_*` incorporadas durante build; `depends_on: backend (healthy)` |
+
+El puerto `3011` aplica a Docker Compose. Los scripts npm de desarrollo sin Docker siguen levantando el WMS en `http://localhost:3001`.
 
 El backend local en Docker es una instancia propia de FastAPI. No llama al backend de Railway ni reutiliza su runtime. Se conecta directamente a Supabase y R2 con las variables de `backend/.env`. Si ese `.env` apunta al mismo proyecto Supabase de producción, los datos creados o modificados localmente quedan disponibles para Railway porque ambos backends leen la misma base.
 
@@ -150,26 +152,28 @@ flowchart TD
     cors["CORSMiddleware en main.py\nlocales + Railway + ngrok"]
   end
 
-  subgraph api["Capa de Rutas (app/api/) — 9 routers"]
+  subgraph api["Capa de Rutas (app/api/) — 10 routers"]
     r_auth["routes_auth.py\n/auth · OTP · refresh · logout · /me"]
     r_species["routes_species.py\n/species · /public + /staff CRUD"]
     r_sectors["routes_sectors.py\n/sectors · /public (QR 3 estrategias) · /staff CRUD + N:M"]
     r_ejemplar["routes_ejemplar.py\n/ejemplar · /staff CRUD + 16 filtros"]
     r_photos["routes_photos.py\n/photos · upload · list · cover · delete"]
-    r_tx["routes_transactions.py\n/transactions · compras + ventas agrupadas (solo lectura)"]
+    r_tx["routes_transactions.py\n/transactions · facturas de compra CRUD + documentos · ventas agrupadas"]
     r_audit["routes_audit.py\n/audit · log filtrable"]
     r_home["routes_home_content.py\n/home-content · /public + /staff · multi-idioma es|en · upload imagen"]
+    r_support["routes_support_tickets.py\n/support-tickets · /staff · tickets internos WMS"]
     r_debug["routes_debug.py\n/debug · solo ENABLE_DEBUG_ROUTES=true"]
   end
 
-  subgraph services["Capa de Servicios (app/services/) — 7 archivos"]
+  subgraph services["Capa de Servicios (app/services/) — 8 archivos principales"]
     s_species["species_service.py\nCRUD · PUBLIC_SPECIES_FIELDS · slug único · cover photos"]
     s_sectors["sectors_service.py\nCRUD · búsqueda QR 3 estrategias · relación N:M sectores_especies"]
     s_ejemplar["ejemplar_service.py\nCRUD · 16 filtros · crea sectores_especies al crear ejemplar"]
     s_photos["photos_service.py\nresize max 2048px · variantes w=400/w=800 · metadata tabla fotos"]
-    s_tx["transactions_service.py\nagrupa por purchase_date + nursery + invoice_number"]
+    s_tx["transactions_service.py\nfacturas_compra CRUD · documentos R2 · register_sale()"]
     s_audit["audit_service.py\nlog_change() · get_audit_log() · siempre get_service()"]
     s_home["home_content_service.py\ncontenido dinámico · soporte es|en"]
+    s_support["support_tickets_service.py\npermisos creador/admin · resumen · auditoría"]
   end
 
   subgraph models["Modelos ORM (app/models/) — 2 archivos"]
@@ -183,11 +187,11 @@ flowchart TD
     storage_rtr["storage_router.py\nOrquesta R2 primario + Supabase fallback/dual-write"]
     r2_client["r2_storage.py\nCliente Cloudflare R2 (boto3 S3-compatible)"]
     supa_storage["supabase_storage.py\nCliente Supabase Storage (fallback)"]
-    sql_files["home_content_schema.sql\nrls_policies_secure.sql\nrls_policies_ownership.sql"]
+    sql_files["home_content_schema.sql\nfacturas_schema.sql\nsupport_tickets_schema.sql\nrls_policies_secure.sql\nrls_policies_ownership.sql"]
   end
 
   request --> cors --> auth_mw --> rate
-  auth_mw --> r_auth & r_species & r_sectors & r_ejemplar & r_photos & r_tx & r_audit & r_home & r_debug
+  auth_mw --> r_auth & r_species & r_sectors & r_ejemplar & r_photos & r_tx & r_audit & r_home & r_support & r_debug
   r_species --> s_species --> supabase_clients
   r_sectors --> s_sectors --> supabase_clients
   r_ejemplar --> s_ejemplar --> supabase_clients
@@ -197,7 +201,9 @@ flowchart TD
   r_tx --> s_tx --> supabase_clients
   r_audit --> s_audit --> supabase_clients
   r_home --> s_home --> supabase_clients
-  s_species & s_sectors & s_ejemplar & s_photos & s_home --> s_audit
+  r_support --> s_support --> supabase_clients
+  s_tx --> storage_rtr
+  s_species & s_sectors & s_ejemplar & s_photos & s_home & s_tx & s_support --> s_audit
   s_species -.-> m_species
   s_sectors -.-> m_sectors
 ```
@@ -219,27 +225,30 @@ flowchart TD
 
   subgraph pages["app/ — Páginas (rutas Next.js)"]
     p_login["login/page.jsx\nOTP por email"]
-    p_staff["staff/page.jsx\nHub principal · grid de módulos"]
+    p_staff["staff/page.jsx\nHub principal · grid de módulos · badge de tickets abiertos"]
     p_species["species/page.jsx\nCatálogo de especies + búsqueda"]
     p_editor["species-editor/page.jsx\nEditor App QR · sidebar colapsable · responsive\nmodo especies | sectores · selector con cover_photo"]
     p_sectors["sectors/page.jsx\nSectores + QR + CRUD"]
     p_inventory["inventory/page.jsx\nEjemplares + 16 filtros avanzados"]
-    p_tx["transactions/page.jsx\nCompras + ventas agrupadas (solo lectura)"]
+    p_tx["transactions/page.jsx\nFacturas de compra + documentos R2 · ventas de cactus"]
     p_audit["audit-logs/page.jsx\nHistorial de cambios filtrable"]
     p_home["home-content/page.jsx\nEditor contenido dinámico + carrusel"]
     p_reports["reports/page.jsx\nReportes"]
+    p_tickets["tickets/page.jsx\nTickets de soporte internos · crear, filtrar y resolver"]
   end
 
   subgraph hooks["hooks/ — Data fetching (React Query)"]
     h_species["useSpecies.js\nuseSpeciesList · useSpecies(id)\nuseCreateSpecies · useUpdateSpecies · useDeleteSpecies"]
     h_sectors["useSectors.js\nAnálogo para sectores"]
     h_ejemplar["useEjemplares.js\nAnálogo para ejemplares"]
+    h_support["useSupportTickets.js\nlistado · resumen · create/update/delete"]
   end
 
   subgraph components["components/ — UI reutilizable"]
     photo_up["PhotoUploader.jsx\nsubida multiarchivo"]
     photo_gal["PhotoGallery.jsx\ngalería de recurso + eliminar"]
     auth_img["AuthenticatedImage.jsx\nimagen con token de auth"]
+    filters["CollapsibleFilters.jsx\nfiltros desplegables reutilizables"]
     console_s["ConsoleSilencer.jsx\nsuprime logs en producción"]
     inv_table["inventory/InventoryTable.jsx\ntabla con 16 filtros + paginación"]
     inv_modal["inventory/InventoryModal.jsx\nmodal CRUD ejemplares"]
@@ -248,6 +257,7 @@ flowchart TD
   subgraph utils["utils/ + lib/ + providers/ — Utilidades"]
     api_cfg["utils/api-config.js\ngetApiUrl()"]
     auth_h["utils/auth-helpers.js\ngetAccessTokenFromContext()\nfuente: AuthContext -> cookie legible; prod usa HttpOnly"]
+    species_api["utils/species-api.js\npaginación para traer todas las especies staff"]
     images["utils/images.js\nbuildR2PublicUrl() · resolvePhotoUrl(photo, {variant})"]
     qclient["providers/query-client.js\ninstancia QueryClient"]
     mw["middleware.js\nredirección por autenticación Next.js"]
@@ -256,6 +266,7 @@ flowchart TD
   layout --> pages
   pages --> hooks --> auth_ctx
   hooks --> api_cfg
+  h_species --> species_api
   pages --> components
   components --> auth_h & images
 ```
@@ -401,11 +412,43 @@ sequenceDiagram
 
 ---
 
+## Flujo de datos — Ingreso de factura de compra (staff)
+
+```mermaid
+sequenceDiagram
+  actor Staff
+  participant WMS as transactions/page.jsx
+  participant API as Backend /transactions
+  participant Tx as transactions_service.py
+  participant Storage as storage_router.py
+  participant R2 as Cloudflare R2
+  participant DB as Supabase DB
+  participant Audit as audit_service.py
+
+  Staff->>WMS: Abre "Ingreso de compra"
+  Staff->>WMS: Ingresa vivero, numero, fecha y montos
+  opt Adjunta imagen o PDF
+    WMS->>API: POST /transactions/purchases/document
+    API->>Tx: upload_invoice_document(file)
+    Tx->>Storage: upload_object("facturas/{uuid}", data)
+    Storage->>R2: PUT documento
+    Tx-->>WMS: document_path + document_url + metadata
+  end
+  WMS->>API: POST /transactions/purchases
+  API->>Tx: create_purchase(payload + contexto usuario)
+  Tx->>DB: INSERT facturas_compra
+  Tx->>Audit: log_change(table_name="facturas_compra", action="CREATE")
+  API-->>WMS: Factura serializada con document_url
+  WMS-->>Staff: Lista de facturas actualizada
+```
+
+---
+
 ## Resumen de servicios en producción
 
 | Servicio | Código fuente | Imagen de runtime | URL local con Compose | Infraestructura prod |
 |----------|---------------|-------------------|-----------------------|---------------------|
-| WMS Staff | `wms/` | Node.js 22 + Next.js standalone | `http://localhost:3001` | Servicio Railway independiente |
+| WMS Staff | `wms/` | Node.js 22 + Next.js standalone | `http://localhost:3011` | Servicio Railway independiente |
 | App QR pública | `app-qr/` | Node.js 22 + Next.js standalone | `http://localhost:3002` | Servicio Railway independiente |
 | Backend API | `backend/` | Python 3.11 + Uvicorn | `http://localhost:8000` | Servicio Railway independiente |
 | Base de datos y Auth | Externo | Supabase Cloud | N/A | Supabase Cloud |
@@ -428,5 +471,7 @@ sequenceDiagram
 | `MASTER_LOGIN_KEY` | Backend | Habilita `/auth/master-key-login`; debe estar en `backend/.env` para Docker/local y en variables Railway para producción |
 | `STORAGE_FALLBACK_SUPABASE` | Backend | Usa Supabase Storage si R2 falla |
 | `STORAGE_DUAL_WRITE_SUPABASE` | Backend | Escribe en ambos storages simultáneamente |
+| `SUPPORT_TICKET_ADMIN_EMAILS` | Backend | Lista CSV de emails con permiso para gestionar todos los tickets |
 | `NEXT_PUBLIC_BYPASS_AUTH` | WMS | Omite validación de auth en desarrollo local |
+| `NEXT_PUBLIC_AUTH_DEBUG` | WMS | Muestra panel local de diagnostico de AuthContext |
 | `NEXT_PUBLIC_ENABLE_LOGS` | App QR | Activa interceptores de logging en axios |

@@ -55,7 +55,7 @@ En PowerShell, usar `Copy-Item compose.env.example .env` en lugar de `cp`.
 | Servicio | Puerto local |
 |----------|--------------|
 | Backend API | `http://localhost:8000` |
-| WMS Staff | `http://localhost:3001` |
+| WMS Staff | `http://localhost:3011` con Docker Compose (`http://localhost:3001` usando `npm run dev:wms`) |
 | App QR | `http://localhost:3002` |
 
 Comandos utiles:
@@ -157,6 +157,9 @@ SMTP_FROM=noreply@casamolle.cl
 # Entorno
 IS_PRODUCTION=true               # Solo en Railway. Controla samesite/secure de cookies.
 ENABLE_DEBUG_ROUTES=false        # true para activar /debug/* endpoints
+
+# Tickets internos de soporte (opcional, CSV)
+SUPPORT_TICKET_ADMIN_EMAILS=soporte@casamolle.cl,admin@casamolle.cl
 ```
 
 En Docker/local, si el WMS usa el login con clave maestra, `MASTER_LOGIN_KEY` debe estar en `backend/.env`. Configurar esta variable solo en Railway no habilita `/auth/master-key-login` en el contenedor local.
@@ -290,6 +293,21 @@ El script crea:
 **Reglas:**
 - Solo puede haber un registro con `is_active = true` a la vez.
 - El endpoint público solo retorna el registro activo.
+
+---
+
+## Setup de tablas `facturas_compra` y `support_tickets`
+
+Antes de usar los modulos de facturas o tickets en produccion, aplicar manualmente estos scripts en el SQL Editor de Supabase del proyecto apuntado por `backend/.env`/Railway:
+
+```bash
+backend/app/core/facturas_schema.sql
+backend/app/core/support_tickets_schema.sql
+```
+
+`facturas_schema.sql` crea `facturas_compra`, indices por fecha/vivero y RLS habilitado sin policies publicas. El backend opera con `service_role`.
+
+`support_tickets_schema.sql` crea `support_tickets`, indices por estado/tipo/modulo/creador, revoca acceso directo a `anon` y `authenticated`, y concede uso a `service_role`. La autorizacion fina vive en `support_tickets_service.py`; los admins se controlan con `SUPPORT_TICKET_ADMIN_EMAILS`.
 
 ---
 

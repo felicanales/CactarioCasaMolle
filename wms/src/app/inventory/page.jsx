@@ -8,6 +8,7 @@ import { getApiUrl } from "../../utils/api-config";
 import Modal from "../../components/inventory/InventoryModal";
 import InventoryTable from "../../components/inventory/InventoryTable";
 import AuthenticatedImage from "../../components/AuthenticatedImage";
+import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { resolvePhotoUrl } from "../../utils/images";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEjemplaresList, useNurseryList } from "../../hooks/useEjemplares";
@@ -142,6 +143,50 @@ export default function InventoryPage() {
             if (!res.ok) throw new Error("Error al cargar facturas existentes");
             const data = await res.json();
             return Array.isArray(data) ? data : [];
+        },
+        enabled: !!checkedAuth,
+        staleTime: 5 * 60 * 1000,
+    });
+    const { data: inventorySummary = { total: 0, healthCounts: {} } } = useQuery({
+        queryKey: ["ejemplares", "inventory-summary"],
+        queryFn: async () => {
+            const pageSize = 200;
+            let offset = 0;
+            let total = 0;
+            const allEjemplares = [];
+
+            while (true) {
+                const search = new URLSearchParams({
+                    limit: String(pageSize),
+                    offset: String(offset),
+                    sort_by: "scientific_name",
+                    sort_order: "asc",
+                });
+                const res = await authApiRequest(`${API}/ejemplar/staff?${search}`);
+                if (!res.ok) throw new Error("Error al cargar resumen de inventario");
+                const data = await res.json();
+                const page = Array.isArray(data.data) ? data.data : [];
+
+                if (offset === 0) {
+                    total = Number(data.total) || page.length;
+                }
+
+                allEjemplares.push(...page);
+
+                if (page.length < pageSize || allEjemplares.length >= total) {
+                    break;
+                }
+
+                offset += pageSize;
+            }
+
+            const healthCounts = allEjemplares.reduce((acc, ej) => {
+                const status = (ej.health_status || "Sin estado").trim() || "Sin estado";
+                acc[status] = (acc[status] || 0) + 1;
+                return acc;
+            }, {});
+
+            return { total, healthCounts };
         },
         enabled: !!checkedAuth,
         staleTime: 5 * 60 * 1000,
@@ -962,21 +1007,16 @@ export default function InventoryPage() {
             .filter(Boolean)
     )].sort();
 
-    // Totales
-    const totalCompras = Array.isArray(ejemplares)
-        ? ejemplares.reduce((sum, ej) => sum + (ej.purchase_date && ej.purchase_price ? Number(ej.purchase_price) : 0), 0)
-        : 0;
-    const totalVentas = Array.isArray(ejemplares)
-        ? ejemplares.reduce((sum, ej) => sum + (ej.sale_date && ej.sale_price ? Number(ej.sale_price) : 0), 0)
-        : 0;
-
-    // Conteos
-    const countCompras = Array.isArray(ejemplares)
-        ? ejemplares.reduce((c, ej) => c + (ej.purchase_date ? 1 : 0), 0)
-        : 0;
-    const countVentas = Array.isArray(ejemplares)
-        ? ejemplares.reduce((c, ej) => c + (ej.sale_date ? 1 : 0), 0)
-        : 0;
+    const inventoryTotal = inventorySummary.total || 0;
+    const healthStatusEntries = [
+        ...HEALTH_STATUS_OPTIONS.map((status) => ({
+            label: status,
+            count: inventorySummary.healthCounts[status] || 0,
+        })),
+        ...Object.entries(inventorySummary.healthCounts)
+            .filter(([status]) => status === "Sin estado" || !HEALTH_STATUS_OPTIONS.includes(status))
+            .map(([status, count]) => ({ label: status, count })),
+    ];
 
     // Formato CLP sin símbolo: 12.000
     const formatCLP = (value) => {
@@ -1521,104 +1561,111 @@ export default function InventoryPage() {
                     </div>
                 </header>
 
-                {/* Resumen de Compras y Ventas */}
+                {/* Resumen de Inventario */}
                 <section style={{
                     maxWidth: "1400px",
-                    margin: "12px auto 0",
-                    padding: "0 clamp(12px, 4vw, 24px) 12px",
+                    margin: "8px auto 0",
+                    padding: "0 clamp(12px, 4vw, 24px) 8px",
                 }}>
                     <div style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        gap: "12px"
+                        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+                        gap: "8px"
                     }}>
                         <div style={{
                             backgroundColor: "white",
                             border: "1px solid #e5e7eb",
-                            borderRadius: "12px",
-                            padding: "16px",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                            borderRadius: "8px",
+                            padding: "10px 12px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            gap: "12px"
+                            gap: "12px",
+                            minHeight: "54px"
                         }}>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                                 <div style={{
-                                    fontSize: "12px",
+                                    fontSize: "11px",
                                     textTransform: "uppercase",
-                                    letterSpacing: "0.06em",
+                                    letterSpacing: "0.04em",
                                     color: "#6b7280",
                                     fontWeight: 700
                                 }}>
-                                    Compras
+                                    Especies registradas
                                 </div>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "6px" }}>
-                                    <div style={{ fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 800, color: "#111827" }}>
-                                        CLP {formatCLP(totalCompras)}
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "2px", minWidth: 0 }}>
+                                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#111827", lineHeight: 1 }}>
+                                        {inventoryTotal}
                                     </div>
-                                    <div style={{ fontSize: "clamp(12px, 2.5vw, 14px)", color: "#059669", fontWeight: 700 }}>
-                                        {countCompras} {countCompras === 1 ? "compra" : "compras"}
+                                    <div style={{
+                                        fontSize: "12px",
+                                        color: "#6b7280",
+                                        fontWeight: 600,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap"
+                                    }}>
+                                        ejemplar{inventoryTotal === 1 ? "" : "es"}
                                     </div>
                                 </div>
-                            </div>
-                            <div aria-hidden style={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 9999,
-                                background: "linear-gradient(135deg, #d1fae5, #a7f3d0)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#065f46",
-                                fontWeight: 800
-                            }}>
-                                C
                             </div>
                         </div>
 
                         <div style={{
                             backgroundColor: "white",
                             border: "1px solid #e5e7eb",
-                            borderRadius: "12px",
-                            padding: "16px",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "12px"
+                            borderRadius: "8px",
+                            padding: "10px 12px",
+                            minHeight: "54px"
                         }}>
-                            <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                                 <div style={{
-                                    fontSize: "12px",
+                                    fontSize: "11px",
                                     textTransform: "uppercase",
-                                    letterSpacing: "0.06em",
+                                    letterSpacing: "0.04em",
                                     color: "#6b7280",
-                                    fontWeight: 700
+                                    fontWeight: 700,
+                                    flexShrink: 0
                                 }}>
-                                    Ventas
+                                    Estados sanitarios
                                 </div>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginTop: "6px" }}>
-                                    <div style={{ fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 800, color: "#111827" }}>
-                                        CLP {formatCLP(totalVentas)}
-                                    </div>
-                                    <div style={{ fontSize: "clamp(12px, 2.5vw, 14px)", color: "#dc2626", fontWeight: 700 }}>
-                                        {countVentas} {countVentas === 1 ? "venta" : "ventas"}
-                                    </div>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    flexWrap: "wrap",
+                                    minWidth: 0,
+                                    flex: 1
+                                }}>
+                                    {healthStatusEntries.map(({ label, count }) => (
+                                        <div
+                                            key={label}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "6px",
+                                                padding: "3px 7px",
+                                                border: "1px solid #e5e7eb",
+                                                borderRadius: "999px",
+                                                backgroundColor: "#f9fafb",
+                                                maxWidth: "180px"
+                                            }}
+                                        >
+                                            <span style={{
+                                                fontSize: "11px",
+                                                color: "#4b5563",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap"
+                                            }}>
+                                                {label}
+                                            </span>
+                                            <span style={{ fontSize: "12px", fontWeight: 800, color: "#111827", lineHeight: 1 }}>
+                                                {count}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                            <div aria-hidden style={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 9999,
-                                background: "linear-gradient(135deg, #fee2e2, #fecaca)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#991b1b",
-                                fontWeight: 800
-                            }}>
-                                V
                             </div>
                         </div>
                     </div>
@@ -1630,13 +1677,7 @@ export default function InventoryPage() {
                     padding: "clamp(24px, 5vw, 32px) 24px"
                 }}>
                     {/* Filtros */}
-                    <div style={{
-                        backgroundColor: "white",
-                        borderRadius: "12px",
-                        padding: "clamp(16px, 3vw, 20px)",
-                        marginBottom: "24px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-                    }}>
+                    <CollapsibleFilters>
                         <div style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -1908,7 +1949,7 @@ export default function InventoryPage() {
                                 Limpiar filtros
                             </button>
                         )}
-                    </div>
+                    </CollapsibleFilters>
 
                     {error && (
                         <div style={{
@@ -2593,16 +2634,8 @@ export default function InventoryPage() {
                         </div>
 
                         {/* Filtros */}
-                        <div style={{
-                            padding: "16px",
-                            backgroundColor: "#f9fafb",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px"
-                        }}>
-                            <h3 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "600", color: "#374151" }}>
-                                Filtrar Ejemplares Disponibles
-                            </h3>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: "12px" }}>
+                        <CollapsibleFilters className="collapsible-filters--subtle">
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
                                 <select
                                     value={saleFilters.species}
                                     onChange={(e) => setSaleFilters({ ...saleFilters, species: e.target.value })}
@@ -2656,7 +2689,7 @@ export default function InventoryPage() {
                                     }}
                                 />
                             </div>
-                        </div>
+                        </CollapsibleFilters>
 
                         {/* Lista de ejemplares disponibles */}
                         <div style={{
