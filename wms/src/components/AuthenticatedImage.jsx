@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Este componente renderiza blob URLs autenticadas que Next Image no puede optimizar. */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getApiUrl } from "../utils/api-config";
 import { getAccessTokenFromContext } from "../utils/auth-helpers";
 
@@ -21,114 +22,96 @@ export default function AuthenticatedImage({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [usedFallback, setUsedFallback] = useState(false);
+    const [activeSource, setActiveSource] = useState(src);
+    const onErrorRef = useRef(onError);
 
     const getAccessToken = () => getAccessTokenFromContext(null);
 
-
-    const loadFromSource = (value) => {
-        if (!value) {
-            setLoading(false);
-            return;
-        }
-
-        if (value.startsWith('http://') || value.startsWith('https://')) {
-            const API = getApiUrl();
-            if (value.startsWith(`${API}/photos/`)) {
-                loadAuthenticatedImage(value);
-            } else {
-                setImageSrc(value);
-                setLoading(false);
-            }
-            return;
-        }
-
-        if (value.startsWith('/photos/')) {
-            const API = getApiUrl();
-            loadAuthenticatedImage(`${API}${value}`);
-            return;
-        }
-
-        setImageSrc(value);
-        setLoading(false);
-    };
-
-    const attemptFallback = (reason) => {
-        if (!fallbackSrc || usedFallback || fallbackSrc === src) {
-            return false;
-        }
-        setUsedFallback(true);
-        setError(false);
-        if (process.env.NODE_ENV !== 'production') {
-            console.warn('[AuthenticatedImage] Falling back to original image', {
-                src,
-                fallbackSrc,
-                reason
-            });
-        }
-        loadFromSource(fallbackSrc);
-        return true;
-    };
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
 
     useEffect(() => {
+        setActiveSource(src);
         setUsedFallback(false);
         setError(false);
-        loadFromSource(src);
     }, [src, fallbackSrc]);
 
-    const loadAuthenticatedImage = async (url) => {
-        try {
+    useEffect(() => {
+        let cancelled = false;
+        let objectUrl = null;
+
+        const loadImage = async () => {
+            if (!activeSource) {
+                setImageSrc(null);
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             setError(false);
 
-            // Revocar URL anterior antes de cargar una nueva
-            if (imageSrc && imageSrc.startsWith('blob:')) {
-                URL.revokeObjectURL(imageSrc);
-            }
+            const API = getApiUrl();
+            const isAuthenticatedPath = activeSource.startsWith('/photos/');
+            const isAuthenticatedUrl = activeSource.startsWith(`${API}/photos/`);
 
-            const token = getAccessToken();
-            const headers = {
-                'Content-Type': 'application/json',
-            };
-
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-
-            const response = await fetch(url, {
-                headers,
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to load image: ${response.status}`);
-            }
-
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            setImageSrc(blobUrl);
-            setError(false);
-        } catch (err) {
-            console.error('[AuthenticatedImage] Error loading image:', err);
-            if (attemptFallback('fetch-error')) {
+            if (!isAuthenticatedPath && !isAuthenticatedUrl) {
+                setImageSrc(activeSource);
+                setLoading(false);
                 return;
             }
-            setError(true);
-            if (onError) {
-                onError(err);
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    // Limpiar blob URL cuando el componente se desmonte o cambie la imagen
-    useEffect(() => {
-        return () => {
-            if (imageSrc && imageSrc.startsWith('blob:')) {
-                URL.revokeObjectURL(imageSrc);
+            const url = isAuthenticatedPath ? `${API}${activeSource}` : activeSource;
+
+            try {
+                const token = getAccessToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers.Authorization = `Bearer ${token}`;
+
+                const response = await fetch(url, { headers, credentials: 'include' });
+                if (!response.ok) {
+                    throw new Error(`Failed to load image: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                if (cancelled) return;
+
+                objectUrl = URL.createObjectURL(blob);
+                setImageSrc(objectUrl);
+            } catch (err) {
+                if (cancelled) return;
+
+                if (fallbackSrc && !usedFallback && fallbackSrc !== src && activeSource !== fallbackSrc) {
+                    setUsedFallback(true);
+                    setActiveSource(fallbackSrc);
+                    return;
+                }
+
+                console.error('[AuthenticatedImage] Error loading image:', err);
+                setError(true);
+                onErrorRef.current?.(err);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         };
-    }, [imageSrc]);
+
+        loadImage();
+        return () => {
+            cancelled = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [activeSource, fallbackSrc, src, usedFallback]);
+
+    const handleImageError = (event) => {
+        if (fallbackSrc && !usedFallback && fallbackSrc !== src && activeSource !== fallbackSrc) {
+            setUsedFallback(true);
+            setActiveSource(fallbackSrc);
+            return;
+        }
+
+        setError(true);
+        onErrorRef.current?.(event);
+    };
 
     if (loading) {
         return (
@@ -174,15 +157,7 @@ export default function AuthenticatedImage({
             alt={alt}
             className={className}
             style={style}
-            onError={(event) => {
-                if (attemptFallback('img-error')) {
-                    return;
-                }
-                setError(true);
-                if (onError) {
-                    onError(event);
-                }
-            }}
+            onError={handleImageError}
             {...props}
         />
     );

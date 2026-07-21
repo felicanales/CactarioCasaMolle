@@ -12,6 +12,12 @@ body {
   color: #111827;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* Enlaces */
 a {
   color: #2563eb;
@@ -26,11 +32,30 @@ a:hover {
 button {
   cursor: pointer;
   font-family: inherit;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 input,
-button {
+button,
+select,
+textarea {
   font-size: 1rem;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+select,
+textarea {
+  min-height: 44px;
+}
+
+a[href="/staff"] {
+  align-items: center;
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* Formularios */

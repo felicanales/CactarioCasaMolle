@@ -167,6 +167,64 @@ export default function StaffPage() {
         .card:nth-child(3) { animation-delay: 0.3s; }
         .card:nth-child(4) { animation-delay: 0.4s; }
         .card:nth-child(5) { animation-delay: 0.5s; }
+
+        .dashboard-header-inner,
+        .dashboard-brand,
+        .dashboard-brand-copy,
+        .dashboard-user-menu {
+          min-width: 0;
+        }
+
+        @media (max-width: 640px) {
+          .dashboard-header {
+            padding: 12px 16px !important;
+          }
+
+          .dashboard-header-inner {
+            gap: 12px;
+          }
+
+          .dashboard-brand {
+            flex: 1 1 auto;
+          }
+
+          .dashboard-brand-icon {
+            font-size: 24px !important;
+          }
+
+          .dashboard-title {
+            font-size: 17px !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .dashboard-subtitle {
+            font-size: 12px !important;
+          }
+
+          .dashboard-user-button {
+            gap: 0 !important;
+            height: 44px;
+            padding: 5px !important;
+            width: 44px;
+          }
+
+          .dashboard-user-email,
+          .dashboard-user-chevron {
+            display: none;
+          }
+
+          .dashboard-main {
+            padding: 24px 16px !important;
+            width: 100%;
+          }
+
+          .dashboard-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
       `}</style>
 
       <div style={{
@@ -174,7 +232,7 @@ export default function StaffPage() {
         backgroundColor: "#f9fafb"
       }}>
         {/* Header / Navbar */}
-        <header style={{
+        <header className="dashboard-header" style={{
           backgroundColor: "white",
           borderBottom: "1px solid #e5e7eb",
           padding: "16px 24px",
@@ -183,17 +241,17 @@ export default function StaffPage() {
           zIndex: 10,
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
         }}>
-          <div style={{
+          <div className="dashboard-header-inner" style={{
             maxWidth: "1200px",
             margin: "0 auto",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "28px" }}>🌵</span>
-              <div>
-                <h1 style={{
+            <div className="dashboard-brand" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span className="dashboard-brand-icon" style={{ fontSize: "28px" }}>🌵</span>
+              <div className="dashboard-brand-copy">
+                <h1 className="dashboard-title" style={{
                   fontSize: "20px",
                   fontWeight: "700",
                   color: "#111827",
@@ -201,7 +259,7 @@ export default function StaffPage() {
                 }}>
                   Cactario Casa Molle
                 </h1>
-                <p style={{
+                <p className="dashboard-subtitle" style={{
                   fontSize: "13px",
                   color: "#6b7280",
                   margin: 0
@@ -212,8 +270,9 @@ export default function StaffPage() {
             </div>
 
             {/* User Menu */}
-            <div style={{ position: "relative" }}>
+            <div className="dashboard-user-menu" style={{ position: "relative", flexShrink: 0 }}>
               <button
+                className="dashboard-user-button"
                 onClick={() => setShowMenu(!showMenu)}
                 style={{
                   display: "flex",
@@ -252,10 +311,10 @@ export default function StaffPage() {
                 }}>
                   {user.email[0].toUpperCase()}
                 </div>
-                <span style={{ maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="dashboard-user-email" style={{ maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.email}
                 </span>
-                <span style={{ fontSize: "12px", color: "#9ca3af" }}>▼</span>
+                <span className="dashboard-user-chevron" style={{ fontSize: "12px", color: "#9ca3af" }}>▼</span>
               </button>
 
               {/* Dropdown Menu */}
@@ -318,7 +377,7 @@ export default function StaffPage() {
         </header>
 
         {/* Main Content */}
-        <main style={{
+        <main className="dashboard-main" style={{
           maxWidth: "1200px",
           margin: "0 auto",
           padding: "clamp(24px, 5vw, 48px) 24px"
@@ -350,7 +409,7 @@ export default function StaffPage() {
           </div>
 
           {/* Modules Grid */}
-          <div style={{
+          <div className="dashboard-grid" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: "24px"

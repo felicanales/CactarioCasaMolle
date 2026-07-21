@@ -7,6 +7,7 @@ import secrets as secrets_mod
 from datetime import datetime, timedelta
 from collections import defaultdict
 import threading
+import logging
 from app.core.supabase_auth import get_public, get_service
 from app.core.security import (
     set_supabase_session_cookies,
@@ -16,10 +17,12 @@ from app.core.security import (
     validate_supabase_jwt,
     sync_user_supabase_uid,
     validate_user_active,
+    revoke_auth_session,
 )
 from app.middleware.auth_middleware import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Rate limiting storage
 _rate_limit_store: Dict[str, list] = defaultdict(list)
@@ -445,17 +448,17 @@ def logout(response: Response, request: Request):
     """
     Logout user and clear all session cookies
     """
-    # Clear Supabase session cookies
-    clear_supabase_session_cookies(response)
-    
-    # Optional: Sign out from Supabase
     token = get_token_from_request(request)
     if token:
-        try:
-            sb = get_public()
-            sb.auth.sign_out()
-        except Exception:
-            pass  # Don't fail logout if sign_out fails
+        user_claims = validate_supabase_jwt(token)
+        if user_claims:
+            revoke_auth_session(user_claims)
+            try:
+                get_service().auth.admin.sign_out(token, scope="local")
+            except Exception as exc:
+                logger.warning("No se pudo cerrar la sesión en Supabase Auth: %s", exc)
+
+    clear_supabase_session_cookies(response)
     
     return
 

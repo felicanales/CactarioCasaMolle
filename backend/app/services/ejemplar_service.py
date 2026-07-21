@@ -106,9 +106,9 @@ def list_staff(
             if health_status:
                 query = query.eq("health_status", health_status)
             if nursery:
-                query = query.ilike("nursery", f"%{nursery}%")
+                query = query.ilike("nursery", f"*{nursery.strip()}*")
             if invoice_number:
-                query = query.ilike("invoice_number", f"%{invoice_number}%")
+                query = query.ilike("invoice_number", f"*{invoice_number.strip()}*")
             if purchase_date:
                 query = query.eq("purchase_date", purchase_date)
             if purchase_date_from:
@@ -178,7 +178,7 @@ def list_staff(
 
     except Exception as e:
         logger.error(f"[list_staff] Error al listar ejemplares: {e}")
-        return {"data": [], "total": 0}
+        raise RuntimeError(f"Error al consultar ejemplares: {e}") from e
 
     # --- Paso 4: filtro q en memoria (sobre el subconjunto ya filtrado) ---
     if q:

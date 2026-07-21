@@ -5,8 +5,10 @@ import os
 import json
 import requests
 from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from fastapi import Response, Request, HTTPException
 from supabase import create_client, Client
+from jose import jwt
 from app.core.supabase_auth import get_public, get_service
 
 # Cookie names for Supabase session
@@ -94,6 +96,50 @@ def get_refresh_token_from_request(request: Request) -> Optional[str]:
     """
     return request.cookies.get(SB_REFRESH_TOKEN)
 
+
+def _get_token_claims(token: str) -> Dict[str, Any]:
+    """Lee claims solo después de que Supabase haya validado el JWT."""
+    try:
+        return jwt.get_unverified_claims(token) or {}
+    except Exception:
+        return {}
+
+
+def is_auth_session_revoked(session_id: Optional[str]) -> bool:
+    if not session_id:
+        return False
+    try:
+        result = (
+            get_service()
+            .table("revoked_auth_sessions")
+            .select("session_id")
+            .eq("session_id", session_id)
+            .limit(1)
+            .execute()
+        )
+        return bool(result.data)
+    except Exception as exc:
+        logger.error("No se pudo verificar la revocación de la sesión: %s", exc)
+        return True
+
+
+def revoke_auth_session(user_claims: Dict[str, Any]) -> None:
+    session_id = user_claims.get("session_id")
+    expires_at = user_claims.get("exp")
+    if not session_id or not expires_at:
+        raise ValueError("El token no contiene session_id o exp")
+
+    expires_at_utc = datetime.fromtimestamp(float(expires_at), tz=timezone.utc).isoformat()
+
+    get_service().table("revoked_auth_sessions").upsert(
+        {
+            "session_id": session_id,
+            "user_id": user_claims.get("id"),
+            "expires_at": expires_at_utc,
+        },
+        on_conflict="session_id",
+    ).execute()
+
 def validate_supabase_jwt(token: str) -> Optional[Dict[str, Any]]:
     """
     Validate Supabase JWT token and return decoded claims
@@ -103,12 +149,16 @@ def validate_supabase_jwt(token: str) -> Optional[Dict[str, Any]]:
         user_response = sb.auth.get_user(token)
         
         if user_response.user:
+            token_claims = _get_token_claims(token)
+            session_id = token_claims.get("session_id")
+            if is_auth_session_revoked(session_id):
+                return None
             return {
                 "id": str(user_response.user.id),
                 "email": user_response.user.email,
                 "role": user_response.user.role,
-                # Note: exp, iat, aud are in the JWT token itself, not in the User object
-                # We only return what's available in the User object from Supabase
+                "session_id": session_id,
+                "exp": token_claims.get("exp"),
             }
         return None
     except Exception as e:
@@ -140,4 +190,3 @@ def sync_user_supabase_uid(email: str, supabase_uid: str) -> None:
         print(f"Synced supabase_uid for user: {email}")
     except Exception as e:
         print(f"Error syncing supabase_uid: {e}")
-

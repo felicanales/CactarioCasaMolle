@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,7 +44,7 @@ export default function AuditPage() {
         }
     }, [user, authLoading, router, checkedAuth]);
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         if (!checkedAuth && !BYPASS_AUTH) return;
 
         setLoading(true);
@@ -78,13 +78,13 @@ export default function AuditPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [authApiRequest, checkedAuth, filters, pagination]);
 
     useEffect(() => {
         if (checkedAuth || BYPASS_AUTH) {
             fetchLogs();
         }
-    }, [checkedAuth, filters, pagination]);
+    }, [checkedAuth, fetchLogs]);
     
     // Refrescar automáticamente cada 30 segundos
     useEffect(() => {
@@ -95,7 +95,7 @@ export default function AuditPage() {
         }, 30000); // 30 segundos
         
         return () => clearInterval(interval);
-    }, [checkedAuth, filters, pagination]);
+    }, [checkedAuth, fetchLogs]);
 
     // Función para refrescar manualmente
     const handleRefresh = () => {

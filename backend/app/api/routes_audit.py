@@ -24,7 +24,7 @@ def get_audit_logs(
     try:
         logger.info(f"[Audit API] Solicitud de logs - usuario: {current_user.get('email')}, filtros: table={table_name}, record={record_id}, user={user_id}, limit={limit}, offset={offset}")
         
-        logs = get_audit_log(
+        logs, total_available = get_audit_log(
             table_name=table_name,
             record_id=record_id,
             user_id=user_id,
@@ -39,16 +39,16 @@ def get_audit_logs(
             "count": len(logs),
             "limit": limit,
             "offset": offset,
-            "total_available": len(logs)  # Indica si hay más resultados disponibles
+            "total_available": total_available
         }
         
         # Log detallado de la respuesta
         if logs:
             logger.info(f"[Audit API] Primer log en respuesta: ID={logs[0].get('id')}, tabla={logs[0].get('tabla_afectada')}, acción={logs[0].get('accion')}")
         else:
-            logger.warning(f"[Audit API] ⚠️ No se encontraron logs con los filtros aplicados")
+            logger.warning("[Audit API] No se encontraron logs con los filtros aplicados")
         
         return response
     except Exception as e:
-        logger.error(f"[Audit API] ❌ Error al obtener logs: {str(e)}", exc_info=True)
+        logger.error(f"[Audit API] Error al obtener logs: {str(e)}", exc_info=True)
         raise HTTPException(500, f"Error al obtener logs de auditoría: {str(e)}")

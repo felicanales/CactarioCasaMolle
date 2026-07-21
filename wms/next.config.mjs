@@ -18,6 +18,7 @@ const normalizedApiProxyUrl = apiProxyUrl.replace(/\/$/, '');
 const nextConfig = {
     reactStrictMode: true,
     output: 'standalone',
+    outputFileTracingRoot: join(__dirname, '..'),
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     },

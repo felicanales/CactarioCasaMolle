@@ -2,13 +2,14 @@
 Servicio de auditoría para registrar cambios en la base de datos
 """
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime
+from typing import Dict, Any, List, Optional, Tuple
 from app.core.supabase_auth import get_public, get_service
 
 logger = logging.getLogger(__name__)
+AUDIT_ACTIONS = frozenset({"CREATE", "UPDATE", "DELETE", "PURCHASE", "SALE"})
 
-def _normalize_user_id(user_id: Optional[Any], user_email: Optional[str]) -> Optional[int]:
+def resolve_internal_user_id(user_id: Optional[Any], user_email: Optional[str]) -> Optional[int]:
+    """Resuelve el identificador autenticado al bigint de public.usuarios."""
     if user_id is None and not user_email:
         return None
 
@@ -54,7 +55,7 @@ def _compute_changes(old_values: Optional[Dict[str, Any]], new_values: Optional[
 def log_change(
     table_name: str,
     record_id: int,
-    action: str,  # 'CREATE', 'UPDATE', 'DELETE'
+    action: str,
     user_id: Optional[int] = None,
     user_email: Optional[str] = None,
     user_name: Optional[str] = None,
@@ -69,7 +70,7 @@ def log_change(
     Args:
         table_name: Nombre de la tabla afectada (ej: 'especies', 'sectores')
         record_id: ID del registro modificado
-        action: Tipo de acción ('CREATE', 'UPDATE', 'DELETE')
+        action: Tipo de acción ('CREATE', 'UPDATE', 'DELETE', 'PURCHASE', 'SALE')
         user_id: ID del usuario que realizó el cambio
         user_email: Email del usuario
         user_name: Nombre del usuario
@@ -79,21 +80,24 @@ def log_change(
         user_agent: User agent del cliente
     """
     try:
+        if action not in AUDIT_ACTIONS:
+            raise ValueError(f"Acción de auditoría no soportada: {action}")
+
         logger.info(f"[Audit] ========== INICIO log_change ==========")
         logger.info(f"[Audit] Parámetros recibidos: table={table_name}, record_id={record_id}, action={action}, user_id={user_id}, user_email={user_email}")
         
         # Usar service client para bypass RLS y asegurar que siempre se puedan insertar logs
         try:
             sb = get_service()
-            logger.info(f"[Audit] ✅ Cliente Supabase service obtenido correctamente")
+            logger.info("[Audit] Cliente Supabase service obtenido correctamente")
         except Exception as sb_error:
-            logger.error(f"[Audit] ❌ Error al obtener cliente Supabase service: {str(sb_error)}", exc_info=True)
+            logger.error(f"[Audit] Error al obtener cliente Supabase service: {str(sb_error)}", exc_info=True)
             raise
         
         # Para UPDATE, detectar solo los campos que cambiaron
         changes_detected = _compute_changes(old_values, new_values) if action == 'UPDATE' else None
         
-        normalized_user_id = _normalize_user_id(user_id, user_email)
+        normalized_user_id = resolve_internal_user_id(user_id, user_email)
 
         # Preparar datos para insertar
         audit_data = {
@@ -120,13 +124,13 @@ def log_change(
             
             if result.data:
                 log_id = result.data[0].get('id') if result.data else None
-                logger.info(f"[Audit] ✅ Cambio registrado exitosamente: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
+                logger.info(f"[Audit] Cambio registrado exitosamente: {action} en {table_name} (ID: {record_id}) por usuario {user_email or user_id}")
                 logger.info(f"[Audit] ID del log creado: {log_id}")
             else:
-                logger.warning(f"[Audit] ⚠️ Insert ejecutado pero result.data está vacío o es None")
+                logger.warning("[Audit] Insert ejecutado pero result.data está vacío o es None")
                 logger.warning(f"[Audit] result completo: {result}")
         except Exception as insert_error:
-            logger.error(f"[Audit] ❌ Error al ejecutar insert: {str(insert_error)}", exc_info=True)
+            logger.error(f"[Audit] Error al ejecutar insert: {str(insert_error)}", exc_info=True)
             logger.error(f"[Audit] Tipo de error: {type(insert_error).__name__}")
             if hasattr(insert_error, 'message'):
                 logger.error(f"[Audit] Mensaje de error: {insert_error.message}")
@@ -134,38 +138,6 @@ def log_change(
                 logger.error(f"[Audit] Detalles: {insert_error.details}")
             if hasattr(insert_error, 'code'):
                 logger.error(f"[Audit] Código de error: {insert_error.code}")
-            allowed_actions = {"CREATE", "UPDATE", "DELETE"}
-            if action not in allowed_actions:
-                try:
-                    fallback_old = old_values if old_values is not None else {}
-                    fallback_new = new_values if new_values is not None else {"evento": action}
-                    if isinstance(fallback_new, dict) and "evento" not in fallback_new:
-                        fallback_new = {**fallback_new, "evento": action}
-
-                    fallback_changes = _compute_changes(fallback_old, fallback_new)
-                    fallback_data = {
-                        'tabla_afectada': table_name,
-                        'registro_id': record_id,
-                        'accion': "UPDATE",
-                        'usuario_id': normalized_user_id,
-                        'usuario_email': user_email,
-                        'usuario_nombre': user_name,
-                        'campos_anteriores': fallback_old,
-                        'campos_nuevos': fallback_new,
-                        'cambios_detectados': fallback_changes,
-                        'ip_address': ip_address,
-                        'user_agent': user_agent
-                    }
-                    logger.info("[Audit] Reintentando insert con accion UPDATE para evento no estandar...")
-                    fallback_result = sb.table('auditoria_cambios').insert(fallback_data).execute()
-                    if fallback_result.data:
-                        log_id = fallback_result.data[0].get('id') if fallback_result.data else None
-                        logger.info(f"[Audit] ✅ Fallback log registrado: evento={action}, ID={log_id}")
-                        logger.info(f"[Audit] ========== FIN log_change (éxito) ==========")
-                        return
-                    logger.warning("[Audit] Fallback insert ejecutado pero sin data")
-                except Exception as fallback_error:
-                    logger.error(f"[Audit] ❌ Error en fallback insert: {str(fallback_error)}", exc_info=True)
             raise
         
         logger.info(f"[Audit] ========== FIN log_change (éxito) ==========")
@@ -173,7 +145,7 @@ def log_change(
     except Exception as e:
         # No fallar la operación principal si la auditoría falla
         logger.error(f"[Audit] ========== FIN log_change (ERROR) ==========")
-        logger.error(f"[Audit] ❌ Error al registrar cambio: {str(e)}", exc_info=True)
+        logger.error(f"[Audit] Error al registrar cambio: {str(e)}", exc_info=True)
         logger.error(f"[Audit] Tipo de error: {type(e).__name__}")
         if hasattr(e, 'message'):
             logger.error(f"[Audit] Mensaje de error: {e.message}")
@@ -188,7 +160,7 @@ def get_audit_log(
     user_id: Optional[int] = None,
     limit: int = 100,
     offset: int = 0
-) -> list:
+) -> Tuple[List[Dict[str, Any]], int]:
     """
     Obtiene el historial de auditoría.
     
@@ -200,7 +172,7 @@ def get_audit_log(
         offset: Offset para paginación
     
     Returns:
-        Lista de registros de auditoría
+        Tupla con los registros de la página y el total filtrado
     """
     try:
         # Usar service client para bypass RLS y poder leer todos los logs
@@ -215,9 +187,12 @@ def get_audit_log(
         if user_id:
             count_query = count_query.eq('usuario_id', user_id)
         
+        total_count = 0
         try:
+            count_query = count_query.limit(1)
             count_result = count_query.execute()
-            total_count = count_result.count if hasattr(count_result, 'count') else len(count_result.data or [])
+            count_value = getattr(count_result, 'count', None)
+            total_count = count_value if count_value is not None else len(count_result.data or [])
             logger.info(f"[Audit] Total de registros disponibles: {total_count}")
         except Exception as count_error:
             logger.warning(f"[Audit] No se pudo obtener el conteo total: {str(count_error)}")
@@ -241,7 +216,7 @@ def get_audit_log(
             logger.info(f"[Audit] Primer log: tabla={logs[0].get('tabla_afectada')}, acción={logs[0].get('accion')}, usuario={logs[0].get('usuario_email')}, fecha={logs[0].get('created_at')}")
         else:
             logger.warning(f"[Audit] No se encontraron logs con los filtros aplicados")
-        return logs
+        return logs, total_count
     except Exception as e:
         logger.error(f"[Audit] Error al obtener historial: {str(e)}", exc_info=True)
-        return []
+        raise RuntimeError(f"No se pudo obtener el historial de auditoría: {e}") from e

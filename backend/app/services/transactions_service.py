@@ -120,8 +120,14 @@ def create_purchase(
     if not clean.get("nursery"):
         raise ValueError("El vivero (nursery) es obligatorio")
 
-    if user_id is not None:
-        clean["created_by"] = user_id
+    created_by = audit_service.resolve_internal_user_id(user_id, user_email)
+    if created_by is not None:
+        clean["created_by"] = created_by
+    elif user_id is not None:
+        logger.warning(
+            "[create_purchase] No se pudo resolver el usuario autenticado %s a usuarios.id",
+            user_id,
+        )
 
     try:
         result = sb.table("facturas_compra").insert(clean).execute()
@@ -362,7 +368,7 @@ def get_sales_grouped(
     try:
         query = sb.table("ejemplar").select(
             "id, species_id, sector_id, sale_date, sale_price, "
-            "purchase_date, purchase_price, nursery, "
+            "purchase_date, purchase_price, nursery, invoice_number, "
             "age_months, health_status, location"
         ).filter("sale_date", "not.is", "null")
 

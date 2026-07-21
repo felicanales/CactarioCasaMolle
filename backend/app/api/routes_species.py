@@ -13,8 +13,8 @@ router = APIRouter()
 @router.get("/public")
 def list_species_public(
     q: Optional[str] = Query(None, description="Filtro por nombre (opcional)"),
-    limit: int = 50,
-    offset: int = 0
+    limit: int = Query(50, ge=1, le=200, description="Registros por página"),
+    offset: int = Query(0, ge=0, description="Desplazamiento")
 ):
     """
     Lista pública de especies (sin auth).
@@ -44,8 +44,8 @@ def get_species_public(slug: str = Path(..., description="Slug de la especie")):
 @router.get("/staff", dependencies=[Depends(get_current_user)])
 def list_species_staff(
     q: Optional[str] = Query(None, description="Filtro por nombre (opcional)"),
-    limit: int = 100,
-    offset: int = 0
+    limit: int = Query(100, ge=1, le=200, description="Registros por página"),
+    offset: int = Query(0, ge=0, description="Desplazamiento")
 ):
     """
     Lista privada de especies (requiere usuario autenticado).

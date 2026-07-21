@@ -1,7 +1,7 @@
 # app/services/photos_service.py
 from typing import List, Optional, Dict, Any
 from fastapi import UploadFile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from io import BytesIO
 from PIL import Image
 import uuid
@@ -107,6 +107,20 @@ def _build_variant_urls(variants: Optional[Dict[str, str]]) -> Dict[str, str]:
         if path:
             urls[key] = storage_router.get_public_url(path)
     return urls
+
+
+def _derive_variant_paths(storage_path: Optional[str]) -> Dict[str, str]:
+    """Deriva las variantes del layout R2 actual para filas sin metadata."""
+    if not storage_path or not storage_path.startswith("original/"):
+        return {}
+
+    original_relative = PurePosixPath(storage_path.removeprefix("original/"))
+    parent = original_relative.parent.as_posix()
+    base_filename = original_relative.stem
+    return {
+        f"w={width}": f"w={width}/{parent}/{base_filename}.jpg"
+        for width in VARIANT_WIDTHS
+    }
 
 # Mapeo de tipos de entidad a columnas y tablas
 ENTITY_CONFIG = {
@@ -543,15 +557,14 @@ def delete_photo(photo_id: int, user_id: Optional[int] = None, user_email: Optio
     
     old_values = photo.data[0]
     storage_path = old_values["storage_path"]
-    variants = old_values.get("variants") or {}
-    
-    try:
-        storage_router.delete_object(storage_path)
-        for variant_path in variants.values():
-            if variant_path:
-                storage_router.delete_object(variant_path)
-    except Exception as e:
-        logger.warning(f"No se pudo eliminar del storage: {str(e)}")
+    variants = old_values.get("variants") or _derive_variant_paths(storage_path)
+
+    storage_paths = [storage_path, *variants.values()]
+    for object_path in dict.fromkeys(path for path in storage_paths if path):
+        try:
+            storage_router.delete_object(object_path)
+        except Exception as e:
+            logger.warning("No se pudo eliminar %s del storage: %s", object_path, e)
     
     sb.table("fotos").delete().eq("id", photo_id).execute()
     

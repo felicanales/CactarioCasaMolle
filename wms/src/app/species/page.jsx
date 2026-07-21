@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- R2 ya entrega variantes redimensionadas y las vistas previas usan blob URLs locales. */
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";

@@ -11,6 +11,9 @@ from datetime import datetime
 # ============================================================
 # CONFIGURACIÓN DE LOGGING
 # ============================================================
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

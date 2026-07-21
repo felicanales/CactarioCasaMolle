@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Las fotos ya usan variantes R2 w=400/w=800 y fallback directo al original. */
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { getApiUrl } from "../utils/api-config";
 import { resolvePhotoUrl } from "../utils/images";
 
@@ -40,7 +41,7 @@ export default function PhotoGallery({
     const [actionError, setActionError] = useState("");
     const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-    const fetchPhotos = async () => {
+    const fetchPhotos = useCallback(async () => {
         setLoading(true);
         setError("");
         setActionError("");
@@ -77,11 +78,11 @@ export default function PhotoGallery({
         } finally {
             setLoading(false);
         }
-    };
+    }, [entityId, entityType]);
 
     useEffect(() => {
         fetchPhotos();
-    }, [entityType, entityId]);
+    }, [fetchPhotos]);
 
     const handleSetCover = async (photoId) => {
         try {

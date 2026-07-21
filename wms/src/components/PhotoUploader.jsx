@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Las previsualizaciones son blob URLs locales que no requieren optimización de Next.js. */
 
 import { useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
