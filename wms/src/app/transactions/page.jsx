@@ -711,7 +711,9 @@ export default function TransactionsPage() {
     }, [user, authLoading, router]);
 
     useEffect(() => {
-        if (user && accessToken) {
+        // En producción el token puede vivir solo en cookie HttpOnly.
+        // apiRequest ya envía las cookies y agrega el Authorization disponible.
+        if (user) {
             fetchData();
             fetchNurseries();
         }
