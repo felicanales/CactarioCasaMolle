@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,7 +18,9 @@ const normalizedApiProxyUrl = apiProxyUrl.replace(/\/$/, '');
 const nextConfig = {
     reactStrictMode: true,
     output: 'standalone',
-    outputFileTracingRoot: join(__dirname, '..'),
+    // Railway builds this service with wms/ as its Docker context. Keep the
+    // standalone server rooted there instead of inheriting the monorepo root.
+    outputFileTracingRoot: __dirname,
     env: {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     },
