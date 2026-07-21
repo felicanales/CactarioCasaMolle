@@ -619,7 +619,7 @@ export function AuthProvider({ children }) {
 const loginWithMasterKey = async (email, masterKey) => {
     const res = await apiRequest(`${API}/auth/master-key-login`, {
       method: "POST",
-      body: JSON.stringify({ email, master_key: masterKey }),
+      body: JSON.stringify({ email, master_key: masterKey.trim() }),
     });
     if (!res.ok) {
       let msg = "Clave inválida o acceso no autorizado.";

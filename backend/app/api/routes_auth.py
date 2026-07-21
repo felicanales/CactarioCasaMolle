@@ -136,6 +136,10 @@ class MasterKeyLoginIn(BaseModel):
     def validate_email(cls, v):
         return sanitize_email(v)
 
+    @validator('master_key')
+    def normalize_master_key(cls, v):
+        return v.strip()
+
 # Legacy functions removed - now using security.py helpers
 
 @router.post("/master-key-login")
@@ -145,7 +149,7 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
     if not is_allowed:
         raise HTTPException(429, f"Demasiados intentos. Espera {time_remaining} segundos.")
 
-    master_key_env = os.environ.get("MASTER_LOGIN_KEY", "")
+    master_key_env = os.environ.get("MASTER_LOGIN_KEY", "").strip()
     if not master_key_env:
         raise HTTPException(503, "Inicio de sesión alternativo no disponible.")
 
@@ -196,6 +200,14 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
 
     if not session_res or not session_res.session or not session_res.session.access_token:
         raise HTTPException(500, "No se pudo crear la sesión.")
+
+    # Vincular tambien el login con clave maestra a la whitelist local.
+    # Sin esta sincronizacion, el JWT es valido pero validate_user_active()
+    # no encuentra una fila activa porque supabase_uid queda NULL.
+    auth_uid = str(session_res.user.id)
+    sync_user_supabase_uid(email, auth_uid)
+    if not validate_user_active(auth_uid):
+        raise HTTPException(500, "No se pudo sincronizar el usuario con Supabase.")
 
     set_supabase_session_cookies(response, session_res.session)
 
