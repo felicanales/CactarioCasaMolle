@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getApiUrl } from "../../utils/api-config";
 import { fetchAllStaffSpecies } from "../../utils/species-api";
 
@@ -77,22 +78,88 @@ function MonthlyChart({ data }) {
     );
 }
 
+async function getJsonOrThrow(apiRequest, url, message) {
+    const response = await apiRequest(url, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+    });
+
+    if (!response.ok) throw new Error(message);
+    return response.json();
+}
+
+async function fetchAllStaffEjemplares(apiRequest) {
+    const pageSize = 200;
+    const allEjemplares = [];
+    let offset = 0;
+    let total = null;
+
+    while (true) {
+        const raw = await getJsonOrThrow(
+            apiRequest,
+            `${API}/ejemplar/staff?limit=${pageSize}&offset=${offset}`,
+            "Error al cargar ejemplares"
+        );
+        const page = Array.isArray(raw) ? raw : (raw.data || []);
+        allEjemplares.push(...page);
+
+        if (offset === 0) total = Number(raw.total);
+        if (page.length < pageSize || (Number.isFinite(total) && allEjemplares.length >= total)) break;
+        offset += pageSize;
+    }
+
+    return allEjemplares;
+}
+
+async function fetchAllPurchases(apiRequest) {
+    const pageSize = 2000;
+    const purchases = [];
+    let offset = 0;
+
+    while (true) {
+        const raw = await getJsonOrThrow(
+            apiRequest,
+            `${API}/transactions/purchases?limit=${pageSize}&offset=${offset}`,
+            "Error al cargar compras"
+        );
+        const page = Array.isArray(raw) ? raw : (raw.data || []);
+        purchases.push(...page);
+        if (page.length < pageSize) break;
+        offset += pageSize;
+    }
+
+    return purchases;
+}
+
+async function fetchReportsData(apiRequest) {
+    const [ejemplares, species, sectors, purchases] = await Promise.all([
+        fetchAllStaffEjemplares(apiRequest),
+        fetchAllStaffSpecies(apiRequest),
+        getJsonOrThrow(apiRequest, `${API}/sectors/staff`, "Error al cargar sectores"),
+        fetchAllPurchases(apiRequest),
+    ]);
+
+    return {
+        ejemplares,
+        species: Array.isArray(species) ? species : (species.data || []),
+        sectors: Array.isArray(sectors) ? sectors : (sectors.data || []),
+        purchases,
+    };
+}
+
 export default function ReportsPage() {
     const { user, loading, apiRequest: authApiRequest } = useAuth();
     const router = useRouter();
     const [ejemplares, setEjemplares] = useState([]);
     const [species, setSpecies] = useState([]);
     const [sectors, setSectors] = useState([]);
-    const [loadingData, setLoadingData] = useState(true);
+    const [purchases, setPurchases] = useState([]);
+    const [loadingData, setLoadingData] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
         if (!BYPASS_AUTH && !loading && !user) router.replace("/login");
     }, [user, loading, router]);
-
-    useEffect(() => {
-        if (BYPASS_AUTH || user) fetchAllData();
-    }, [user]);
 
     const fetchAllData = async () => {
         try {
@@ -138,18 +205,42 @@ export default function ReportsPage() {
         }
     };
 
+    const {
+        data: reportData,
+        isLoading: reportLoading,
+        isFetching: reportFetching,
+        error: reportError,
+        refetch: refetchReports,
+    } = useQuery({
+        queryKey: ["reports", "snapshot"],
+        queryFn: () => fetchReportsData(authApiRequest),
+        enabled: BYPASS_AUTH || !!user,
+        staleTime: 0,
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+    });
+
+    useEffect(() => {
+        if (!reportData) return;
+        setEjemplares(reportData.ejemplares || []);
+        setSpecies(reportData.species || []);
+        setSectors(reportData.sectors || []);
+        setPurchases(reportData.purchases || []);
+    }, [reportData]);
+
     const stats = useMemo(() => {
         const activos = ejemplares.filter(e => !e.sale_date);
         const vendidos = ejemplares.filter(e => e.sale_date);
         const conCompra = ejemplares.filter(e => e.purchase_date);
 
-        const totalCompraValue = conCompra.reduce((s, e) => s + (Number(e.purchase_price) || 0), 0);
+        const totalCompraValue = purchases.reduce((s, purchase) => s + (Number(purchase.total_amount) || 0), 0);
         const totalVentaValue = vendidos.reduce((s, e) => s + (Number(e.sale_price) || 0), 0);
         const comprasDeVendidos = vendidos.reduce((s, e) => s + (Number(e.purchase_price) || 0), 0);
         const margenBruto = totalVentaValue - comprasDeVendidos;
         const margenPct = comprasDeVendidos > 0 ? ((margenBruto / comprasDeVendidos) * 100).toFixed(1) : null;
 
-        const precioPromCompra = conCompra.length ? totalCompraValue / conCompra.length : 0;
+        const precioPromCompra = purchases.length ? totalCompraValue / purchases.length : 0;
         const precioPromVenta = vendidos.length ? totalVentaValue / vendidos.length : 0;
 
         // Salud
@@ -202,12 +293,14 @@ export default function ReportsPage() {
                 ventas: 0,
             });
         }
-        ejemplares.forEach(e => {
-            if (e.purchase_date) {
-                const k = e.purchase_date.slice(0, 7);
+        purchases.forEach(purchase => {
+            if (purchase.issue_date) {
+                const k = purchase.issue_date.slice(0, 7);
                 const m = meses.find(m => m.key === k);
                 if (m) m.compras++;
             }
+        });
+        ejemplares.forEach(e => {
             if (e.sale_date) {
                 const k = e.sale_date.slice(0, 7);
                 const m = meses.find(m => m.key === k);
@@ -228,9 +321,9 @@ export default function ReportsPage() {
             enStandby, saludCritica,
             meses,
         };
-    }, [ejemplares, species, sectors]);
+    }, [ejemplares, species, sectors, purchases]);
 
-    if (loading || loadingData) {
+    if (loading || reportLoading) {
         return (
             <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" }}>
                 <div style={{ textAlign: "center" }}>
@@ -264,9 +357,9 @@ export default function ReportsPage() {
 
                 <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px 16px" }}>
 
-                    {error && (
+                    {(reportError?.message || error) && (
                         <div style={{ padding: "14px 16px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#dc2626", marginBottom: "20px", fontSize: "14px" }}>
-                            {error}
+                            {reportError?.message || error}
                         </div>
                     )}
 
@@ -295,9 +388,9 @@ export default function ReportsPage() {
                     {/* Precios promedio */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "20px" }}>
                         <div style={{ ...sectionStyle, marginBottom: 0 }}>
-                            <div style={{ fontSize: "12px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Precio promedio compra</div>
+                            <div style={{ fontSize: "12px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Promedio por factura</div>
                             <div style={{ fontSize: "24px", fontWeight: 800, color: "#059669", margin: "4px 0" }}>${formatCLP(stats.precioPromCompra)}</div>
-                            <div style={{ fontSize: "12px", color: "#9ca3af" }}>por ejemplar</div>
+                            <div style={{ fontSize: "12px", color: "#9ca3af" }}>de compras registradas</div>
                         </div>
                         <div style={{ ...sectionStyle, marginBottom: 0 }}>
                             <div style={{ fontSize: "12px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Precio promedio venta</div>
