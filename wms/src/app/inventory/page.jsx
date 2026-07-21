@@ -14,8 +14,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEjemplaresList, useNurseryList } from "../../hooks/useEjemplares";
 import { useSpeciesList } from "../../hooks/useSpecies";
 import { useSectorsList } from "../../hooks/useSectors";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL"];

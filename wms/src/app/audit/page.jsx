@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { getApiUrl } from "../../utils/api-config";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 const API = typeof window !== 'undefined' ? getApiUrl() : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 

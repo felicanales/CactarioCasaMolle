@@ -13,11 +13,11 @@ import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
 import { getAccessTokenFromContext } from "../../utils/auth-helpers";
 import { useSpeciesList, useCreateSpecies, useUpdateSpecies, useDeleteSpecies } from "../../hooks/useSpecies";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
 // Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Usar configuración centralizada de API URL
 const API = getApiUrl();

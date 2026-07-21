@@ -102,6 +102,8 @@ flowchart TD
 
 El `AuthContext` de Next.js comprueba `isTokenExpiringSoon()` (< 5 min de vida) antes de cada llamada a `apiRequest()`. Si el token está por expirar, primero refresca y luego ejecuta el request.
 
+El backend vuelve a validar el JWT, la revocación de la sesión y el estado activo de `usuarios` antes de emitir las cookies renovadas. Una cuenta desactivada no puede prolongar su sesión mediante `/auth/refresh`.
+
 ---
 
 ## Configuración de cookies por entorno
@@ -233,6 +235,8 @@ allow_headers=["*"]
 
 ## Bypass de autenticación (solo desarrollo)
 
-En el WMS Staff, configurar `NEXT_PUBLIC_BYPASS_AUTH=true` desactiva completamente la verificación de JWT. Útil para desarrollo local sin backend.
+En el WMS Staff, configurar `NEXT_PUBLIC_BYPASS_AUTH=true` desactiva las guardas de interfaz. El backend dispone de una variable separada, `BYPASS_AUTH=true`, para pruebas locales sin JWT.
 
-**Nunca usar en producción.** La variable no tiene efecto en el backend — solo afecta el middleware de Next.js y el `AuthContext`.
+Ambos bypass están protegidos por entorno: los builds de producción del WMS y cualquier backend detectado como Railway/producción los ignoran aunque la variable quede configurada accidentalmente. La autorización real de producción siempre se aplica en FastAPI.
+
+Los endpoints de debug no forman parte de las rutas públicas: además de requerir `ENABLE_DEBUG_ROUTES=true`, pasan por el middleware de autenticación.

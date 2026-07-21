@@ -7,8 +7,8 @@ import Link from "next/link";
 import CollapsibleFilters from "../../components/CollapsibleFilters";
 import { getApiUrl } from "../../utils/api-config";
 import { useSectorsList, useCreateSector, useUpdateSector, useDeleteSector } from "../../hooks/useSectors";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 
 function Modal({ isOpen, onClose, title, children }) {

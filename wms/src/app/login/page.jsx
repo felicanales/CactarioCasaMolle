@@ -294,12 +294,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setNotice("");
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) { setError(emailValidation.error); return; }
     if (!masterKey.trim()) { setError("Ingresa la clave maestra."); return; }
     setLoading(true);
     try {
-      await loginWithMasterKey(email, masterKey);
+      await loginWithMasterKey(emailValidation.sanitized, masterKey);
       setSuccess("✅ Autenticación exitosa");
-      setTimeout(() => router.push("/staff"), 300);
+      router.replace("/staff");
+      router.refresh();
     } catch (err) {
       setError(err.message || "Clave inválida.");
     } finally {
@@ -379,10 +382,8 @@ export default function LoginPage() {
       setOtpAttempts(0);
       setAttempts(0); // Resetear intentos en éxito
       
-      // Esperar un momento para que el estado se actualice antes de redirigir
-      setTimeout(() => {
-      router.push("/staff");
-      }, 300);
+      router.replace("/staff");
+      router.refresh();
     } catch (err) {
       const nextAttempts = otpAttempts + 1;
       setOtpAttempts(nextAttempts);
@@ -616,7 +617,7 @@ export default function LoginPage() {
               required
               placeholder="••••••••••••"
               disabled={loading}
-              autoComplete="new-password"
+              autoComplete="current-password"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"

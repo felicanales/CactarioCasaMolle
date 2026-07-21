@@ -7,8 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getApiUrl } from "../../utils/api-config";
 import { fetchAllStaffSpecies } from "../../utils/species-api";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 
 const formatCLP = (v) => {

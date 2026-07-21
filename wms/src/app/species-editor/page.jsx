@@ -12,8 +12,8 @@ import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
 import { getAccessTokenFromContext } from "../../utils/auth-helpers";
 import { fetchAllStaffSpecies } from "../../utils/species-api";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 const EDITOR_SPECIES_PAGE_SIZE = 25;
 const SIDEBAR_DEFAULT_WIDTH = 480;

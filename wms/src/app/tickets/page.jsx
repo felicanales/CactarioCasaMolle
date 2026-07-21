@@ -11,8 +11,8 @@ import {
   useSupportTicketsList,
   useUpdateSupportTicket,
 } from "../../hooks/useSupportTickets";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 const MODULE_OPTIONS = [
   "Dashboard",

@@ -216,7 +216,7 @@ No se detectó overflow global en especies, sectores o inventario; las tablas de
 - Se estabilizaron con `useCallback` las cargas de auditoría y galería, y se eliminó la dependencia inestable de carga en `AuthenticatedImage`.
 - Los usos de `<img>` incluidos quedaron documentados como intencionales: variantes R2 ya redimensionadas o blob URLs autenticadas/locales, donde el optimizador de Next.js no aporta valor.
 - Se configuró `outputFileTracingRoot`; desapareció la advertencia de múltiples lockfiles.
-- La observación de redirección de login continúa como monitoreo, ya que no fue reproducible de manera estable ni generó un fallo confirmado.
+- La redirección posterior al login se cambió a `router.replace()` + `router.refresh()`, eliminando esperas artificiales y la navegación duplicada.
 
 ## Riesgos de seguridad adicionales detectados
 
@@ -259,4 +259,37 @@ Referencia de remediación: [Supabase Database Linter](https://supabase.com/docs
 2. Revocar `EXECUTE` de `insert_usuario_admin(...)` para roles no administrativos tras confirmar que no existe un consumidor legítimo.
 3. Restringir las políticas de mutación de fotos y el listado del bucket.
 4. Corregir `search_path`, índices duplicados y claves foráneas sin índice.
-5. Monitorear la redirección posterior al login y abrir un defecto solo si vuelve a reproducirse.
+5. Restringir CORS de producción a los dominios exactos del WMS y App QR.
+
+## Revisión adicional de autenticación y dashboard
+
+Revalidación ejecutada después de la corrección QA inicial, cubriendo OTP, clave maestra, refresh, logout, middleware, bypass local y estado de sesión del WMS.
+
+### Hallazgos corregidos
+
+1. **Alta — bypass habilitable accidentalmente en producción:** backend y WMS aceptaban sus variables de bypass sin comprobar el entorno. Ahora ambos las ignoran en builds/entornos productivos y la configuración está centralizada en el frontend.
+2. **Alta — refresh sin revalidar la cuenta activa:** `/auth/refresh` podía renovar la sesión de un usuario posteriormente desactivado. Ahora valida JWT, revocación y estado de `usuarios` antes de emitir cookies nuevas.
+3. **Alta — asociación de identidad inconsistente:** OTP y clave maestra podían continuar si el `supabase_uid` almacenado correspondía a otra identidad. Ahora la discrepancia se rechaza y requiere revisión administrativa.
+4. **Media — límites de login compartidos:** OTP, verificación y clave maestra usaban el mismo contador por IP. Se consolidó el rate limiter y se separaron los scopes por operación.
+5. **Media — cierre de sesión frágil:** un fallo al persistir la revocación podía impedir limpiar las cookies. La limpieza ahora ocurre siempre en `finally` y los cierres remotos son best effort.
+6. **Media — rutas públicas demasiado amplias:** el middleware usaba coincidencias por substring y excluía `/debug` completo. Ahora solo admite prefijos públicos conocidos y los endpoints debug requieren autenticación además de su flag de habilitación.
+7. **Media — petición posterior al refresh con token anterior:** `AuthContext` actualizaba React de forma asíncrona y la primera llamada podía reutilizar el bearer expirado. El ref se actualiza inmediatamente y las cabeceras se construyen después del refresh.
+8. **Baja — logs y errores internos:** se eliminaron impresiones con emails/respuestas de Supabase y detalles de excepciones enviados al cliente; los diagnósticos quedan en logging del servidor.
+9. **UI — tarjetas desalineadas:** la clase global `.card` imponía `max-width` y márgenes de 64 px sobre el dashboard. Las tarjetas usan ahora `.module-card`, grilla de 1/2/3 columnas, filas uniformes y gaps de 12–16 px.
+
+### Evidencia de revalidación
+
+- Backend: **18 pruebas aprobadas**, incluidas cookies seguras, rutas públicas exactas, bypass deshabilitado en producción, rate limits aislados, rechazo de refresh inactivo y limpieza de logout ante fallos.
+- WMS: build de producción exitoso.
+- App QR: build de producción exitoso tras actualizar dependencias compartidas.
+- Dependencias: vulnerabilidades de severidad alta reducidas de 3 a 0 en ambos frontends; Next.js quedó en 15.5.21 y Axios en 1.18.1. Permanecen 2 avisos moderados transitivos asociados a PostCSS/Next.js; no se aplicó `npm audit fix --force` porque propone una regresión incompatible a Next.js 9.
+- Dashboard: validado en 360×740, 390×844, 412×915, 768×1024 y 1280×800.
+- Resultado visual: sin overflow horizontal; tarjetas con ancho y alto uniformes en todos los breakpoints; 1 columna en móvil, 2 en tablet y 3 en escritorio.
+- Consola del navegador: sin errores durante la validación final.
+
+### Mejoras de arquitectura pendientes
+
+- El rate limiting sigue siendo en memoria y por instancia. Si Railway escala a varias réplicas, debe migrarse a Redis, Upstash o un control equivalente compartido.
+- `MASTER_LOGIN_KEY` sigue siendo un secreto global de contingencia. Debe mantenerse deshabilitado cuando no sea necesario, rotarse y vigilarse por auditoría.
+- CORS aún admite el regex general `*.railway.app` con credenciales. Conviene configurar únicamente los dominios productivos conocidos cuando esté confirmado el dominio vigente de App QR.
+- El access token continúa retornándose al cliente y manteniéndose solo en memoria para compatibilidad con recursos autenticados. Una arquitectura BFF/mismo dominio permitiría depender exclusivamente de cookies HttpOnly.

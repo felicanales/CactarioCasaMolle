@@ -9,8 +9,8 @@ import PhotoUploader from "../../components/PhotoUploader";
 import { getApiUrl } from "../../utils/api-config";
 import { resolvePhotoUrl } from "../../utils/images";
 import { getAccessTokenFromContext } from "../../utils/auth-helpers";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 const API = getApiUrl();
 
 export default function HomeContentPage() {
@@ -1059,4 +1059,3 @@ export default function HomeContentPage() {
         </>
     );
 }
-

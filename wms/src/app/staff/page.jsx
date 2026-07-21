@@ -5,11 +5,11 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSupportTicketSummary } from "../../hooks/useSupportTickets";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../../utils/auth-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
 // Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 export default function StaffPage() {
   const { user, loading, logout } = useAuth();
@@ -32,7 +32,6 @@ export default function StaffPage() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
   };
 
   if (loading) {
@@ -158,21 +157,34 @@ export default function StaffPage() {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .card {
+        .module-card {
           animation: fadeIn 0.5s ease-out;
+          display: flex !important;
+          flex-direction: column;
+          min-height: 220px;
+          height: 100%;
+          width: 100%;
+          margin: 0;
+          max-width: none;
         }
 
-        .card:nth-child(1) { animation-delay: 0.1s; }
-        .card:nth-child(2) { animation-delay: 0.2s; }
-        .card:nth-child(3) { animation-delay: 0.3s; }
-        .card:nth-child(4) { animation-delay: 0.4s; }
-        .card:nth-child(5) { animation-delay: 0.5s; }
+        .module-card:nth-child(1) { animation-delay: 0.1s; }
+        .module-card:nth-child(2) { animation-delay: 0.2s; }
+        .module-card:nth-child(3) { animation-delay: 0.3s; }
+        .module-card:nth-child(4) { animation-delay: 0.4s; }
+        .module-card:nth-child(5) { animation-delay: 0.5s; }
 
         .dashboard-header-inner,
         .dashboard-brand,
         .dashboard-brand-copy,
         .dashboard-user-menu {
           min-width: 0;
+        }
+
+        @media (max-width: 920px) {
+          .dashboard-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
         }
 
         @media (max-width: 640px) {
@@ -222,7 +234,11 @@ export default function StaffPage() {
 
           .dashboard-grid {
             grid-template-columns: minmax(0, 1fr) !important;
-            gap: 16px !important;
+            gap: 12px !important;
+          }
+
+          .module-card {
+            min-height: 196px;
           }
         }
       `}</style>
@@ -411,18 +427,19 @@ export default function StaffPage() {
           {/* Modules Grid */}
           <div className="dashboard-grid" style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "24px"
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gridAutoRows: "1fr",
+            gap: "16px"
           }}>
-            {modules.map((module, index) => (
+            {modules.map((module) => (
               module.disabled ? (
                 <div
-                  key={index}
-                  className="card"
+                  key={module.href}
+                  className="module-card"
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "24px",
+                    padding: "20px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     opacity: 0.6,
@@ -467,7 +484,9 @@ export default function StaffPage() {
                     fontSize: "18px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 8px 0",
+                    minHeight: "44px",
+                    lineHeight: "1.35"
                   }}>
                     {module.title}
                   </h3>
@@ -475,7 +494,8 @@ export default function StaffPage() {
                     fontSize: "14px",
                     color: "#6b7280",
                     margin: "0 0 16px 0",
-                    lineHeight: "1.5"
+                    lineHeight: "1.5",
+                    flex: 1
                   }}>
                     {module.description}
                   </p>
@@ -486,26 +506,30 @@ export default function StaffPage() {
                     backgroundColor: "#fef3c7",
                     color: "#92400e",
                     fontSize: "12px",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    marginTop: "auto",
+                    alignSelf: "flex-start"
                   }}>
                     Próximamente
                   </div>
                 </div>
               ) : (
                 <Link
-                  key={index}
+                  key={module.href}
                   href={module.href}
-                  className="card"
+                  className="module-card"
                   style={{
                     backgroundColor: "white",
                     borderRadius: "12px",
-                    padding: "24px",
+                    padding: "20px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     border: "1px solid #e5e7eb",
                     textDecoration: "none",
                     transition: "all 0.3s ease",
                     cursor: "pointer",
-                    display: "block",
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "220px",
                     position: "relative"
                   }}
                   onMouseEnter={(e) => {
@@ -557,7 +581,9 @@ export default function StaffPage() {
                     fontSize: "18px",
                     fontWeight: "600",
                     color: "#111827",
-                    margin: "0 0 8px 0"
+                    margin: "0 0 8px 0",
+                    minHeight: "44px",
+                    lineHeight: "1.35"
                   }}>
                     {module.title}
                   </h3>
@@ -565,7 +591,8 @@ export default function StaffPage() {
                     fontSize: "14px",
                     color: "#6b7280",
                     margin: "0 0 16px 0",
-                    lineHeight: "1.5"
+                    lineHeight: "1.5",
+                    flex: 1
                   }}>
                     {module.description}
                   </p>
@@ -575,7 +602,8 @@ export default function StaffPage() {
                     gap: "8px",
                     fontSize: "14px",
                     fontWeight: "600",
-                    color: module.color
+                    color: module.color,
+                    marginTop: "auto"
                   }}>
                     Acceder
                     <span style={{ fontSize: "12px" }}>→</span>

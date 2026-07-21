@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "./utils/auth-config";
 
 // Configuración del matcher - DEBE ser completamente estático
 // Next.js no permite expresiones condicionales, referencias a variables,
@@ -15,7 +16,6 @@ export const config = {
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
 // Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 // Middleware simplificado - la validación real se hace en el cliente
 // Este middleware solo proporciona una capa básica de protección

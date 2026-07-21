@@ -2,12 +2,9 @@
 Security utilities for Supabase JWT validation and cookie management
 """
 import os
-import json
-import requests
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
-from fastapi import Response, Request, HTTPException
-from supabase import create_client, Client
+from fastapi import Response, Request
 from jose import jwt
 from app.core.supabase_auth import get_public, get_service
 
@@ -17,10 +14,15 @@ SB_REFRESH_TOKEN = "sb-refresh-token"
 
 # Determine if we're in production (use secure cookies only in production)
 # En desarrollo local, estas variables NO existirán
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 IS_PRODUCTION = (
-    os.getenv("RAILWAY_ENVIRONMENT") is not None or 
-    os.getenv("RAILWAY_ENVIRONMENT_NAME") is not None or
-    os.getenv("PRODUCTION", "").lower() == "true"
+    os.getenv("RAILWAY_ENVIRONMENT") is not None
+    or os.getenv("RAILWAY_ENVIRONMENT_NAME") is not None
+    or _env_flag("IS_PRODUCTION")
+    or _env_flag("PRODUCTION")
 )
 
 # Log environment for debugging
@@ -161,8 +163,8 @@ def validate_supabase_jwt(token: str) -> Optional[Dict[str, Any]]:
                 "exp": token_claims.get("exp"),
             }
         return None
-    except Exception as e:
-        print(f"JWT validation error: {e}")
+    except Exception as exc:
+        logger.debug("JWT validation failed: %s", exc)
         return None
 
 def validate_user_active(user_id: str) -> bool:
@@ -176,17 +178,19 @@ def validate_user_active(user_id: str) -> bool:
         if result.data and len(result.data) > 0:
             return result.data[0].get("active", False)
         return False
-    except Exception as e:
-        print(f"Error validating user active status: {e}")
+    except Exception as exc:
+        logger.error("Error validating active user status: %s", exc)
         return False
 
-def sync_user_supabase_uid(email: str, supabase_uid: str) -> None:
+def sync_user_supabase_uid(email: str, supabase_uid: str) -> bool:
     """
     Sync supabase_uid in usuarios table using service role
     """
     try:
         sb_admin = get_service()
         sb_admin.table("usuarios").update({"supabase_uid": supabase_uid}).eq("email", email).execute()
-        print(f"Synced supabase_uid for user: {email}")
-    except Exception as e:
-        print(f"Error syncing supabase_uid: {e}")
+        logger.info("Synced Supabase UID for an authorized user")
+        return True
+    except Exception as exc:
+        logger.error("Error syncing Supabase UID: %s", exc)
+        return False

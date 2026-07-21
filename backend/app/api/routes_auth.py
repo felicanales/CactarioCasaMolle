@@ -1,12 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Response, Request
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, Dict, Tuple
+from fastapi import APIRouter, HTTPException, Response, Request
+from pydantic import BaseModel, EmailStr, Field, field_validator
 import re
 import os
 import secrets as secrets_mod
-from datetime import datetime, timedelta
-from collections import defaultdict
-import threading
 import logging
 from app.core.supabase_auth import get_public, get_service
 from app.core.security import (
@@ -19,55 +15,10 @@ from app.core.security import (
     validate_user_active,
     revoke_auth_session,
 )
-from app.middleware.auth_middleware import get_current_user
+from app.middleware.rate_limiter import check_rate_limit
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# Rate limiting storage
-_rate_limit_store: Dict[str, list] = defaultdict(list)
-_rate_limit_lock = threading.Lock()
-
-def check_rate_limit(request: Request, limit: int, window_seconds: int) -> Tuple[bool, int]:
-    """
-    Check if request is within rate limit
-    
-    Args:
-        request: FastAPI request object
-        limit: Maximum number of requests allowed
-        window_seconds: Time window in seconds
-        
-    Returns:
-        Tuple of (is_allowed, time_remaining)
-    """
-    now = datetime.now()
-    client_ip = request.client.host if request.client else "unknown"
-    
-    with _rate_limit_lock:
-        # Clean old entries
-        client_requests = _rate_limit_store[client_ip]
-        cutoff_time = now - timedelta(seconds=window_seconds)
-        client_requests = [req_time for req_time in client_requests if req_time > cutoff_time]
-        
-        # Check if limit exceeded
-        if len(client_requests) >= limit:
-            # Calculate time remaining until oldest request expires
-            oldest_request = min(client_requests)
-            time_remaining = int((oldest_request + timedelta(seconds=window_seconds) - now).total_seconds())
-            return False, max(0, time_remaining)
-        
-        # Add current request
-        client_requests.append(now)
-        _rate_limit_store[client_ip] = client_requests
-        
-        # Calculate time remaining
-        if len(client_requests) > 1:
-            oldest_request = min(client_requests)
-            time_remaining = int((oldest_request + timedelta(seconds=window_seconds) - now).total_seconds())
-        else:
-            time_remaining = window_seconds
-        
-        return True, time_remaining
 
 # Validadores de seguridad
 def sanitize_email(email: str) -> str:
@@ -115,7 +66,8 @@ def sanitize_otp_code(code: str) -> str:
 class RequestOtpIn(BaseModel):
     email: EmailStr = Field(..., max_length=254)
     
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         return sanitize_email(v)
 
@@ -123,11 +75,13 @@ class VerifyOtpIn(BaseModel):
     email: EmailStr = Field(..., max_length=254)
     code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$')
     
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         return sanitize_email(v)
     
-    @validator('code')
+    @field_validator('code')
+    @classmethod
     def validate_code(cls, v):
         return sanitize_otp_code(v)
 
@@ -135,11 +89,13 @@ class MasterKeyLoginIn(BaseModel):
     email: EmailStr = Field(..., max_length=254)
     master_key: str = Field(..., min_length=8, max_length=512)
 
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         return sanitize_email(v)
 
-    @validator('master_key')
+    @field_validator('master_key')
+    @classmethod
     def normalize_master_key(cls, v):
         return v.strip()
 
@@ -148,7 +104,9 @@ class MasterKeyLoginIn(BaseModel):
 @router.post("/master-key-login")
 def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Response):
     """Fallback login con clave maestra cuando Supabase alcanza el límite de emails OTP."""
-    is_allowed, time_remaining = check_rate_limit(request, limit=5, window_seconds=60)
+    is_allowed, time_remaining = check_rate_limit(
+        request, limit=5, window_seconds=60, scope="master-key-login"
+    )
     if not is_allowed:
         raise HTTPException(429, f"Demasiados intentos. Espera {time_remaining} segundos.")
 
@@ -164,9 +122,10 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
     sb = get_public()
 
     try:
-        u = sb_admin.table("usuarios").select("id, active").eq("email", email).eq("active", True).limit(1).execute()
-    except Exception as e:
-        raise HTTPException(500, f"Error consultando usuarios: {e}")
+        u = sb_admin.table("usuarios").select("id, active, supabase_uid").eq("email", email).eq("active", True).limit(1).execute()
+    except Exception as exc:
+        logger.exception("Error consulting authorized users: %s", exc)
+        raise HTTPException(500, "No se pudo validar el acceso.") from exc
     if not u.data:
         raise HTTPException(403, "Este correo no está autorizado o está inactivo.")
 
@@ -179,15 +138,17 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
                 raise HTTPException(500, "No se pudo preparar el usuario en Auth.")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(500, f"Error verificando usuario en Auth: {e}")
+    except Exception as exc:
+        logger.exception("Error preparing Supabase Auth user: %s", exc)
+        raise HTTPException(500, "No se pudo preparar el usuario en Auth.") from exc
 
     try:
         link_res = sb_admin.auth.admin.generate_link({"type": "magiclink", "email": email})
         email_otp = link_res.properties.email_otp
         hashed_token = link_res.properties.hashed_token
-    except Exception as e:
-        raise HTTPException(500, f"Error generando token de acceso: {e}")
+    except Exception as exc:
+        logger.exception("Error generating alternate login link: %s", exc)
+        raise HTTPException(500, "No se pudo generar la sesión alternativa.") from exc
 
     session_res = None
     try:
@@ -198,17 +159,29 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
     if not session_res or not getattr(session_res, "session", None):
         try:
             session_res = sb.auth.verify_otp({"token_hash": hashed_token, "type": "magiclink"})
-        except Exception as e:
-            raise HTTPException(500, f"Error creando sesión: {e}")
+        except Exception as exc:
+            logger.exception("Error creating alternate session: %s", exc)
+            raise HTTPException(500, "No se pudo crear la sesión.") from exc
 
-    if not session_res or not session_res.session or not session_res.session.access_token:
+    if (
+        not session_res
+        or not session_res.session
+        or not session_res.session.access_token
+        or not session_res.user
+    ):
         raise HTTPException(500, "No se pudo crear la sesión.")
 
     # Vincular tambien el login con clave maestra a la whitelist local.
     # Sin esta sincronizacion, el JWT es valido pero validate_user_active()
     # no encuentra una fila activa porque supabase_uid queda NULL.
     auth_uid = str(session_res.user.id)
-    sync_user_supabase_uid(email, auth_uid)
+    user_row = u.data[0]
+    stored_uid = str(user_row.get("supabase_uid") or "")
+    if stored_uid and stored_uid != auth_uid:
+        logger.error("Supabase UID mismatch during alternate login")
+        raise HTTPException(403, "La cuenta requiere revisión del administrador.")
+    if not stored_uid and not sync_user_supabase_uid(email, auth_uid):
+        raise HTTPException(500, "No se pudo sincronizar el usuario con Supabase.")
     if not validate_user_active(auth_uid):
         raise HTTPException(500, "No se pudo sincronizar el usuario con Supabase.")
 
@@ -216,7 +189,6 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
 
     try:
         from app.services.audit_service import log_change
-        user_row = u.data[0]
         log_change(
             table_name="usuarios", record_id=user_row["id"], action="UPDATE",
             user_id=user_row["id"], user_email=email, user_name=None,
@@ -224,8 +196,8 @@ def master_key_login(request: Request, payload: MasterKeyLoginIn, response: Resp
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Could not audit alternate login: %s", exc)
 
     return {
         "access_token": session_res.session.access_token,
@@ -240,8 +212,10 @@ def request_otp(request: Request, payload: RequestOtpIn):
     Whitelist por email (tabla 'usuarios', active=true). Usamos service role para evitar RLS
     y creamos el usuario de Auth si aún no existe. Luego enviamos OTP.
     """
-    # Rate limiting: máximo 5 reque![1776814611481](image/routes_auth/1776814611481.png)![1776814626561](image/routes_auth/1776814626561.png)sts por minuto
-    is_allowed, time_remaining = check_rate_limit(request, limit=5, window_seconds=60)
+    # Rate limiting: máximo 5 solicitudes por minuto.
+    is_allowed, time_remaining = check_rate_limit(
+        request, limit=5, window_seconds=60, scope="request-otp"
+    )
     if not is_allowed:
         raise HTTPException(
             status_code=429,
@@ -249,7 +223,7 @@ def request_otp(request: Request, payload: RequestOtpIn):
         )
     
     email = payload.email.strip().lower()
-    print(f"[request_otp] Solicitud recibida para: {email}")
+    logger.info("OTP request received")
 
     sb_admin = get_service()  # service role
     sb = get_public()         # anon para el envío de OTP
@@ -257,12 +231,11 @@ def request_otp(request: Request, payload: RequestOtpIn):
     # 1) ¿Email autorizado (y activo)?
     try:
         u = sb_admin.table("usuarios").select("id").eq("email", email).eq("active", True).limit(1).execute()
-        print(f"[request_otp] Resultado whitelist: {u.data}")
-    except Exception as e:
-        print(f"[request_otp] Error consultando whitelist: {e}")
-        raise HTTPException(500, f"Error consultando whitelist: {e}")
+    except Exception as exc:
+        logger.exception("Error consulting OTP allowlist: %s", exc)
+        raise HTTPException(500, "No se pudo validar el acceso.") from exc
     if not u.data:
-        print(f"[request_otp] Email no autorizado o inactivo: {email}")
+        logger.warning("OTP request rejected for unauthorized or inactive email")
         raise HTTPException(403, "Este correo no está autorizado para acceder al sistema. Contacta al administrador si crees que esto es un error.")
 
     # 2) Revisar si ya existe user en Auth; si no, lo creamos con admin API
@@ -270,36 +243,30 @@ def request_otp(request: Request, payload: RequestOtpIn):
         users = sb_admin.auth.admin.list_users()
         auth_user = next((u for u in users if u.email == email), None)
 
-        if auth_user:
-            print(f"[request_otp] Usuario ya existe en Auth: {auth_user.id}")
-        else:
-            print(f"[request_otp] Usuario no existe en Auth. Creando...")
+        if not auth_user:
             created = sb_admin.auth.admin.create_user({
                 "email": email,
                 "email_confirm": True,
             })
             auth_user = getattr(created, "user", None)
-            if auth_user:
-                print(f"[request_otp] Usuario creado en Auth: {auth_user.id}")
-            else:
-                print(f"[request_otp] Falló la creación del usuario en Auth")
+            if not auth_user:
                 raise HTTPException(500, "No se pudo preparar el usuario para enviar OTP.")
-    except Exception as e:
-        print(f"[request_otp] Error al verificar/crear usuario en Auth: {e}")
-        raise HTTPException(500, "Error interno preparando el envio del codigo.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error preparing OTP user: %s", exc)
+        raise HTTPException(500, "Error interno preparando el envio del codigo.") from exc
 
 
     # 3) Enviar OTP
     try:
-        print(f"[request_otp] Enviando OTP a: {email}")
-        res = sb.auth.sign_in_with_otp({
+        sb.auth.sign_in_with_otp({
             "email": email,
             "options": { "should_create_user": False }
         })
-        print(f"[request_otp] OTP enviado. Respuesta: {res}")
-    except Exception as e:
-        print(f"[request_otp] Error al enviar OTP: {e}")
-        error_text = str(e).lower()
+    except Exception as exc:
+        logger.warning("Supabase rejected OTP delivery: %s", exc)
+        error_text = str(exc).lower()
         cooldown_match = re.search(r"after\s+(\d+)\s+seconds?", error_text)
         if "you can only request this after" in error_text:
             wait_seconds = cooldown_match.group(1) if cooldown_match else None
@@ -325,7 +292,7 @@ def request_otp(request: Request, payload: RequestOtpIn):
             )
         raise HTTPException(502, "No se pudo enviar el codigo de verificacion. Intenta nuevamente mas tarde.")
 
-    print(f"[request_otp] Proceso completado para: {email}")
+    logger.info("OTP delivery accepted")
     return  # 204
 
 @router.post("/verify-otp")
@@ -334,7 +301,9 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
     Verifica OTP usando Supabase como IdP, revalida whitelist y sincroniza supabase_uid
     """
     # Rate limiting: máximo 10 intentos por minuto
-    is_allowed, time_remaining = check_rate_limit(request, limit=10, window_seconds=60)
+    is_allowed, time_remaining = check_rate_limit(
+        request, limit=10, window_seconds=60, scope="verify-otp"
+    )
     if not is_allowed:
         raise HTTPException(
             status_code=429,
@@ -346,7 +315,7 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
     email = payload.email  # Ya sanitizado por el validador
     code = payload.code    # Ya sanitizado por el validador
     
-    print(f"[verify_otp] Verificando código para: {email}")
+    logger.info("OTP verification received")
 
     # 2) Verificar OTP con Supabase
     try:
@@ -359,25 +328,35 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
             raise HTTPException(400, str(res.error))
         if not res.session or not res.session.access_token or not res.user:
             raise HTTPException(400, "Código inválido o expirado")
-    except Exception as e:
-        raise HTTPException(400, f"Error verificando OTP: {e}")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.info("OTP verification rejected: %s", exc)
+        raise HTTPException(400, "Código inválido o expirado.") from exc
 
     auth_uid = str(res.user.id)
 
     # 3) Re-validar whitelist (usuario activo)
     try:
         w = sb_admin.table("usuarios").select("id, supabase_uid, active").eq("email", email).limit(1).execute()
-    except Exception as e:
-        raise HTTPException(500, f"Error consultando whitelist: {e}")
+    except Exception as exc:
+        logger.exception("Error consulting OTP allowlist: %s", exc)
+        raise HTTPException(500, "No se pudo validar el acceso.") from exc
 
     if not w.data or not w.data[0].get("active"):
         raise HTTPException(403, "Usuario no autorizado")
 
     row = w.data[0]
 
-    # 4) Sincronizar supabase_uid si no está
-    if not row.get("supabase_uid"):
-        sync_user_supabase_uid(email, auth_uid)
+    # 4) Sincronizar supabase_uid si no está y rechazar asociaciones distintas.
+    stored_uid = str(row.get("supabase_uid") or "")
+    if stored_uid and stored_uid != auth_uid:
+        logger.error("Supabase UID mismatch during OTP verification")
+        raise HTTPException(403, "La cuenta requiere revisión del administrador.")
+    if not stored_uid and not sync_user_supabase_uid(email, auth_uid):
+        raise HTTPException(500, "No se pudo sincronizar el usuario con Supabase.")
+    if not validate_user_active(auth_uid):
+        raise HTTPException(403, "Usuario no autorizado")
 
     # 5) Configurar cookies seguras de Supabase
     set_supabase_session_cookies(response, res.session)
@@ -402,9 +381,7 @@ def verify_otp(request: Request, payload: VerifyOtpIn, response: Response):
                 user_agent=user_agent
             )
     except Exception as audit_error:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"[verify_otp] Error logging login audit: {str(audit_error)}")
+        logger.warning("Could not audit OTP login: %s", audit_error)
 
     return {
         "access_token": res.session.access_token,
@@ -428,8 +405,14 @@ def refresh_token(response: Response, request: Request):
         # Use refresh_session instead of set_session to properly refresh tokens
         session_response = sb.auth.refresh_session(refresh_token)
         
-        if not session_response.session:
+        if not session_response.session or not session_response.session.access_token:
             raise HTTPException(401, "Invalid refresh token")
+
+        user_claims = validate_supabase_jwt(session_response.session.access_token)
+        if not user_claims:
+            raise HTTPException(401, "Invalid refresh token")
+        if not validate_user_active(user_claims["id"]):
+            raise HTTPException(403, "User account is inactive")
         
         # Update cookies with new tokens
         set_supabase_session_cookies(response, session_response.session)
@@ -440,25 +423,32 @@ def refresh_token(response: Response, request: Request):
             "expires_in": getattr(session_response.session, "expires_in", 3600),
         }
         
-    except Exception as e:
-        raise HTTPException(401, f"Token refresh failed: {e}")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.info("Token refresh failed: %s", exc)
+        raise HTTPException(401, "Token refresh failed") from exc
 
 @router.post("/logout", status_code=204)
 def logout(response: Response, request: Request):
     """
     Logout user and clear all session cookies
     """
-    token = get_token_from_request(request)
-    if token:
-        user_claims = validate_supabase_jwt(token)
-        if user_claims:
-            revoke_auth_session(user_claims)
-            try:
-                get_service().auth.admin.sign_out(token, scope="local")
-            except Exception as exc:
-                logger.warning("No se pudo cerrar la sesión en Supabase Auth: %s", exc)
-
-    clear_supabase_session_cookies(response)
+    try:
+        token = get_token_from_request(request)
+        if token:
+            user_claims = validate_supabase_jwt(token)
+            if user_claims:
+                try:
+                    revoke_auth_session(user_claims)
+                except Exception as exc:
+                    logger.warning("No se pudo revocar la sesión local: %s", exc)
+                try:
+                    get_service().auth.admin.sign_out(token, scope="local")
+                except Exception as exc:
+                    logger.warning("No se pudo cerrar la sesión en Supabase Auth: %s", exc)
+    finally:
+        clear_supabase_session_cookies(response)
     
     return
 

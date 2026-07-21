@@ -2,14 +2,16 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { getApiUrl } from "../../utils/api-config";
+import {
+  AUTH_BYPASS_ENABLED as BYPASS_AUTH,
+  AUTH_DEBUG_ENABLED as AUTH_DEBUG,
+} from "../../utils/auth-config";
 
 const AuthContext = createContext(null);
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
 // Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-const AUTH_DEBUG = process.env.NEXT_PUBLIC_AUTH_DEBUG === "true";
 
 // Usar configuración centralizada de API URL
 const API = getApiUrl();
@@ -70,6 +72,23 @@ const getTokenSource = () => {
   }
 
   return "none";
+};
+
+const buildRequestHeaders = (options, token) => {
+  const headers = { ...options.headers };
+  const hasContentType = Boolean(headers["Content-Type"] || headers["content-type"]);
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (options.body != null && !isFormData && !hasContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (!headers.Authorization && !headers.authorization && token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
 };
 
 const getAuthErrorCode = (detail) => {
@@ -236,11 +255,14 @@ export function AuthProvider({ children }) {
         });
 
         if (!res.ok) {
-          throw new Error("Token refresh failed");
+          const error = new Error("Token refresh failed");
+          error.status = res.status;
+          throw error;
         }
 
         const data = await res.json();
         if (data && data.access_token) {
+          accessTokenRef.current = data.access_token;
           setAccessToken(data.access_token);
         }
 
@@ -253,8 +275,10 @@ export function AuthProvider({ children }) {
         return true;
       } catch (error) {
         // If refresh fails, clear state and force re-login
-        const token = getAccessToken();
-        if (!token || isTokenExpired(token)) {
+        const token = accessTokenRef.current || getAccessToken();
+        const sessionRejected = error?.status === 401 || error?.status === 403;
+        if (sessionRejected || !token || isTokenExpired(token)) {
+          accessTokenRef.current = null;
           setUser(null);
           setAccessToken(null);
           clearPersistedAccessToken();
@@ -285,20 +309,6 @@ export function AuthProvider({ children }) {
   // apiRequest es una referencia estable: no lista accessToken como dependencia,
   // lo lee desde accessTokenRef para evitar re-renders en cascada en cada refresh.
   const apiRequest = useCallback(async (url, options = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (!headers.Authorization && !headers.authorization) {
-      // Prioridad 1: Ref del token (siempre actual, sin causar re-render)
-      // Prioridad 2: Cookie legible en desarrollo; en prod se usan cookies HttpOnly.
-      const token = accessTokenRef.current || getAccessToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
-
     const shouldSkipRefresh =
       typeof url === "string" &&
       (url.includes("/auth/request-otp") ||
@@ -313,6 +323,11 @@ export function AuthProvider({ children }) {
         await runRefresh();
       }
     }
+
+    const headers = buildRequestHeaders(
+      options,
+      accessTokenRef.current || getAccessToken()
+    );
 
     const doFetch = (fetchHeaders) => fetch(url, {
       ...options,
@@ -335,18 +350,13 @@ export function AuthProvider({ children }) {
     if (!shouldSkipRefresh && response.status === 401 && canRetry) {
       const refreshed = await runRefresh();
       if (refreshed) {
-        const retryHeaders = {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        };
-        if (!retryHeaders.Authorization && !retryHeaders.authorization) {
-          const retryToken = accessTokenRef.current || getAccessToken();
-          if (retryToken) {
-            retryHeaders['Authorization'] = `Bearer ${retryToken}`;
-          }
-        }
+        const retryHeaders = buildRequestHeaders(
+          options,
+          accessTokenRef.current || getAccessToken()
+        );
         response = await doFetch(retryHeaders);
       } else {
+        accessTokenRef.current = null;
         setUser(null);
         setAccessToken(null);
         clearPersistedAccessToken();
@@ -534,12 +544,6 @@ export function AuthProvider({ children }) {
       } catch {
         // Si no se puede parsear, usar mensaje genérico
       }
-      if (isSupabaseOtpLimitError(res.status, detail)) {
-        errorMessage =
-          detail && typeof detail === "object" && typeof detail.message === "string"
-            ? detail.message
-            : SUPABASE_EMAIL_LIMIT_UI_MESSAGE;
-      }
       const error = new Error(errorMessage);
       error.code = errorCode;
       error.isSupabaseOtpLimit = isSupabaseOtpLimitError(res.status, detail);
@@ -588,15 +592,12 @@ export function AuthProvider({ children }) {
 
     // Token se guarda en cookies autom?ticamente por el backend (m?s seguro)
     if (data.access_token) {
+      accessTokenRef.current = data.access_token;
       setAccessToken(data.access_token);
     }
     if (data.user) {
       setUser(data.user);
     }
-
-    // Esperar un poco para que las cookies se propaguen antes de llamar fetchMe
-    // Esto es necesario porque las cookies pueden no estar disponibles inmediatamente
-    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Actualizar estado completo con fetchMe
     try {
@@ -631,10 +632,10 @@ const loginWithMasterKey = async (email, masterKey) => {
     }
     const data = await res.json();
     if (data.access_token) {
+      accessTokenRef.current = data.access_token;
       setAccessToken(data.access_token);
     }
     if (data.user) setUser(data.user);
-    await new Promise(resolve => setTimeout(resolve, 200));
     try {
       const ok = await fetchMe(data.access_token || null);
       if (!ok && data.user) setUser(data.user);
@@ -650,6 +651,7 @@ const logout = async ({ redirectTo = "/login" } = {}) => {
         method: "POST",
       });
     } finally {
+      accessTokenRef.current = null;
       setUser(null);
       setAccessToken(null);
       clearPersistedAccessToken();

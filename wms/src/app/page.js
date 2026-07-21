@@ -4,11 +4,11 @@
 import { useAuth } from "./context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { AUTH_BYPASS_ENABLED as BYPASS_AUTH } from "../utils/auth-config";
 
 // BYPASS AUTH EN DESARROLLO LOCAL - REMOVER EN PRODUCCIÓN
 // Por defecto está DESACTIVADO (requiere autenticación)
 // Para activar en desarrollo: setear NEXT_PUBLIC_BYPASS_AUTH=true
-const BYPASS_AUTH = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
